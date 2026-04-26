@@ -12,9 +12,16 @@ Use this checklist as the execution order for `docs/hris-system-plan.md`. Comple
 
 ## Phase 1: Foundation
 - [ ] Implement authentication provider integration.
+- [ ] Implement LDAP / Active Directory directory sync and group-to-role mapping.
+- [ ] Add directory mapping tables and external identity linkage.
+- [ ] Define directory data model and sync event taxonomy.
+- [ ] Implement just-in-time account provisioning and scheduled sync jobs.
+- [ ] Add local permission override and audit tracking for directory-driven access.
+- [ ] Add directory provisioning workflow and role/group mapping examples.
 - [ ] Implement tenant model and tenant-aware request context.
 - [ ] Add row-level security strategy and tenant scoping enforcement.
 - [ ] Create user, role, permission, and menu access models.
+- [ ] Add People menu structure for onboarding, lifecycle, and self-service employment actions.
 - [ ] Create organization models for location, department, team, and manager relationships.
 - [ ] Add audit log foundation for all mutating actions.
 
@@ -22,7 +29,9 @@ Use this checklist as the execution order for `docs/hris-system-plan.md`. Comple
 - [ ] Build employee profile model and employment spell model.
 - [ ] Add effective-dated history for assignments, position, and compensation.
 - [ ] Implement employee lifecycle event log.
-- [ ] Implement hire, transfer, promotion, resignation, termination, and rehire records.
+- [ ] Define lifecycle event taxonomy for hire, transfer, promotion, resignation, termination, rehire, and secondment.
+- [ ] Implement hire, transfer, promotion, resignation, termination, rehire, and secondment records.
+- [ ] Add lifecycle event diagram and state machine documentation.
 - [ ] Build employee self-service profile screens.
 - [ ] Add import/export for employee records.
 
@@ -34,6 +43,8 @@ Use this checklist as the execution order for `docs/hris-system-plan.md`. Comple
 - [ ] Add document upload and policy acknowledgement capture.
 - [ ] Add payroll and access provisioning hooks on activation.
 - [ ] Add onboarding state machine and status transitions.
+- [ ] Add onboarding workflow diagram and approval path documentation.
+- [ ] Add support for onboarding cancellation, hold, and reactivation scenarios.
 
 ## Phase 4: Attendance and Leave
 - [ ] Implement location-specific attendance policies.
@@ -67,6 +78,7 @@ Use this checklist as the execution order for `docs/hris-system-plan.md`. Comple
 - [ ] Implement privacy workflows for export, erasure, and anonymization.
 - [ ] Add notification service for workflow and payroll events.
 - [ ] Add integration logs, retries, and dead-letter handling.
+- [ ] Add directory sync monitoring, reconciliation, and failure handling.
 - [ ] Add external API versioning and SDK generation.
 
 ## Phase 8: Testing and Release Readiness
@@ -85,4 +97,3 @@ Use this checklist as the execution order for `docs/hris-system-plan.md`. Comple
 - [ ] Approvals work for hire, transfer, promotion, resignation, and leave.
 - [ ] Audit and privacy requirements are in place.
 - [ ] Documentation is updated for all implemented modules.
-
