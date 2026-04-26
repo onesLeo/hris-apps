@@ -665,6 +665,221 @@ Use the same top-level menu groups across the app, but show each role only the s
 - Tracing for API calls and background jobs.
 - Alerting for payroll failures, attendance ingestion failures, and auth anomalies.
 
+## Logging Standards
+
+### Log Format
+All logs must be structured JSON. Every log entry must include the following standard fields regardless of module or severity.
+
+```json
+{
+  "timestamp":   "2026-04-26T08:30:00.000Z",
+  "level":       "info",
+  "request_id":  "req_01abc123",
+  "trace_id":    "trace_01xyz456",
+  "tenant_id":   "uuid",
+  "user_id":     "uuid",
+  "actor_role":  "payroll_admin",
+  "module":      "payroll",
+  "action":      "payroll.run.started",
+  "entity_type": "payroll_run",
+  "entity_id":   "uuid",
+  "message":     "Payroll run started for period 2026-04",
+  "context":     {},
+  "duration_ms": null,
+  "error":       null
+}
+```
+
+### Standard Fields
+
+| Field | Required | Description |
+|---|---|---|
+| `timestamp` | yes | ISO 8601 UTC |
+| `level` | yes | `debug`, `info`, `warn`, `error`, `fatal` |
+| `request_id` | yes | Unique per HTTP request or job execution |
+| `trace_id` | yes | Spans the full call chain including background jobs |
+| `tenant_id` | yes | Always present; enforced at the logging middleware layer |
+| `user_id` | yes | ID of the acting user or service account; `system` for scheduled jobs |
+| `actor_role` | yes | Role active at the time of the action |
+| `module` | yes | Top-level module: `identity`, `employee`, `attendance`, `leave`, `payroll`, `approval`, `audit`, `integration` |
+| `action` | yes | Dot-separated event name: `module.entity.verb` — e.g. `payroll.run.completed`, `leave.request.approved` |
+| `entity_type` | yes | The primary record affected: `employee`, `payroll_run`, `leave_request`, etc. |
+| `entity_id` | yes | UUID of the primary record |
+| `message` | yes | Human-readable summary. Must be specific enough to understand without the context object |
+| `context` | yes | Structured key-value payload. Module-specific fields go here |
+| `duration_ms` | when applicable | For operations with measurable duration: API calls, batch jobs, queries |
+| `error` | when applicable | Error object with `code`, `message`, and `stack` (stack in non-production only) |
+
+### Log Levels
+
+| Level | When to Use |
+|---|---|
+| `debug` | Detailed internals: policy resolution steps, loop iterations, intermediate values. Non-production only |
+| `info` | Normal operations: entity created, job started, approval submitted |
+| `warn` | Recoverable issues: retry attempted, fallback used, deprecated field read |
+| `error` | Operation failed but service continues: payslip generation failed for one employee, webhook delivery failed |
+| `fatal` | Service cannot continue: DB unreachable, config missing, unhandled crash |
+
+### No PII in Logs
+- Do not log names, email addresses, ID numbers, bank details, salary amounts, or biometric data as top-level fields.
+- Reference individuals by `employee_id` or `user_id` only.
+- Mask or omit sensitive values in the `context` object.
+
+### Module-Specific Context Fields
+
+#### Payroll
+```json
+"module": "payroll",
+"action": "payroll.run.employee.calculated",
+"context": {
+  "payroll_run_id":   "uuid",
+  "period":           "2026-04",
+  "location_id":      "uuid",
+  "employee_count":   120,
+  "gross_total":      null,
+  "calculation_step": "overtime",
+  "duration_ms":      340
+}
+```
+
+#### Attendance
+```json
+"module": "attendance",
+"action": "attendance.clock_event.ingested",
+"context": {
+  "device_id":        "uuid",
+  "location_id":      "uuid",
+  "event_checksum":   "sha256_hash",
+  "duplicate":        false,
+  "shift_id":         "uuid",
+  "clock_type":       "clock_in"
+}
+```
+
+#### Approval
+```json
+"module": "approval",
+"action": "approval.step.completed",
+"context": {
+  "workflow_instance_id": "uuid",
+  "step_index":           2,
+  "step_type":            "manager_approval",
+  "decision":             "approved",
+  "delegated":            false,
+  "escalated":            false
+}
+```
+
+#### Leave
+```json
+"module": "leave",
+"action": "leave.request.submitted",
+"context": {
+  "leave_type":     "annual",
+  "from_date":      "2026-05-01",
+  "to_date":        "2026-05-05",
+  "days_requested": 5,
+  "balance_before": 12
+}
+```
+
+#### Identity / Auth
+```json
+"module": "identity",
+"action": "identity.login.failed",
+"context": {
+  "provider":       "ldap",
+  "failure_reason": "invalid_credentials",
+  "attempt_count":  2
+}
+```
+
+---
+
+## Policy and Rule Resolution Logging
+
+The HRIS resolves rules through a five-level hierarchy. Every time a policy is resolved, a structured log entry must record which level supplied the effective value and which levels were checked but not matched.
+
+### Policy Hierarchy
+```
+1. Employee override      (most specific)
+2. Department rule
+3. Location rule
+4. Company default
+5. System default         (least specific)
+```
+
+### Resolution Log Format
+```json
+{
+  "module":      "policy",
+  "action":      "policy.resolved",
+  "entity_type": "employee",
+  "entity_id":   "uuid",
+  "context": {
+    "policy_type":       "overtime_rate",
+    "resolved_value":    1.5,
+    "resolved_at_level": "location",
+    "resolution_path": [
+      { "level": "employee",   "found": false },
+      { "level": "department", "found": false },
+      { "level": "location",   "found": true,  "source_id": "uuid" }
+    ],
+    "effective_date":    "2026-04-26",
+    "triggered_by":      "payroll.run.employee.calculated"
+  }
+}
+```
+
+### Resolution Log Rules
+- Always log `resolved_at_level` so it is immediately clear which tier of the hierarchy supplied the value.
+- Always log the full `resolution_path` array showing which levels were checked and whether each was found or skipped.
+- Include `source_id` on the level that matched — the UUID of the location, department, or employee override record that held the value.
+- Include `effective_date` to confirm the correct historical record was selected.
+- Include `triggered_by` to link the resolution back to the operation that needed the policy.
+- Log at `debug` level during normal operation; promote to `warn` if resolution fell all the way to `system_default` on a rule that is expected to be configured at a higher level.
+
+### Policy Types to Log
+Log resolution for every policy lookup that affects a financial or compliance outcome.
+
+| Policy Type | Typical Scope | Warn if Falls to System Default |
+|---|---|---|
+| `overtime_rate` | location or department | yes |
+| `attendance_deduction_rule` | location | yes |
+| `leave_accrual_rate` | company or location | yes |
+| `public_holiday_calendar` | location | yes |
+| `payroll_component_config` | company | yes |
+| `tax_jurisdiction` | location or employee | yes |
+| `approval_workflow_template` | department or location | yes |
+| `shift_pattern` | location | no |
+| `clock_method` | location | no |
+
+### Example: Rule Fell to System Default (warn)
+```json
+{
+  "level":   "warn",
+  "module":  "policy",
+  "action":  "policy.resolved",
+  "message": "overtime_rate resolved to system default; no rule configured at employee, department, location, or company level",
+  "context": {
+    "policy_type":       "overtime_rate",
+    "resolved_value":    1.0,
+    "resolved_at_level": "system_default",
+    "resolution_path": [
+      { "level": "employee",       "found": false },
+      { "level": "department",     "found": false },
+      { "level": "location",       "found": false },
+      { "level": "company",        "found": false },
+      { "level": "system_default", "found": true  }
+    ],
+    "effective_date": "2026-04-26"
+  }
+}
+```
+
+### Audit vs Observability Logs
+Policy resolution logs belong in the **observability log stream** (structured application logs), not the immutable audit event table. The audit table records what happened to business entities. The observability log records how the system computed a result. Both should be queryable when investigating a payroll or attendance discrepancy.
+
 ## Deployment Requirements
 - Use containerized services with separate build and runtime stages.
 - Run migrations before application rollout.
