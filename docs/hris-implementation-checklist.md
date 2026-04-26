@@ -5,6 +5,7 @@ Use this checklist as the execution order for `docs/hris-system-plan.md`. Comple
 ## Phase 0: Project Setup
 - [ ] Confirm the first release scope and jurisdictions.
 - [ ] Confirm tenant model, initial roles, and required biometric vendors.
+- [ ] Confirm delivery model for client-hosted portable installation.
 - [ ] Create repo structure for app, API, workers, shared libs, docs, and tests.
 - [ ] Set up local development environment and environment variables.
 - [ ] Create base CI pipeline for lint, typecheck, unit tests, and build.
@@ -80,6 +81,14 @@ Use this checklist as the execution order for `docs/hris-system-plan.md`. Comple
 - [ ] Add integration logs, retries, and dead-letter handling.
 - [ ] Add directory sync monitoring, reconciliation, and failure handling.
 - [ ] Add external API versioning and SDK generation.
+- [ ] Package portable client-hosted release artifacts and installation bundle.
+- [ ] Define client-hosted deployment topology and dependency layout.
+- [ ] Implement install-time bootstrap for config, secrets, database, cache, and storage.
+- [ ] Add license activation and offline license handling.
+- [ ] Add signed image or binary verification in the install flow.
+- [ ] Add offline install and upgrade path validation.
+- [ ] Add backup, restore, and rollback scripts for client-managed installs.
+- [ ] Add smoke-check and health-check automation for installer completion.
 
 ## Phase 8: Testing and Release Readiness
 - [ ] Add unit tests for policy resolution, approvals, attendance, payroll, and tax.
@@ -88,6 +97,9 @@ Use this checklist as the execution order for `docs/hris-system-plan.md`. Comple
 - [ ] Add security checks for secrets, dependencies, and SAST.
 - [ ] Add performance tests for payroll batches and attendance ingestion.
 - [ ] Add audit reconciliation tests.
+- [ ] Verify portable deployment installation in a clean client-hosted environment.
+- [ ] Verify license activation and environment-specific configuration.
+- [ ] Verify upgrade and rollback procedure on a staged client-hosted bundle.
 - [ ] Confirm production rollback and migration strategy.
 
 ## Definition of Done

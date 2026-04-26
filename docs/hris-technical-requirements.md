@@ -671,6 +671,124 @@ Use the same top-level menu groups across the app, but show each role only the s
 - Use background workers for payroll, reports, notifications, and attendance processing.
 - Maintain separate dev, test, staging, and production environments.
 
+## Portable / On-Prem Delivery Model
+If the product is sold as portable software installed on the client host, the delivery should include compiled runtime artifacts and installation assets only, not source code.
+
+### Recommended Packaging Model
+- Ship signed container images or signed binaries as the runtime artifact.
+- Ship an installation bundle that contains deployment manifests, scripts, sample configuration, and upgrade instructions.
+- Provide a client-hosted deployment option using Docker Compose for smaller installs or Kubernetes/Helm for larger environments.
+- Keep application source in the vendor repository only; do not distribute source code in the client package.
+- Provide an offline install mode for air-gapped client environments.
+
+### Portable Delivery Contents
+- Runtime containers or executable binaries
+- Database migration bundle
+- Configuration templates
+- License file or activation token mechanism
+- Backup and restore scripts
+- Upgrade / rollback scripts
+- Health check and smoke test utilities
+- Admin bootstrap credentials workflow
+
+### Runtime Characteristics
+- Client host owns infrastructure, data, backups, and network perimeter.
+- Vendor ships versioned releases and update bundles.
+- Versioned config files should support environment-specific overrides without code changes.
+- Secrets should be injected at install time and never hardcoded into the package.
+- Logging, telemetry, and update endpoints should be configurable for on-prem deployments.
+
+### Update Model
+- Support patch, minor, and major release bundles.
+- Support controlled upgrades with migration prechecks and rollback plans.
+- Preserve backward compatibility for config and database migrations where possible.
+- Require release signing and integrity verification before installation.
+- Document unsupported downgrade paths clearly if the database schema cannot safely roll back.
+
+### Client Delivery Options
+- Small client: single-server Docker Compose bundle
+- Medium client: multi-container Docker Compose or VM-based bundle
+- Large client: Kubernetes/Helm package for client-managed cluster
+
+### Security and Licensing for Portable Delivery
+- Use signed artifacts and checksum verification.
+- Require license activation or tenant-specific license keys.
+- Support tenant-scoped encryption keys if the customer owns the deployment.
+- Keep customer data isolated to the client environment and never depend on vendor-hosted source access.
+
+## On-Prem Distribution Architecture
+The portable/on-prem product should be delivered as a self-contained installation package that the client can deploy and operate on their own infrastructure.
+
+### Deployment Topology
+Recommended baseline topology:
+- Reverse proxy or ingress at the edge
+- Application service containers or binaries
+- Background worker containers
+- PostgreSQL database managed by the client or bundled as an optional managed component
+- Redis for cache, jobs, and sessions
+- Object storage for files and documents
+- Identity provider integration for LDAP / AD / SSO
+- Optional observability stack for logs, metrics, and traces
+
+```mermaid
+flowchart TD
+  U[Users / HR / Managers / Employees] --> P[Client Network / Reverse Proxy]
+  P --> A[HRIS App Services]
+  A --> W[Background Workers]
+  A --> D[(PostgreSQL)]
+  A --> R[(Redis)]
+  A --> S[(Object Storage)]
+  A --> I[Identity Provider / LDAP / AD]
+  W --> D
+  W --> R
+  W --> S
+```
+
+### Installer Flow
+Recommended installation flow:
+1. Customer receives signed release bundle.
+2. Customer verifies artifact integrity and license file.
+3. Installer validates host prerequisites and network requirements.
+4. Installer writes environment-specific config and secrets.
+5. Installer creates or connects database, cache, and object storage.
+6. Installer applies migrations and seeds bootstrap configuration.
+7. Installer starts app and worker services.
+8. Installer runs smoke checks and health checks.
+9. System is handed over to client operations.
+
+```mermaid
+flowchart TD
+  A[Signed release bundle] --> B[Integrity / license check]
+  B --> C[Prerequisite validation]
+  C --> D[Write config and secrets]
+  D --> E[Provision or connect dependencies]
+  E --> F[Run migrations]
+  F --> G[Start services]
+  G --> H[Run smoke checks]
+  H --> I[Go live]
+```
+
+### Licensing Flow
+- Use an activation key, license file, or signed token tied to tenant and environment.
+- Validate license state at startup and at regular intervals.
+- Support grace period behavior if connectivity to the licensing endpoint is unavailable.
+- Keep licensing checks separate from the main business database where possible.
+- Allow offline license activation for air-gapped installations.
+
+### Update and Rollback Flow
+- Ship updates as versioned release bundles.
+- Run preflight compatibility checks before upgrade.
+- Back up config and database state before applying changes.
+- Apply migrations in a controlled order.
+- Verify the new version with smoke tests before declaring success.
+- Keep a rollback package or documented rollback procedure for failed upgrades.
+- Do not promise rollback for destructive schema changes unless explicitly supported.
+
+### Operational Ownership
+- Client owns infrastructure, patching, backups, and access control.
+- Vendor owns release packaging, signatures, install docs, and update artifacts.
+- Support boundaries should be clear for database, identity, storage, and OS-level issues.
+
 ## Technical ADR Topics
 - Tenancy model
 - Policy resolution strategy
