@@ -1310,6 +1310,202 @@ CREATE TABLE audit_events (
 
 ---
 
+### Tax and Statutory Tables
+
+These tables support the pluggable jurisdiction engine. All rates and brackets are stored with `effective_from` / `effective_to` so annual government updates are applied through data changes, not code deployments.
+
+```sql
+-- One row per country/jurisdiction engine (e.g. Indonesia PPh21, Indonesia BPJS, Malaysia PCB)
+CREATE TABLE tax_jurisdictions (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id     UUID REFERENCES tenants(id),  -- NULL = system-provided, available to all tenants
+  country_code  CHAR(2) NOT NULL,
+  code          TEXT NOT NULL,                -- 'id_pph21', 'id_bpjs', 'my_pcb'
+  name          TEXT NOT NULL,
+  engine_class  TEXT NOT NULL,                -- maps to engine file: 'indonesia_pph21_ter'
+  is_active     BOOLEAN NOT NULL DEFAULT true,
+  UNIQUE (country_code, code)
+);
+
+-- Tax brackets and TER rates — effective-dated so annual updates are data changes
+CREATE TABLE tax_brackets (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  jurisdiction_id UUID NOT NULL REFERENCES tax_jurisdictions(id),
+  bracket_type    TEXT NOT NULL,
+  -- Indonesia: 'ter_a' | 'ter_b' | 'ter_c' | 'progressive'
+  -- Malaysia:  'pcb_schedule_1' etc.
+  income_from     NUMERIC(18,2) NOT NULL,
+  income_to       NUMERIC(18,2),             -- NULL = no upper limit (top bracket)
+  rate            NUMERIC(6,4) NOT NULL,     -- 0.05 = 5%
+  effective_from  DATE NOT NULL,
+  effective_to    DATE
+);
+
+-- Indonesia PTKP (Penghasilan Tidak Kena Pajak) — non-taxable income thresholds
+-- Effective-dated because PTKP is updated by government decree
+CREATE TABLE ptkp_categories (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  jurisdiction_id UUID NOT NULL REFERENCES tax_jurisdictions(id),
+  code            TEXT NOT NULL,             -- 'TK0' | 'TK1' | 'K0' | 'K1' | 'K2' | 'K3'
+  description     TEXT NOT NULL,             -- 'Tidak Kawin, 0 tanggungan'
+  annual_amount   NUMERIC(18,2) NOT NULL,
+  effective_from  DATE NOT NULL,
+  effective_to    DATE,
+  UNIQUE (jurisdiction_id, code, effective_from)
+);
+
+-- BPJS and other statutory contribution bands — effective-dated
+CREATE TABLE contribution_bands (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  jurisdiction_id UUID NOT NULL REFERENCES tax_jurisdictions(id),
+  code            TEXT NOT NULL,
+  -- 'bpjs_jht' | 'bpjs_jp' | 'bpjs_jkk_low' | 'bpjs_jkm' | 'bpjs_kesehatan'
+  name            TEXT NOT NULL,
+  employee_rate   NUMERIC(6,4) NOT NULL DEFAULT 0,
+  employer_rate   NUMERIC(6,4) NOT NULL DEFAULT 0,
+  wage_ceiling    NUMERIC(18,2),             -- NULL = no ceiling
+  wage_floor      NUMERIC(18,2),
+  effective_from  DATE NOT NULL,
+  effective_to    DATE,
+  UNIQUE (jurisdiction_id, code, effective_from)
+);
+
+-- Employee tax profile — which PTKP category and jurisdiction applies
+CREATE TABLE employee_tax_profiles (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  employee_id     UUID NOT NULL REFERENCES employees(id),
+  jurisdiction_id UUID NOT NULL REFERENCES tax_jurisdictions(id),
+  ptkp_category   TEXT NOT NULL,             -- 'TK0', 'K1', etc.
+  npwp            TEXT,                      -- tax ID, stored masked
+  effective_from  DATE NOT NULL,
+  effective_to    DATE
+);
+```
+
+---
+
+### Payroll Components
+
+HR admins configure the earning and deduction catalog through the UI. Statutory components (PPh21, BPJS) are seeded by the system and protected from deletion.
+
+```sql
+-- Configurable catalog of earnings, deductions, and employer contributions
+CREATE TABLE payroll_components (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id       UUID NOT NULL REFERENCES tenants(id),
+  code            TEXT NOT NULL,
+  name            TEXT NOT NULL,             -- 'Tunjangan Makan', 'Tunjangan Shift Malam'
+  type            TEXT NOT NULL,             -- 'earning' | 'deduction' | 'employer_contribution'
+  formula_type    TEXT NOT NULL,
+  -- 'fixed'          → fixed amount per period
+  -- 'pct_of_basic'   → percentage of base salary
+  -- 'per_shift_day'  → amount × number of shift days worked
+  -- 'table_lookup'   → resolved from tax_brackets or contribution_bands
+  formula_config  JSONB NOT NULL DEFAULT '{}',
+  -- fixed:         { "amount": 750000, "currency": "IDR" }
+  -- pct_of_basic:  { "rate": 0.05 }
+  -- per_shift_day: { "amount": 50000 }
+  taxable         BOOLEAN NOT NULL DEFAULT true,
+  statutory       BOOLEAN NOT NULL DEFAULT false, -- true = system-managed, cannot be deleted
+  is_active       BOOLEAN NOT NULL DEFAULT true,
+  UNIQUE (tenant_id, code)
+);
+
+-- Assign components to employees, departments, locations, or the whole company
+-- Follows the same 5-level policy hierarchy as other rules
+CREATE TABLE component_assignments (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  component_id    UUID NOT NULL REFERENCES payroll_components(id),
+  scope_level     TEXT NOT NULL,  -- 'employee' | 'department' | 'location' | 'company'
+  scope_id        UUID,           -- references the scoped entity; NULL for company-wide
+  value_override  JSONB,          -- override formula_config at this scope level
+  effective_from  DATE NOT NULL,
+  effective_to    DATE
+);
+```
+
+---
+
+### Public Holiday Calendars
+
+```sql
+-- Master calendar per country and year.
+-- tenant_id NULL = system-provided (available to all tenants).
+-- tenant_id set = custom calendar created by a specific tenant.
+CREATE TABLE holiday_calendars (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  country_code  CHAR(2) NOT NULL,
+  region_code   TEXT,              -- province or state code if applicable
+  year          INT NOT NULL,
+  name          TEXT NOT NULL,
+  source        TEXT NOT NULL DEFAULT 'system',  -- 'system' | 'custom'
+  tenant_id     UUID REFERENCES tenants(id),
+  UNIQUE (country_code, region_code, year, tenant_id)
+);
+
+-- Individual holiday dates within a calendar
+CREATE TABLE public_holidays (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  calendar_id    UUID NOT NULL REFERENCES holiday_calendars(id),
+  date           DATE NOT NULL,
+  name           TEXT NOT NULL,   -- in local language (e.g. 'Hari Kemerdekaan')
+  name_en        TEXT,            -- English translation
+  is_substitute  BOOLEAN NOT NULL DEFAULT false,
+  original_date  DATE,            -- the Sunday date when is_substitute = true
+  UNIQUE (calendar_id, date)
+);
+
+-- Junction: which master calendar a location uses
+CREATE TABLE location_holiday_calendars (
+  location_id   UUID NOT NULL REFERENCES locations(id),
+  calendar_id   UUID NOT NULL REFERENCES holiday_calendars(id),
+  PRIMARY KEY (location_id, calendar_id)
+);
+
+-- Company-specific holidays added by HR admin (stack on top of the master calendar)
+CREATE TABLE company_holidays (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id    UUID NOT NULL REFERENCES tenants(id),
+  location_id  UUID REFERENCES locations(id),  -- NULL = applies to all locations
+  date         DATE NOT NULL,
+  name         TEXT NOT NULL,
+  created_by   UUID REFERENCES users(id),
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+---
+
+### Biometric Devices
+
+```sql
+-- Registered biometric or clock devices per location
+CREATE TABLE devices (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id     UUID NOT NULL REFERENCES tenants(id),
+  location_id   UUID NOT NULL REFERENCES locations(id),
+  device_code   TEXT NOT NULL,
+  name          TEXT NOT NULL,
+  model         TEXT,
+  protocol      TEXT NOT NULL,  -- 'webhook' | 'polling' | 'file_drop' | 'mqtt'
+  last_sync_at  TIMESTAMPTZ,
+  is_active     BOOLEAN NOT NULL DEFAULT true,
+  UNIQUE (tenant_id, device_code)
+);
+
+-- Employee enrolled on a device (one employee can enroll on multiple devices)
+CREATE TABLE device_enrollments (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  device_id    UUID NOT NULL REFERENCES devices(id),
+  employee_id  UUID NOT NULL REFERENCES employees(id),
+  enrolled_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  is_active    BOOLEAN NOT NULL DEFAULT true,
+  UNIQUE (device_id, employee_id)
+);
+```
+
+---
+
 ## API Specification
 
 ### Conventions
