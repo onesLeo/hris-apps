@@ -15,7 +15,8 @@ Use this checklist as the execution order for `docs/hris-system-plan.md`. Comple
 - [x] Define Phase 0 backend defaults for module boundaries, auth/tenant model, first entities, and API conventions.
 - [x] Add ADR folder and documentation convention.
 - [x] Review Aurora UI/UX handoff and capture the desktop/mobile design system.
-- [x] Add Phase 0 learning docs for project setup, backend defaults, and Aurora UI/UX design.
+- [x] Add ADR 007 consolidating the Phase 0 backend defaults and Aurora UI/UX design.
+- [x] Add Phase 0 learning docs for project setup and implementation references.
 - [x] Implement the Aurora responsive web shell for Dashboard, People, Leave, and Approvals.
 - [x] Add the API health module and versioned `/api/v1` prefix.
 - [ ] Configure BullMQ with Redis connection.
@@ -24,7 +25,7 @@ Use this checklist as the execution order for `docs/hris-system-plan.md`. Comple
 - [ ] Implement global ExceptionFilter with ADR 006 error shape.
 - [ ] Define API conventions: URL versioning, cursor-based pagination, consistent JSON error format, and OpenAPI generation from backend definitions.
 - [ ] Create base CI pipeline for lint, typecheck, unit tests, and build.
-- [ ] Add ADR folder and documentation convention.
+- [x] Add ADR folder and documentation convention.
 - [ ] Add missing ADRs: policy resolution strategy, workflow engine design, biometric adapter contract, payroll calculation order, identity provider choice, and reporting storage strategy.
 - [ ] Seed Indonesia tax data: initial TER brackets, PTKP categories, and BPJS rates (ADR 004 — required before payroll can run).
 

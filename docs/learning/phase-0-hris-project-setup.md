@@ -6,11 +6,11 @@ It is written for a Java/Spring Boot developer so the NestJS/TypeScript choices 
 Primary references:
 - [ADR 001: Tech Stack](../adr/001-tech-stack.md)
 - [ADR 002: Project Structure](../adr/002-project-structure.md)
+- [ADR 007: Phase 0 Design Foundation](../adr/007-phase-0-design-foundation.md)
 - [ERD Overview](../erd/README.md)
 - [Org Structure ERD](../erd/01-org-structure.md)
 - [Identity / Access ERD](../erd/02-identity-access.md)
 - [Employee Lifecycle ERD](../erd/03-employee-lifecycle.md)
-- [Aurora UI/UX Design](phase-0-aurora-uiux-design.md)
 
 ---
 
@@ -187,7 +187,7 @@ The frontend should use the Aurora visual system as its initial design language.
 - DM Sans typography
 
 Reference the design note for the full implementation target:
-- [Aurora UI/UX Design](phase-0-aurora-uiux-design.md)
+- [ADR 007: Phase 0 Design Foundation](../adr/007-phase-0-design-foundation.md)
 
 ---
 
