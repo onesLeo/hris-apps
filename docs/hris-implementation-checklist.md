@@ -31,6 +31,8 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 - [x] Extract the Organization screen into its own frontend feature module.
 - [x] Extract the Approvals screen into its own frontend feature module.
 - [x] Move the Dashboard and Approvals screens to dedicated locale helpers.
+- [x] Remove Dashboard and Approvals copy from the shared app copy module.
+- [x] Reduce the shared app copy module to shell-only metadata and chrome strings.
 - [x] Extract the Attendance screen into its own frontend feature module.
 - [x] Extract the Reports screen into its own frontend feature module.
 - [x] Extract the Recruitment screen into its own frontend feature module.
