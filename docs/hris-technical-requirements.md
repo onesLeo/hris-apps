@@ -665,129 +665,1352 @@ Use the same top-level menu groups across the app, but show each role only the s
 - Tracing for API calls and background jobs.
 - Alerting for payroll failures, attendance ingestion failures, and auth anomalies.
 
+## Logging Standards
+
+### Log Format
+All logs must be structured JSON. Every log entry must include the following standard fields regardless of module or severity.
+
+```json
+{
+  "timestamp":   "2026-04-26T08:30:00.000Z",
+  "level":       "info",
+  "request_id":  "req_01abc123",
+  "trace_id":    "trace_01xyz456",
+  "tenant_id":   "uuid",
+  "user_id":     "uuid",
+  "actor_role":  "payroll_admin",
+  "module":      "payroll",
+  "action":      "payroll.run.started",
+  "entity_type": "payroll_run",
+  "entity_id":   "uuid",
+  "message":     "Payroll run started for period 2026-04",
+  "context":     {},
+  "duration_ms": null,
+  "error":       null
+}
+```
+
+### Standard Fields
+
+| Field | Required | Description |
+|---|---|---|
+| `timestamp` | yes | ISO 8601 UTC |
+| `level` | yes | `debug`, `info`, `warn`, `error`, `fatal` |
+| `request_id` | yes | Unique per HTTP request or job execution |
+| `trace_id` | yes | Spans the full call chain including background jobs |
+| `tenant_id` | yes | Always present; enforced at the logging middleware layer |
+| `user_id` | yes | ID of the acting user or service account; `system` for scheduled jobs |
+| `actor_role` | yes | Role active at the time of the action |
+| `module` | yes | Top-level module: `identity`, `employee`, `attendance`, `leave`, `payroll`, `approval`, `audit`, `integration` |
+| `action` | yes | Dot-separated event name: `module.entity.verb` — e.g. `payroll.run.completed`, `leave.request.approved` |
+| `entity_type` | yes | The primary record affected: `employee`, `payroll_run`, `leave_request`, etc. |
+| `entity_id` | yes | UUID of the primary record |
+| `message` | yes | Human-readable summary. Must be specific enough to understand without the context object |
+| `context` | yes | Structured key-value payload. Module-specific fields go here |
+| `duration_ms` | when applicable | For operations with measurable duration: API calls, batch jobs, queries |
+| `error` | when applicable | Error object with `code`, `message`, and `stack` (stack in non-production only) |
+
+### Log Levels
+
+| Level | When to Use |
+|---|---|
+| `debug` | Detailed internals: policy resolution steps, loop iterations, intermediate values. Non-production only |
+| `info` | Normal operations: entity created, job started, approval submitted |
+| `warn` | Recoverable issues: retry attempted, fallback used, deprecated field read |
+| `error` | Operation failed but service continues: payslip generation failed for one employee, webhook delivery failed |
+| `fatal` | Service cannot continue: DB unreachable, config missing, unhandled crash |
+
+### No PII in Logs
+- Do not log names, email addresses, ID numbers, bank details, salary amounts, or biometric data as top-level fields.
+- Reference individuals by `employee_id` or `user_id` only.
+- Mask or omit sensitive values in the `context` object.
+
+### Module-Specific Context Fields
+
+#### Payroll
+```json
+"module": "payroll",
+"action": "payroll.run.employee.calculated",
+"context": {
+  "payroll_run_id":   "uuid",
+  "period":           "2026-04",
+  "location_id":      "uuid",
+  "employee_count":   120,
+  "gross_total":      null,
+  "calculation_step": "overtime",
+  "duration_ms":      340
+}
+```
+
+#### Attendance
+```json
+"module": "attendance",
+"action": "attendance.clock_event.ingested",
+"context": {
+  "device_id":        "uuid",
+  "location_id":      "uuid",
+  "event_checksum":   "sha256_hash",
+  "duplicate":        false,
+  "shift_id":         "uuid",
+  "clock_type":       "clock_in"
+}
+```
+
+#### Approval
+```json
+"module": "approval",
+"action": "approval.step.completed",
+"context": {
+  "workflow_instance_id": "uuid",
+  "step_index":           2,
+  "step_type":            "manager_approval",
+  "decision":             "approved",
+  "delegated":            false,
+  "escalated":            false
+}
+```
+
+#### Leave
+```json
+"module": "leave",
+"action": "leave.request.submitted",
+"context": {
+  "leave_type":     "annual",
+  "from_date":      "2026-05-01",
+  "to_date":        "2026-05-05",
+  "days_requested": 5,
+  "balance_before": 12
+}
+```
+
+#### Identity / Auth
+```json
+"module": "identity",
+"action": "identity.login.failed",
+"context": {
+  "provider":       "ldap",
+  "failure_reason": "invalid_credentials",
+  "attempt_count":  2
+}
+```
+
+---
+
+## Policy and Rule Resolution Logging
+
+The HRIS resolves rules through a five-level hierarchy. Every time a policy is resolved, a structured log entry must record which level supplied the effective value and which levels were checked but not matched.
+
+### Policy Hierarchy
+```
+1. Employee override      (most specific)
+2. Department rule
+3. Location rule
+4. Company default
+5. System default         (least specific)
+```
+
+### Resolution Log Format
+```json
+{
+  "module":      "policy",
+  "action":      "policy.resolved",
+  "entity_type": "employee",
+  "entity_id":   "uuid",
+  "context": {
+    "policy_type":       "overtime_rate",
+    "resolved_value":    1.5,
+    "resolved_at_level": "location",
+    "resolution_path": [
+      { "level": "employee",   "found": false },
+      { "level": "department", "found": false },
+      { "level": "location",   "found": true,  "source_id": "uuid" }
+    ],
+    "effective_date":    "2026-04-26",
+    "triggered_by":      "payroll.run.employee.calculated"
+  }
+}
+```
+
+### Resolution Log Rules
+- Always log `resolved_at_level` so it is immediately clear which tier of the hierarchy supplied the value.
+- Always log the full `resolution_path` array showing which levels were checked and whether each was found or skipped.
+- Include `source_id` on the level that matched — the UUID of the location, department, or employee override record that held the value.
+- Include `effective_date` to confirm the correct historical record was selected.
+- Include `triggered_by` to link the resolution back to the operation that needed the policy.
+- Log at `debug` level during normal operation; promote to `warn` if resolution fell all the way to `system_default` on a rule that is expected to be configured at a higher level.
+
+### Policy Types to Log
+Log resolution for every policy lookup that affects a financial or compliance outcome.
+
+| Policy Type | Typical Scope | Warn if Falls to System Default |
+|---|---|---|
+| `overtime_rate` | location or department | yes |
+| `attendance_deduction_rule` | location | yes |
+| `leave_accrual_rate` | company or location | yes |
+| `public_holiday_calendar` | location | yes |
+| `payroll_component_config` | company | yes |
+| `tax_jurisdiction` | location or employee | yes |
+| `approval_workflow_template` | department or location | yes |
+| `shift_pattern` | location | no |
+| `clock_method` | location | no |
+
+### Example: Rule Fell to System Default (warn)
+```json
+{
+  "level":   "warn",
+  "module":  "policy",
+  "action":  "policy.resolved",
+  "message": "overtime_rate resolved to system default; no rule configured at employee, department, location, or company level",
+  "context": {
+    "policy_type":       "overtime_rate",
+    "resolved_value":    1.0,
+    "resolved_at_level": "system_default",
+    "resolution_path": [
+      { "level": "employee",       "found": false },
+      { "level": "department",     "found": false },
+      { "level": "location",       "found": false },
+      { "level": "company",        "found": false },
+      { "level": "system_default", "found": true  }
+    ],
+    "effective_date": "2026-04-26"
+  }
+}
+```
+
+### Audit vs Observability Logs
+Policy resolution logs belong in the **observability log stream** (structured application logs), not the immutable audit event table. The audit table records what happened to business entities. The observability log records how the system computed a result. Both should be queryable when investigating a payroll or attendance discrepancy.
+
+## Database Schema
+
+### Design Rules
+- Every table has `id UUID PRIMARY KEY DEFAULT gen_random_uuid()`.
+- Every table that belongs to a tenant has `tenant_id UUID NOT NULL REFERENCES tenants(id)`.
+- Row-level security is enabled on every tenant-scoped table.
+- Mutable business records use `effective_from / effective_to` instead of updates.
+- Audit-critical tables are append-only; updates are not permitted.
+- Timestamps are always stored as `TIMESTAMPTZ` in UTC.
+
+---
+
+### Core: Tenants and Organisation
+
+```sql
+CREATE TABLE tenants (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  slug          TEXT NOT NULL UNIQUE,
+  name          TEXT NOT NULL,
+  country_code  CHAR(2) NOT NULL,
+  timezone      TEXT NOT NULL DEFAULT 'UTC',
+  status        TEXT NOT NULL DEFAULT 'active',   -- active | suspended | cancelled
+  created_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+CREATE TABLE locations (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id     UUID NOT NULL REFERENCES tenants(id),
+  name          TEXT NOT NULL,
+  code          TEXT NOT NULL,
+  country_code  CHAR(2) NOT NULL,
+  state         TEXT,
+  timezone      TEXT NOT NULL,
+  clock_method  TEXT NOT NULL DEFAULT 'biometric', -- biometric | qr | kiosk | gps | manual
+  address       JSONB,
+  is_active     BOOLEAN NOT NULL DEFAULT true,
+  UNIQUE (tenant_id, code)
+);
+
+CREATE TABLE departments (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id     UUID NOT NULL REFERENCES tenants(id),
+  location_id   UUID REFERENCES locations(id),
+  parent_id     UUID REFERENCES departments(id),
+  name          TEXT NOT NULL,
+  code          TEXT NOT NULL,
+  is_active     BOOLEAN NOT NULL DEFAULT true,
+  UNIQUE (tenant_id, code)
+);
+```
+
+---
+
+### Identity and Access
+
+```sql
+CREATE TABLE users (
+  id               UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id        UUID NOT NULL REFERENCES tenants(id),
+  email            TEXT NOT NULL,
+  display_name     TEXT NOT NULL,
+  status           TEXT NOT NULL DEFAULT 'active',  -- active | disabled | pending
+  mfa_enabled      BOOLEAN NOT NULL DEFAULT false,
+  last_login_at    TIMESTAMPTZ,
+  created_at       TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (tenant_id, email)
+);
+
+CREATE TABLE roles (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id   UUID REFERENCES tenants(id),  -- NULL = platform-level role
+  code        TEXT NOT NULL,
+  name        TEXT NOT NULL,
+  is_system   BOOLEAN NOT NULL DEFAULT false,
+  UNIQUE (tenant_id, code)
+);
+
+CREATE TABLE user_role_assignments (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id       UUID NOT NULL REFERENCES users(id),
+  role_id       UUID NOT NULL REFERENCES roles(id),
+  scope_type    TEXT,              -- tenant | location | department | null (global)
+  scope_id      UUID,
+  granted_by    UUID REFERENCES users(id),
+  granted_at    TIMESTAMPTZ NOT NULL DEFAULT now(),
+  expires_at    TIMESTAMPTZ,
+  source        TEXT NOT NULL DEFAULT 'local'  -- local | directory_sync | policy_override
+);
+
+CREATE TABLE identity_providers (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id     UUID NOT NULL REFERENCES tenants(id),
+  name          TEXT NOT NULL,
+  protocol      TEXT NOT NULL,   -- ldap | oidc | saml
+  config        JSONB NOT NULL,  -- encrypted connection config
+  is_active     BOOLEAN NOT NULL DEFAULT true
+);
+
+CREATE TABLE external_identity_accounts (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id         UUID NOT NULL REFERENCES users(id),
+  provider_id     UUID NOT NULL REFERENCES identity_providers(id),
+  external_sub    TEXT NOT NULL,   -- subject / DN from directory
+  username        TEXT,
+  last_synced_at  TIMESTAMPTZ,
+  sync_status     TEXT NOT NULL DEFAULT 'ok',
+  UNIQUE (provider_id, external_sub)
+);
+```
+
+---
+
+### Employees
+
+```sql
+CREATE TABLE employees (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id       UUID NOT NULL REFERENCES tenants(id),
+  user_id         UUID REFERENCES users(id),
+  employee_no     TEXT NOT NULL,
+  status          TEXT NOT NULL DEFAULT 'active',
+  -- active | on_leave | suspended | terminated | resigned
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (tenant_id, employee_no)
+);
+
+-- One spell per continuous employment period; rehire creates a new spell
+CREATE TABLE employment_spells (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  employee_id     UUID NOT NULL REFERENCES employees(id),
+  tenant_id       UUID NOT NULL REFERENCES tenants(id),
+  start_date      DATE NOT NULL,
+  end_date        DATE,
+  end_reason      TEXT,  -- resignation | termination | contract_end
+  is_current      BOOLEAN NOT NULL DEFAULT true
+);
+
+-- Effective-dated assignment: location, department, role, manager, cost centre
+CREATE TABLE employee_assignments (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  employee_id     UUID NOT NULL REFERENCES employees(id),
+  spell_id        UUID NOT NULL REFERENCES employment_spells(id),
+  location_id     UUID NOT NULL REFERENCES locations(id),
+  department_id   UUID REFERENCES departments(id),
+  job_title       TEXT NOT NULL,
+  job_grade       TEXT,
+  manager_id      UUID REFERENCES employees(id),
+  cost_centre     TEXT,
+  effective_from  DATE NOT NULL,
+  effective_to    DATE,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Effective-dated compensation history
+CREATE TABLE employee_compensation (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  employee_id     UUID NOT NULL REFERENCES employees(id),
+  spell_id        UUID NOT NULL REFERENCES employment_spells(id),
+  currency        CHAR(3) NOT NULL,
+  base_salary     NUMERIC(15,2) NOT NULL,
+  pay_frequency   TEXT NOT NULL,  -- monthly | bi_weekly | weekly
+  effective_from  DATE NOT NULL,
+  effective_to    DATE,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+
+-- Immutable log of every lifecycle event
+CREATE TABLE lifecycle_events (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  employee_id     UUID NOT NULL REFERENCES employees(id),
+  tenant_id       UUID NOT NULL REFERENCES tenants(id),
+  event_type      TEXT NOT NULL,
+  -- hire | transfer | promotion | resignation | termination | rehire | secondment
+  effective_date  DATE NOT NULL,
+  initiated_by    UUID REFERENCES users(id),
+  payload         JSONB NOT NULL,  -- before/after snapshot
+  approval_ref    UUID,            -- workflow_instances.id
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+---
+
+### Attendance
+
+```sql
+CREATE TABLE shifts (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id       UUID NOT NULL REFERENCES tenants(id),
+  location_id     UUID REFERENCES locations(id),
+  name            TEXT NOT NULL,
+  start_time      TIME NOT NULL,
+  end_time        TIME NOT NULL,
+  break_minutes   INT NOT NULL DEFAULT 0,
+  overnight       BOOLEAN NOT NULL DEFAULT false
+);
+
+CREATE TABLE shift_assignments (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  employee_id     UUID NOT NULL REFERENCES employees(id),
+  shift_id        UUID NOT NULL REFERENCES shifts(id),
+  effective_from  DATE NOT NULL,
+  effective_to    DATE
+);
+
+-- Raw events from biometric device or any clock method; never modified after insert
+CREATE TABLE clock_events (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id       UUID NOT NULL REFERENCES tenants(id),
+  device_id       TEXT,
+  employee_id     UUID REFERENCES employees(id),
+  event_type      TEXT NOT NULL,  -- clock_in | clock_out | break_start | break_end
+  event_time      TIMESTAMPTZ NOT NULL,
+  source          TEXT NOT NULL,  -- biometric | qr | kiosk | gps | manual
+  raw_payload     JSONB,
+  checksum        TEXT NOT NULL,  -- deduplication key
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  UNIQUE (checksum)
+) PARTITION BY RANGE (event_time);
+
+-- Processed daily record derived from clock events
+CREATE TABLE attendance_records (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  employee_id     UUID NOT NULL REFERENCES employees(id),
+  tenant_id       UUID NOT NULL REFERENCES tenants(id),
+  work_date       DATE NOT NULL,
+  shift_id        UUID REFERENCES shifts(id),
+  clock_in        TIMESTAMPTZ,
+  clock_out       TIMESTAMPTZ,
+  worked_minutes  INT,
+  late_minutes    INT NOT NULL DEFAULT 0,
+  absent          BOOLEAN NOT NULL DEFAULT false,
+  overtime_mins   INT NOT NULL DEFAULT 0,
+  status          TEXT NOT NULL DEFAULT 'present',
+  -- present | absent | half_day | holiday | on_leave
+  UNIQUE (employee_id, work_date)
+) PARTITION BY RANGE (work_date);
+```
+
+---
+
+### Leave
+
+```sql
+CREATE TABLE leave_types (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id       UUID NOT NULL REFERENCES tenants(id),
+  code            TEXT NOT NULL,
+  name            TEXT NOT NULL,
+  paid            BOOLEAN NOT NULL DEFAULT true,
+  accrual_based   BOOLEAN NOT NULL DEFAULT false,
+  carry_over      BOOLEAN NOT NULL DEFAULT false,
+  UNIQUE (tenant_id, code)
+);
+
+CREATE TABLE leave_balances (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  employee_id     UUID NOT NULL REFERENCES employees(id),
+  leave_type_id   UUID NOT NULL REFERENCES leave_types(id),
+  year            INT NOT NULL,
+  entitled_days   NUMERIC(5,1) NOT NULL,
+  taken_days      NUMERIC(5,1) NOT NULL DEFAULT 0,
+  pending_days    NUMERIC(5,1) NOT NULL DEFAULT 0,
+  carried_over    NUMERIC(5,1) NOT NULL DEFAULT 0,
+  UNIQUE (employee_id, leave_type_id, year)
+);
+
+CREATE TABLE leave_requests (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  employee_id     UUID NOT NULL REFERENCES employees(id),
+  tenant_id       UUID NOT NULL REFERENCES tenants(id),
+  leave_type_id   UUID NOT NULL REFERENCES leave_types(id),
+  from_date       DATE NOT NULL,
+  to_date         DATE NOT NULL,
+  days_requested  NUMERIC(5,1) NOT NULL,
+  reason          TEXT,
+  status          TEXT NOT NULL DEFAULT 'pending',
+  -- pending | approved | rejected | cancelled
+  approval_ref    UUID,
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+---
+
+### Approvals / Workflow
+
+```sql
+CREATE TABLE workflow_templates (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id       UUID NOT NULL REFERENCES tenants(id),
+  code            TEXT NOT NULL,
+  request_type    TEXT NOT NULL,  -- leave | transfer | promotion | resignation | ...
+  scope_type      TEXT,           -- location | department | null (tenant-wide)
+  scope_id        UUID,
+  steps           JSONB NOT NULL, -- ordered step definitions
+  is_active       BOOLEAN NOT NULL DEFAULT true,
+  UNIQUE (tenant_id, code)
+);
+
+CREATE TABLE workflow_instances (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  template_id     UUID NOT NULL REFERENCES workflow_templates(id),
+  tenant_id       UUID NOT NULL REFERENCES tenants(id),
+  request_type    TEXT NOT NULL,
+  entity_type     TEXT NOT NULL,
+  entity_id       UUID NOT NULL,
+  requestor_id    UUID NOT NULL REFERENCES users(id),
+  status          TEXT NOT NULL DEFAULT 'pending',
+  -- pending | in_progress | approved | rejected | cancelled
+  started_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  completed_at    TIMESTAMPTZ
+);
+
+CREATE TABLE workflow_step_instances (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  instance_id     UUID NOT NULL REFERENCES workflow_instances(id),
+  step_index      INT NOT NULL,
+  step_type       TEXT NOT NULL,  -- manager | hr | payroll | location_head
+  assignee_id     UUID REFERENCES users(id),
+  status          TEXT NOT NULL DEFAULT 'pending',
+  decision        TEXT,           -- approved | rejected | delegated
+  delegated_to    UUID REFERENCES users(id),
+  comment         TEXT,
+  decided_at      TIMESTAMPTZ,
+  due_at          TIMESTAMPTZ
+);
+```
+
+---
+
+### Payroll
+
+```sql
+CREATE TABLE payroll_periods (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id       UUID NOT NULL REFERENCES tenants(id),
+  label           TEXT NOT NULL,   -- e.g. "April 2026"
+  start_date      DATE NOT NULL,
+  end_date        DATE NOT NULL,
+  pay_date        DATE NOT NULL,
+  status          TEXT NOT NULL DEFAULT 'open',  -- open | locked | paid
+  UNIQUE (tenant_id, start_date)
+);
+
+CREATE TABLE payroll_runs (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  period_id       UUID NOT NULL REFERENCES payroll_periods(id),
+  tenant_id       UUID NOT NULL REFERENCES tenants(id),
+  location_id     UUID REFERENCES locations(id),
+  status          TEXT NOT NULL DEFAULT 'draft',
+  -- draft | calculating | review | approved | finalised
+  initiated_by    UUID NOT NULL REFERENCES users(id),
+  approved_by     UUID REFERENCES users(id),
+  started_at      TIMESTAMPTZ NOT NULL DEFAULT now(),
+  finalised_at    TIMESTAMPTZ
+);
+
+-- One row per employee per run; locked after finalisation
+CREATE TABLE payroll_run_items (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  run_id          UUID NOT NULL REFERENCES payroll_runs(id),
+  employee_id     UUID NOT NULL REFERENCES employees(id),
+  currency        CHAR(3) NOT NULL,
+  gross_pay       NUMERIC(15,2) NOT NULL DEFAULT 0,
+  total_deductions NUMERIC(15,2) NOT NULL DEFAULT 0,
+  employer_contributions NUMERIC(15,2) NOT NULL DEFAULT 0,
+  net_pay         NUMERIC(15,2) NOT NULL DEFAULT 0,
+  components      JSONB NOT NULL,  -- itemised breakdown
+  tax_detail      JSONB NOT NULL,  -- jurisdiction-specific detail
+  locked          BOOLEAN NOT NULL DEFAULT false,
+  UNIQUE (run_id, employee_id)
+);
+
+CREATE TABLE payslips (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  run_item_id     UUID NOT NULL REFERENCES payroll_run_items(id),
+  employee_id     UUID NOT NULL REFERENCES employees(id),
+  tenant_id       UUID NOT NULL REFERENCES tenants(id),
+  period_label    TEXT NOT NULL,
+  file_path       TEXT,           -- S3 / storage reference
+  generated_at    TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+---
+
+### Policy Rules
+
+```sql
+-- Generic policy store covering attendance, overtime, leave accrual, etc.
+CREATE TABLE policy_rules (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id       UUID NOT NULL REFERENCES tenants(id),
+  policy_type     TEXT NOT NULL,
+  -- overtime_rate | attendance_deduction | leave_accrual | clock_method | ...
+  scope_level     TEXT NOT NULL,  -- employee | department | location | company | system_default
+  scope_id        UUID,           -- employee_id / department_id / location_id; NULL for company/system
+  value           JSONB NOT NULL,
+  effective_from  DATE NOT NULL,
+  effective_to    DATE,
+  created_by      UUID REFERENCES users(id),
+  created_at      TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+---
+
+### Audit Events
+
+```sql
+-- Append-only; no UPDATE or DELETE permitted
+CREATE TABLE audit_events (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id       UUID NOT NULL REFERENCES tenants(id),
+  actor_id        UUID,
+  actor_role      TEXT,
+  entity_type     TEXT NOT NULL,
+  entity_id       UUID NOT NULL,
+  action          TEXT NOT NULL,
+  before_state    JSONB,
+  after_state     JSONB,
+  request_id      TEXT,
+  ip_address      INET,
+  occurred_at     TIMESTAMPTZ NOT NULL DEFAULT now()
+) PARTITION BY RANGE (occurred_at);
+```
+
+---
+
+### Tax and Statutory Tables
+
+These tables support the pluggable jurisdiction engine. All rates and brackets are stored with `effective_from` / `effective_to` so annual government updates are applied through data changes, not code deployments.
+
+```sql
+-- One row per country/jurisdiction engine (e.g. Indonesia PPh21, Indonesia BPJS, Malaysia PCB)
+CREATE TABLE tax_jurisdictions (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id     UUID REFERENCES tenants(id),  -- NULL = system-provided, available to all tenants
+  country_code  CHAR(2) NOT NULL,
+  code          TEXT NOT NULL,                -- 'id_pph21', 'id_bpjs', 'my_pcb'
+  name          TEXT NOT NULL,
+  engine_class  TEXT NOT NULL,                -- maps to engine file: 'indonesia_pph21_ter'
+  is_active     BOOLEAN NOT NULL DEFAULT true,
+  UNIQUE (country_code, code)
+);
+
+-- Tax brackets and TER rates — effective-dated so annual updates are data changes
+CREATE TABLE tax_brackets (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  jurisdiction_id UUID NOT NULL REFERENCES tax_jurisdictions(id),
+  bracket_type    TEXT NOT NULL,
+  -- Indonesia: 'ter_a' | 'ter_b' | 'ter_c' | 'progressive'
+  -- Malaysia:  'pcb_schedule_1' etc.
+  income_from     NUMERIC(18,2) NOT NULL,
+  income_to       NUMERIC(18,2),             -- NULL = no upper limit (top bracket)
+  rate            NUMERIC(6,4) NOT NULL,     -- 0.05 = 5%
+  effective_from  DATE NOT NULL,
+  effective_to    DATE
+);
+
+-- Indonesia PTKP (Penghasilan Tidak Kena Pajak) — non-taxable income thresholds
+-- Effective-dated because PTKP is updated by government decree
+CREATE TABLE ptkp_categories (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  jurisdiction_id UUID NOT NULL REFERENCES tax_jurisdictions(id),
+  code            TEXT NOT NULL,             -- 'TK0' | 'TK1' | 'K0' | 'K1' | 'K2' | 'K3'
+  description     TEXT NOT NULL,             -- 'Tidak Kawin, 0 tanggungan'
+  annual_amount   NUMERIC(18,2) NOT NULL,
+  effective_from  DATE NOT NULL,
+  effective_to    DATE,
+  UNIQUE (jurisdiction_id, code, effective_from)
+);
+
+-- BPJS and other statutory contribution bands — effective-dated
+CREATE TABLE contribution_bands (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  jurisdiction_id UUID NOT NULL REFERENCES tax_jurisdictions(id),
+  code            TEXT NOT NULL,
+  -- 'bpjs_jht' | 'bpjs_jp' | 'bpjs_jkk_low' | 'bpjs_jkm' | 'bpjs_kesehatan'
+  name            TEXT NOT NULL,
+  employee_rate   NUMERIC(6,4) NOT NULL DEFAULT 0,
+  employer_rate   NUMERIC(6,4) NOT NULL DEFAULT 0,
+  wage_ceiling    NUMERIC(18,2),             -- NULL = no ceiling
+  wage_floor      NUMERIC(18,2),
+  effective_from  DATE NOT NULL,
+  effective_to    DATE,
+  UNIQUE (jurisdiction_id, code, effective_from)
+);
+
+-- Employee tax profile — which PTKP category and jurisdiction applies
+CREATE TABLE employee_tax_profiles (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  employee_id     UUID NOT NULL REFERENCES employees(id),
+  jurisdiction_id UUID NOT NULL REFERENCES tax_jurisdictions(id),
+  ptkp_category   TEXT NOT NULL,             -- 'TK0', 'K1', etc.
+  npwp            TEXT,                      -- tax ID, stored masked
+  effective_from  DATE NOT NULL,
+  effective_to    DATE
+);
+```
+
+---
+
+### Payroll Components
+
+HR admins configure the earning and deduction catalog through the UI. Statutory components (PPh21, BPJS) are seeded by the system and protected from deletion.
+
+```sql
+-- Configurable catalog of earnings, deductions, and employer contributions
+CREATE TABLE payroll_components (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id       UUID NOT NULL REFERENCES tenants(id),
+  code            TEXT NOT NULL,
+  name            TEXT NOT NULL,             -- 'Tunjangan Makan', 'Tunjangan Shift Malam'
+  type            TEXT NOT NULL,             -- 'earning' | 'deduction' | 'employer_contribution'
+  formula_type    TEXT NOT NULL,
+  -- 'fixed'          → fixed amount per period
+  -- 'pct_of_basic'   → percentage of base salary
+  -- 'per_shift_day'  → amount × number of shift days worked
+  -- 'table_lookup'   → resolved from tax_brackets or contribution_bands
+  formula_config  JSONB NOT NULL DEFAULT '{}',
+  -- fixed:         { "amount": 750000, "currency": "IDR" }
+  -- pct_of_basic:  { "rate": 0.05 }
+  -- per_shift_day: { "amount": 50000 }
+  taxable         BOOLEAN NOT NULL DEFAULT true,
+  statutory       BOOLEAN NOT NULL DEFAULT false, -- true = system-managed, cannot be deleted
+  is_active       BOOLEAN NOT NULL DEFAULT true,
+  UNIQUE (tenant_id, code)
+);
+
+-- Assign components to employees, departments, locations, or the whole company
+-- Follows the same 5-level policy hierarchy as other rules
+CREATE TABLE component_assignments (
+  id              UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  component_id    UUID NOT NULL REFERENCES payroll_components(id),
+  scope_level     TEXT NOT NULL,  -- 'employee' | 'department' | 'location' | 'company'
+  scope_id        UUID,           -- references the scoped entity; NULL for company-wide
+  value_override  JSONB,          -- override formula_config at this scope level
+  effective_from  DATE NOT NULL,
+  effective_to    DATE
+);
+```
+
+---
+
+### Public Holiday Calendars
+
+```sql
+-- Master calendar per country and year.
+-- tenant_id NULL = system-provided (available to all tenants).
+-- tenant_id set = custom calendar created by a specific tenant.
+CREATE TABLE holiday_calendars (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  country_code  CHAR(2) NOT NULL,
+  region_code   TEXT,              -- province or state code if applicable
+  year          INT NOT NULL,
+  name          TEXT NOT NULL,
+  source        TEXT NOT NULL DEFAULT 'system',  -- 'system' | 'custom'
+  tenant_id     UUID REFERENCES tenants(id),
+  UNIQUE (country_code, region_code, year, tenant_id)
+);
+
+-- Individual holiday dates within a calendar
+CREATE TABLE public_holidays (
+  id             UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  calendar_id    UUID NOT NULL REFERENCES holiday_calendars(id),
+  date           DATE NOT NULL,
+  name           TEXT NOT NULL,   -- in local language (e.g. 'Hari Kemerdekaan')
+  name_en        TEXT,            -- English translation
+  is_substitute  BOOLEAN NOT NULL DEFAULT false,
+  original_date  DATE,            -- the Sunday date when is_substitute = true
+  UNIQUE (calendar_id, date)
+);
+
+-- Junction: which master calendar a location uses
+CREATE TABLE location_holiday_calendars (
+  location_id   UUID NOT NULL REFERENCES locations(id),
+  calendar_id   UUID NOT NULL REFERENCES holiday_calendars(id),
+  PRIMARY KEY (location_id, calendar_id)
+);
+
+-- Company-specific holidays added by HR admin (stack on top of the master calendar)
+CREATE TABLE company_holidays (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id    UUID NOT NULL REFERENCES tenants(id),
+  location_id  UUID REFERENCES locations(id),  -- NULL = applies to all locations
+  date         DATE NOT NULL,
+  name         TEXT NOT NULL,
+  created_by   UUID REFERENCES users(id),
+  created_at   TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+```
+
+---
+
+### Biometric Devices
+
+```sql
+-- Registered biometric or clock devices per location
+CREATE TABLE devices (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id     UUID NOT NULL REFERENCES tenants(id),
+  location_id   UUID NOT NULL REFERENCES locations(id),
+  device_code   TEXT NOT NULL,
+  name          TEXT NOT NULL,
+  model         TEXT,
+  protocol      TEXT NOT NULL,  -- 'webhook' | 'polling' | 'file_drop' | 'mqtt'
+  last_sync_at  TIMESTAMPTZ,
+  is_active     BOOLEAN NOT NULL DEFAULT true,
+  UNIQUE (tenant_id, device_code)
+);
+
+-- Employee enrolled on a device (one employee can enroll on multiple devices)
+CREATE TABLE device_enrollments (
+  id           UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  device_id    UUID NOT NULL REFERENCES devices(id),
+  employee_id  UUID NOT NULL REFERENCES employees(id),
+  enrolled_at  TIMESTAMPTZ NOT NULL DEFAULT now(),
+  is_active    BOOLEAN NOT NULL DEFAULT true,
+  UNIQUE (device_id, employee_id)
+);
+```
+
+---
+
+## API Specification
+
+### Conventions
+- Base path: `/api/v1/`
+- Auth: `Authorization: Bearer <jwt>` on every request.
+- Tenant: resolved from the JWT claim; clients must not pass tenant ID in the body.
+- Errors: always `{ "error": { "code": "SNAKE_CASE", "message": "...", "detail": {} } }`.
+- Pagination: cursor-based — `?after=<cursor>&limit=50`; response includes `"next_cursor"`.
+- Timestamps: ISO 8601 UTC in both requests and responses.
+
+---
+
+### Auth
+| Method | Path | Description |
+|---|---|---|
+| `POST` | `/auth/login` | Password login; returns access + refresh tokens |
+| `POST` | `/auth/refresh` | Rotate refresh token |
+| `POST` | `/auth/logout` | Revoke current session |
+| `GET`  | `/auth/me` | Current user profile and resolved permissions |
+
+---
+
+### Employees
+| Method | Path | Description |
+|---|---|---|
+| `GET`    | `/employees` | List employees (paginated, filterable by location/department/status) |
+| `POST`   | `/employees` | Create employee shell (used by onboarding flow) |
+| `GET`    | `/employees/:id` | Get employee profile |
+| `PATCH`  | `/employees/:id` | Update non-effective-dated fields (contact info, etc.) |
+| `GET`    | `/employees/:id/assignments` | List all effective-dated assignment history |
+| `GET`    | `/employees/:id/compensation` | List compensation history |
+| `GET`    | `/employees/:id/lifecycle-events` | List all lifecycle events |
+| `POST`   | `/employees/:id/lifecycle-events` | Submit a lifecycle event (transfer, promotion, etc.) |
+| `GET`    | `/employees/:id/payslips` | List payslips for self-service |
+
+**Create employee — request body**
+```json
+{
+  "employee_no":    "EMP-0042",
+  "spell": {
+    "start_date": "2026-05-01"
+  },
+  "assignment": {
+    "location_id":    "uuid",
+    "department_id":  "uuid",
+    "job_title":      "Software Engineer",
+    "job_grade":      "L3",
+    "manager_id":     "uuid"
+  },
+  "compensation": {
+    "currency":       "MYR",
+    "base_salary":    6000.00,
+    "pay_frequency":  "monthly"
+  }
+}
+```
+
+---
+
+### Attendance
+| Method | Path | Description |
+|---|---|---|
+| `POST`  | `/attendance/clock-events` | Ingest a clock event (biometric, QR, manual) |
+| `POST`  | `/attendance/clock-events/batch` | Bulk ingest (biometric device sync) |
+| `GET`   | `/attendance/records` | List processed attendance records (filter by employee, date range, location) |
+| `GET`   | `/attendance/records/:employee_id/:date` | Single day record |
+| `PATCH` | `/attendance/records/:id` | Manual correction (HR only) |
+| `GET`   | `/attendance/shifts` | List shifts |
+| `POST`  | `/attendance/shifts` | Create shift |
+| `GET`   | `/attendance/shifts/:id/assignments` | List employees on this shift |
+
+**Clock event — request body**
+```json
+{
+  "device_id":    "GATE-01",
+  "employee_id":  "uuid",
+  "event_type":   "clock_in",
+  "event_time":   "2026-04-26T08:02:00Z",
+  "source":       "biometric",
+  "raw_payload":  {}
+}
+```
+
+---
+
+### Leave
+| Method | Path | Description |
+|---|---|---|
+| `GET`   | `/leave/types` | List leave types for the tenant |
+| `GET`   | `/leave/balances` | List balances (filter by employee, year) |
+| `GET`   | `/leave/balances/:employee_id` | Single employee's balances |
+| `POST`  | `/leave/requests` | Submit a leave request |
+| `GET`   | `/leave/requests` | List requests (filter by status, employee, date range) |
+| `GET`   | `/leave/requests/:id` | Get single request |
+| `PATCH` | `/leave/requests/:id/cancel` | Cancel a pending request |
+
+---
+
+### Approvals
+| Method | Path | Description |
+|---|---|---|
+| `GET`   | `/approvals/workflows` | List workflow templates |
+| `POST`  | `/approvals/workflows` | Create workflow template |
+| `GET`   | `/approvals/instances` | List instances assigned to the current user |
+| `GET`   | `/approvals/instances/:id` | Get instance with all step details |
+| `POST`  | `/approvals/instances/:id/steps/:step_index/decide` | Approve, reject, or delegate a step |
+
+**Decide — request body**
+```json
+{
+  "decision":     "approved",
+  "comment":      "Looks good.",
+  "delegated_to": null
+}
+```
+
+---
+
+### Payroll
+| Method | Path | Description |
+|---|---|---|
+| `GET`   | `/payroll/periods` | List payroll periods |
+| `POST`  | `/payroll/periods` | Create a payroll period |
+| `POST`  | `/payroll/runs` | Initiate a payroll run (enqueues background job) |
+| `GET`   | `/payroll/runs/:id` | Poll run status and summary |
+| `GET`   | `/payroll/runs/:id/items` | List per-employee items for the run |
+| `POST`  | `/payroll/runs/:id/approve` | Approve a completed run |
+| `POST`  | `/payroll/runs/:id/finalise` | Lock run; triggers payslip generation |
+| `GET`   | `/payroll/payslips/:id` | Download payslip (returns signed S3 URL) |
+
+---
+
+### Organisation
+| Method | Path | Description |
+|---|---|---|
+| `GET`   | `/org/locations` | List locations |
+| `POST`  | `/org/locations` | Create location |
+| `PATCH` | `/org/locations/:id` | Update location |
+| `GET`   | `/org/departments` | List departments |
+| `POST`  | `/org/departments` | Create department |
+| `GET`   | `/org/policy-rules` | List policy rules (filterable by type and scope) |
+| `POST`  | `/org/policy-rules` | Create or override a policy rule |
+
+---
+
+### Reports and Audit
+| Method | Path | Description |
+|---|---|---|
+| `POST`  | `/reports/generate` | Enqueue a report job; returns `{ "job_id": "..." }` |
+| `GET`   | `/reports/jobs/:id` | Poll report job status |
+| `GET`   | `/reports/jobs/:id/download` | Download completed report (signed URL) |
+| `GET`   | `/audit/events` | Search audit events (filter by entity, actor, date range) |
+| `GET`   | `/audit/events/:id` | Get single audit event |
+
+---
+
 ## Deployment Requirements
 - Use containerized services with separate build and runtime stages.
 - Run migrations before application rollout.
 - Use background workers for payroll, reports, notifications, and attendance processing.
 - Maintain separate dev, test, staging, and production environments.
 
-## Portable / On-Prem Delivery Model
-If the product is sold as portable software installed on the client host, the delivery should include compiled runtime artifacts and installation assets only, not source code.
+---
 
-### Recommended Packaging Model
-- Ship signed container images or signed binaries as the runtime artifact.
-- Ship an installation bundle that contains deployment manifests, scripts, sample configuration, and upgrade instructions.
-- Provide a client-hosted deployment option using Docker Compose for smaller installs or Kubernetes/Helm for larger environments.
-- Keep application source in the vendor repository only; do not distribute source code in the client package.
-- Provide an offline install mode for air-gapped client environments.
+## Infrastructure
 
-### Portable Delivery Contents
-- Runtime containers or executable binaries
-- Database migration bundle
-- Configuration templates
-- License file or activation token mechanism
-- Backup and restore scripts
-- Upgrade / rollback scripts
-- Health check and smoke test utilities
-- Admin bootstrap credentials workflow
+### Design Philosophy
+The initial target is small and medium businesses that may only have a single on-premise server or a basic VPS from a local cloud provider. The infrastructure must be simple to operate, require no Kubernetes expertise, and fit on a single machine while still being promotable to a two-server setup when the customer grows.
 
-### Runtime Characteristics
-- Client host owns infrastructure, data, backups, and network perimeter.
-- Vendor ships versioned releases and update bundles.
-- Versioned config files should support environment-specific overrides without code changes.
-- Secrets should be injected at install time and never hardcoded into the package.
-- Logging, telemetry, and update endpoints should be configurable for on-prem deployments.
+### Minimum Server Requirements
 
-### Update Model
-- Support patch, minor, and major release bundles.
-- Support controlled upgrades with migration prechecks and rollback plans.
-- Preserve backward compatibility for config and database migrations where possible.
-- Require release signing and integrity verification before installation.
-- Document unsupported downgrade paths clearly if the database schema cannot safely roll back.
+| Tier | Use case | CPU | RAM | Disk |
+|---|---|---|---|---|
+| Starter | ≤ 200 employees, single location | 2 vCPU | 4 GB | 40 GB SSD |
+| Standard | ≤ 1 000 employees, multiple locations | 4 vCPU | 8 GB | 80 GB SSD |
+| Growth | > 1 000 employees or heavy payroll batch | 8 vCPU | 16 GB | 200 GB SSD |
 
-### Client Delivery Options
-- Small client: single-server Docker Compose bundle
-- Medium client: multi-container Docker Compose or VM-based bundle
-- Large client: Kubernetes/Helm package for client-managed cluster
+All tiers run the same Docker Compose stack. Customers scale by upgrading the server, not by changing the architecture.
 
-### Security and Licensing for Portable Delivery
-- Use signed artifacts and checksum verification.
-- Require license activation or tenant-specific license keys.
-- Support tenant-scoped encryption keys if the customer owns the deployment.
-- Keep customer data isolated to the client environment and never depend on vendor-hosted source access.
+---
 
-## On-Prem Distribution Architecture
-The portable/on-prem product should be delivered as a self-contained installation package that the client can deploy and operate on their own infrastructure.
+### Single-Server Docker Compose Stack
 
-### Deployment Topology
-Recommended baseline topology:
-- Reverse proxy or ingress at the edge
-- Application service containers or binaries
-- Background worker containers
-- PostgreSQL database managed by the client or bundled as an optional managed component
-- Redis for cache, jobs, and sessions
-- Object storage for files and documents
-- Identity provider integration for LDAP / AD / SSO
-- Optional observability stack for logs, metrics, and traces
-
-```mermaid
-flowchart TD
-  U[Users / HR / Managers / Employees] --> P[Client Network / Reverse Proxy]
-  P --> A[HRIS App Services]
-  A --> W[Background Workers]
-  A --> D[(PostgreSQL)]
-  A --> R[(Redis)]
-  A --> S[(Object Storage)]
-  A --> I[Identity Provider / LDAP / AD]
-  W --> D
-  W --> R
-  W --> S
+```
+┌──────────────────────────────────────────────────┐
+│                  Customer Server                  │
+│                                                   │
+│  ┌─────────┐   ┌─────────┐   ┌───────────────┐   │
+│  │  nginx  │   │   web   │   │      api      │   │
+│  │ :80/443 │──▶│ Next.js │   │   NestJS      │   │
+│  └─────────┘   └─────────┘   └───────────────┘   │
+│                       │             │             │
+│                       └──────┬──────┘             │
+│                              ▼                    │
+│                ┌─────────────────────────┐        │
+│                │         worker          │        │
+│                │ (payroll / attendance / │        │
+│                │  notify / reports)      │        │
+│                └─────────────────────────┘        │
+│                       │             │             │
+│              ┌────────┘             └───────┐     │
+│              ▼                             ▼     │
+│         ┌──────────┐              ┌──────────┐   │
+│         │ postgres │              │  redis   │   │
+│         └──────────┘              └──────────┘   │
+└──────────────────────────────────────────────────┘
 ```
 
-### Installer Flow
-Recommended installation flow:
-1. Customer receives signed release bundle.
-2. Customer verifies artifact integrity and license file.
-3. Installer validates host prerequisites and network requirements.
-4. Installer writes environment-specific config and secrets.
-5. Installer creates or connects database, cache, and object storage.
-6. Installer applies migrations and seeds bootstrap configuration.
-7. Installer starts app and worker services.
-8. Installer runs smoke checks and health checks.
-9. System is handed over to client operations.
+### `docker-compose.yml`
 
-```mermaid
-flowchart TD
-  A[Signed release bundle] --> B[Integrity / license check]
-  B --> C[Prerequisite validation]
-  C --> D[Write config and secrets]
-  D --> E[Provision or connect dependencies]
-  E --> F[Run migrations]
-  F --> G[Start services]
-  G --> H[Run smoke checks]
-  H --> I[Go live]
+```yaml
+version: "3.9"
+
+services:
+  nginx:
+    image: nginx:1.27-alpine
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./nginx/certs:/etc/nginx/certs:ro
+    depends_on:
+      - web
+      - api
+
+  web:
+    image: registry.yourdomain.com/hris/web:${APP_VERSION}
+    restart: unless-stopped
+    environment:
+      - NEXT_PUBLIC_API_URL=https://${DOMAIN}/api
+    depends_on:
+      - api
+
+  api:
+    image: registry.yourdomain.com/hris/api:${APP_VERSION}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - NODE_ENV=production
+      - RUN_MODE=api
+    depends_on:
+      - postgres
+      - redis
+
+  worker:
+    image: registry.yourdomain.com/hris/api:${APP_VERSION}
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - NODE_ENV=production
+      - RUN_MODE=worker
+    depends_on:
+      - postgres
+      - redis
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB:       ${DB_NAME}
+      POSTGRES_USER:     ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: redis-server --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - redis_data:/data
+
+volumes:
+  postgres_data:
+  redis_data:
 ```
 
-### Licensing Flow
-- Use an activation key, license file, or signed token tied to tenant and environment.
-- Validate license state at startup and at regular intervals.
-- Support grace period behavior if connectivity to the licensing endpoint is unavailable.
-- Keep licensing checks separate from the main business database where possible.
-- Allow offline license activation for air-gapped installations.
+### Customer `.env` File
 
-### Update and Rollback Flow
-- Ship updates as versioned release bundles.
-- Run preflight compatibility checks before upgrade.
-- Back up config and database state before applying changes.
-- Apply migrations in a controlled order.
-- Verify the new version with smoke tests before declaring success.
-- Keep a rollback package or documented rollback procedure for failed upgrades.
-- Do not promise rollback for destructive schema changes unless explicitly supported.
+```env
+APP_VERSION=1.0.0
+DOMAIN=hris.company.com
 
-### Operational Ownership
-- Client owns infrastructure, patching, backups, and access control.
-- Vendor owns release packaging, signatures, install docs, and update artifacts.
-- Support boundaries should be clear for database, identity, storage, and OS-level issues.
+DB_NAME=hris
+DB_USER=hris_user
+DB_PASSWORD=<strong-password>
+
+DATABASE_URL=postgresql://hris_user:<password>@postgres:5432/hris
+
+REDIS_PASSWORD=<strong-password>
+REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
+
+JWT_SECRET=<generated-secret>
+JWT_EXPIRES_IN=15m
+JWT_REFRESH_EXPIRES_IN=7d
+
+STORAGE_DRIVER=local        # local | s3
+STORAGE_LOCAL_PATH=/app/storage
+
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+
+LICENSE_KEY=<issued-license-key>
+```
+
+### Nginx Config (minimal)
+
+```nginx
+server {
+    listen 80;
+    server_name _;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name _;
+
+    ssl_certificate     /etc/nginx/certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/privkey.pem;
+
+    location /api/ {
+        proxy_pass         http://api:3000/;
+        proxy_set_header   Host $host;
+        proxy_set_header   X-Real-IP $remote_addr;
+        proxy_set_header   X-Request-ID $request_id;
+    }
+
+    location / {
+        proxy_pass         http://web:3001/;
+        proxy_set_header   Host $host;
+    }
+}
+```
+
+### Migrations
+
+Migrations run as a one-shot container before the api starts:
+
+```bash
+docker compose run --rm api node dist/cli migrate:latest
+docker compose up -d
+```
+
+### Backup
+
+```bash
+# Daily DB backup cron on the server
+docker exec hris-postgres pg_dump -U $DB_USER $DB_NAME | \
+  gzip > /backups/hris_$(date +%F).sql.gz
+```
+
+Retain 30 days locally. Advise customers to also copy backups off-server (SFTP, object storage, etc.).
+
+### Two-Server Split (when they grow)
+
+When a customer outgrows one server, move postgres and redis to a dedicated DB server with no code changes. Update `DATABASE_URL` and `REDIS_URL` in `.env` to point to the new host.
+
+---
+
+## Product Distribution and Source Code Protection
+
+### The Problem
+When deploying on a customer's own server, they have physical access to the machine. You need to prevent them from reading, modifying, or redistributing your source code without destroying the ability to run the product.
+
+### Delivery Model: Docker Images via Private Registry
+
+Customers never receive source code. They receive:
+
+1. A `docker-compose.yml` referencing your private image registry.
+2. A `.env` template with their license key pre-filled.
+3. A short operations guide (start, stop, update, backup).
+4. Registry pull credentials scoped to their tenant (read-only, their images only).
+
+```
+Customer server
+     │
+     ▼
+docker compose pull     ←── pulls from registry.yourdomain.com (your private registry)
+docker compose up -d
+```
+
+They run the product. They never see TypeScript, SQL migration files, or business logic.
+
+### What's Inside the Image
+
+The build process strips all source before the final image is produced:
+
+```dockerfile
+# Build stage — TypeScript compiled to JS, then discarded
+FROM node:22-alpine AS builder
+WORKDIR /app
+COPY package*.json ./
+RUN npm ci
+COPY . .
+RUN npm run build          # tsc → dist/
+RUN npm run obfuscate      # javascript-obfuscator on dist/
+
+# Runtime stage — only compiled, obfuscated JS
+FROM node:22-alpine AS runtime
+WORKDIR /app
+COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json .
+USER node
+CMD ["node", "dist/main.js"]
+```
+
+What ends up in the image:
+- Minified and obfuscated JavaScript (no TypeScript, no comments, renamed identifiers)
+- `node_modules` (open source dependencies — this is unavoidable and acceptable)
+- No migration source files, no test files, no `.env` examples
+
+### JavaScript Obfuscation
+
+Use `javascript-obfuscator` as a build step on the compiled `dist/` output:
+
+```bash
+npx javascript-obfuscator dist/ \
+  --output dist/ \
+  --compact true \
+  --identifier-names-generator mangled \
+  --string-array true \
+  --string-array-encoding base64 \
+  --dead-code-injection false   # keep bundle size reasonable
+```
+
+This makes the output difficult to read but does not make it impossible to reverse with enough effort. It is a deterrent, not a guarantee.
+
+### License Key Validation
+
+The application checks the license on startup and periodically at runtime.
+
+**On-premise offline license** (for customers with no outbound internet):
+- License key encodes: `tenant_slug`, `expiry_date`, `max_employees`, `features`.
+- Key is signed with your private RSA key.
+- App verifies the signature using your embedded public key.
+- No phone-home required; key can be renewed by issuing a new key file.
+
+**Online license** (preferred when internet is available):
+- App calls your license server on startup: `POST https://license.yourdomain.com/v1/verify`.
+- License server returns a short-lived token (24 h).
+- App caches the token; re-validates daily.
+- If validation fails for more than N days (grace period), app enters read-only mode rather than hard-stopping.
+
+```
+Startup sequence:
+  1. Read LICENSE_KEY from env
+  2. Verify local signature (always, even with online mode)
+  3. If online: call license server, cache token
+  4. If offline: check embedded expiry date
+  5. Enforce max_employees against DB count
+  6. Log license status to observability stream (not audit log)
+```
+
+### Practical Protection Summary
+
+| Attack | Protection level | Notes |
+|---|---|---|
+| Reading TypeScript source | Blocked | Source not in image |
+| Reading business logic | Hard | Obfuscated JS — readable with serious effort |
+| Modifying the binary | Detectable | Image digest pinned in compose file; tampering breaks checksum |
+| Redistributing the product | Legal + registry | Registry credentials are tenant-scoped; license key encodes tenant identity |
+| Running expired software | Enforced | License expiry checked on startup |
+| Exceeding employee limit | Enforced | App checks `max_employees` on employee creation |
+| Bypassing license entirely | Moderate | They can modify the running container, but obfuscation makes it non-trivial to find where |
+
+### What This Model Does Not Protect Against
+
+A determined attacker with root access to the server can:
+- Extract the container filesystem.
+- Run a JS deobfuscator on the extracted files.
+- Patch the license check out of the running process.
+
+This is an accepted trade-off for on-premise software. The protections above raise the bar high enough for legitimate business customers. If maximum IP protection is required, a SaaS-only model where the customer never runs the software themselves is the only complete answer.
+
+### Recommended Registry Setup
+
+Use GitHub Container Registry (`ghcr.io`) or a self-hosted Gitea/Harbor instance:
+
+```bash
+# Build and push (your CI pipeline)
+docker build -t registry.yourdomain.com/hris/api:1.0.0 .
+docker push registry.yourdomain.com/hris/api:1.0.0
+
+# Create per-customer read-only token (scoped to their images)
+# Issue token via registry API; include in customer delivery package
+```
+
+### Update Delivery
+
+Customers update by pulling new images and restarting:
+
+```bash
+# You send customers a new APP_VERSION and changelog
+APP_VERSION=1.1.0 docker compose pull
+docker compose run --rm api node dist/cli migrate:latest
+APP_VERSION=1.1.0 docker compose up -d
+```
+
+Downtime during update is typically under 30 seconds for a small deployment.
 
 ## Technical ADR Topics
 - Tenancy model
