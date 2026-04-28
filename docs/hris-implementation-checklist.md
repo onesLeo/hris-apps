@@ -19,6 +19,9 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 - [x] Review Aurora UI/UX handoff and capture the desktop/mobile design system.
 - [x] Add ADR 007 consolidating the Phase 0 backend defaults and Aurora UI/UX design.
 - [x] Add Phase 0 learning docs for project setup and implementation references.
+- [x] Add module-by-module learning walkthroughs for the shell and current UI modules.
+- [x] Add technical learning docs for TypeScript mechanics and SOLID in practice.
+- [x] Add deep-dive technical learning docs for each current UI module.
 - [x] Implement the Aurora responsive web shell for Dashboard, People, Leave, and Approvals.
 - [x] Extract the People screen into its own frontend feature module.
 - [x] Enable the People "Add Employee" modal interaction.
