@@ -4,9 +4,9 @@ import type { Screen } from '../i18n';
 export type LeaveStatus = 'Pending' | 'Approved' | 'Rejected';
 export type LeaveTab = 'All' | LeaveStatus;
 export type FeatureKey = 'organization' | 'attendance' | 'payroll' | 'performance' | 'recruitment' | 'learning' | 'reports';
-export const ACTIVE_FEATURE_KEYS = ['organization', 'attendance', 'reports'] as const;
+export const ACTIVE_FEATURE_KEYS = ['organization', 'attendance', 'reports', 'recruitment', 'performance'] as const;
 
-export type ActiveFeatureKey = (typeof ACTIVE_FEATURE_KEYS)[number];
+export type ActiveFeatureKey = Extract<FeatureKey, Screen>;
 
 export function isActiveFeatureKey(key: FeatureKey): key is ActiveFeatureKey {
   return (ACTIVE_FEATURE_KEYS as readonly FeatureKey[]).includes(key);

@@ -13,6 +13,8 @@ import { LeaveScreen } from './leave/leave-screen';
 import { OrganizationScreen } from './organization/organization-screen';
 import { PeopleScreen } from './people/people-screen';
 import { ReportsScreen } from './reports/reports-screen';
+import { RecruitmentScreen } from './recruitment/recruitment-screen';
+import { PerformanceScreen } from './performance/performance-screen';
 
 export function AuroraApp() {
   return (
@@ -37,6 +39,10 @@ function AuroraAppShell() {
     activeScreen = <AttendanceScreen />;
   } else if (active === 'reports') {
     activeScreen = <ReportsScreen />;
+  } else if (active === 'recruitment') {
+    activeScreen = <RecruitmentScreen />;
+  } else if (active === 'performance') {
+    activeScreen = <PerformanceScreen />;
   } else if (active === 'people') {
     activeScreen = <PeopleScreen />;
   } else if (active === 'leave') {
@@ -94,7 +100,7 @@ function AuroraAppShell() {
                   key={item.key}
                   className={`aurora-nav-item ${active === item.key ? 'is-active' : ''} ${sidebarOpen ? '' : 'is-collapsed'}`}
                   style={{ cursor: 'pointer', opacity: 1 }}
-                  onClick={() => setActive(item.key)}
+                  onClick={() => setActive(item.key as Screen)}
                 >
                   <Icon name={item.icon} size={17} color={active === item.key ? 'var(--accent)' : 'var(--text-mid)'} strokeWidth={active === item.key ? 2 : 1.6} />
                   {sidebarOpen && (

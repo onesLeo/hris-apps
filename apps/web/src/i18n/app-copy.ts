@@ -76,6 +76,91 @@ export type AppCopy = {
   dashboard: DashboardCopy;
   leave: LeaveCopy;
   approvals: ApprovalsCopy;
+  recruitment: {
+    heroLabel: string;
+    summary: string;
+    stats: {
+      openRoles: string;
+      candidates: string;
+      interviews: string;
+      offers: string;
+    };
+    sections: {
+      roles: string;
+      pipeline: string;
+      candidates: string;
+    };
+    filters: {
+      all: string;
+      sourcing: string;
+      screening: string;
+      interview: string;
+      offer: string;
+    };
+    labels: {
+      department: string;
+      location: string;
+      openings: string;
+      recruiter: string;
+      source: string;
+      nextStep: string;
+    };
+    createRequisition: string;
+    createRequisitionTitle: string;
+    createRequisitionSubtitle: string;
+    editRequisitionTitle: string;
+    editRequisitionSubtitle: string;
+    deleteRequisition: string;
+    deleteConfirm: string;
+    requisitionForm: {
+      title: string;
+      department: string;
+      location: string;
+      openings: string;
+      stage: string;
+      recruiter: string;
+      priority: string;
+      cancel: string;
+      submit: string;
+    };
+    searchPlaceholder: string;
+    footer: string;
+  };
+  performance: {
+    heroLabel: string;
+    summary: string;
+    stats: {
+      cycles: string;
+      completed: string;
+      inProgress: string;
+      overdue: string;
+    };
+    sections: {
+      cycles: string;
+      team: string;
+      goals: string;
+    };
+    filters: {
+      all: string;
+      scheduled: string;
+      inReview: string;
+      completed: string;
+      overdue: string;
+    };
+    labels: {
+      employee: string;
+      role: string;
+      manager: string;
+      score: string;
+      progress: string;
+      status: string;
+      goal: string;
+      target: string;
+    };
+    createCycle: string;
+    searchPlaceholder: string;
+    footer: string;
+  };
   common: CommonCopy;
 };
 
@@ -93,6 +178,8 @@ const APP_COPY: Record<Locale, AppCopy> = {
       people: 'People',
       leave: 'Leave',
       approvals: 'Approvals',
+      recruitment: 'Recruitment',
+      performance: 'Performance',
     },
     screenInfo: {
       dashboard: { title: 'Dashboard', subtitle: 'Good morning, Alex. Tue, 28 Apr 2026' },
@@ -102,6 +189,8 @@ const APP_COPY: Record<Locale, AppCopy> = {
       people: { title: 'People', subtitle: 'Browse and manage employees' },
       leave: { title: 'Leave', subtitle: 'Balance and request overview' },
       approvals: { title: 'Approvals', subtitle: 'Review pending workflow actions' },
+      recruitment: { title: 'Recruitment', subtitle: 'Open roles, candidate pipeline, and hiring progress' },
+      performance: { title: 'Performance', subtitle: 'Review cycles, goals, and employee performance insights' },
     },
     featureMenu: {
       organization: 'Organization',
@@ -200,6 +289,91 @@ const APP_COPY: Record<Locale, AppCopy> = {
       approve: 'Approve',
       decline: 'Decline',
     },
+    recruitment: {
+      heroLabel: 'Recruitment Overview',
+      summary: 'Track open roles, active candidates, and hiring momentum in one view.',
+      stats: {
+        openRoles: 'Open Roles',
+        candidates: 'Active Candidates',
+        interviews: 'Interviews This Week',
+        offers: 'Offers Out',
+      },
+      sections: {
+        roles: 'Open Requisitions',
+        pipeline: 'Hiring Pipeline',
+        candidates: 'Candidate Queue',
+      },
+      filters: {
+        all: 'All',
+        sourcing: 'Sourcing',
+        screening: 'Screening',
+        interview: 'Interview',
+        offer: 'Offer',
+      },
+      labels: {
+        department: 'Department',
+        location: 'Location',
+        openings: 'Openings',
+        recruiter: 'Recruiter',
+        source: 'Source',
+        nextStep: 'Next Step',
+      },
+      createRequisition: 'Create Requisition',
+      createRequisitionTitle: 'Create Requisition',
+      createRequisitionSubtitle: 'Add a new open role to the recruitment pipeline.',
+      editRequisitionTitle: 'Edit Requisition',
+      editRequisitionSubtitle: 'Update the open role details in the recruitment pipeline.',
+      deleteRequisition: 'Delete Requisition',
+      deleteConfirm: 'Delete this requisition?',
+      requisitionForm: {
+        title: 'Role title',
+        department: 'Department',
+        location: 'Location',
+        openings: 'Openings',
+        stage: 'Stage',
+        recruiter: 'Recruiter',
+        priority: 'Priority',
+        cancel: 'Cancel',
+        submit: 'Save Requisition',
+      },
+      searchPlaceholder: 'Search candidates or roles...',
+      footer: 'Recruitment will later connect to ATS data without changing the screen layout.',
+    },
+    performance: {
+      heroLabel: 'Performance Overview',
+      summary: 'Track review cycles, individual performance, and goal progress in one place.',
+      stats: {
+        cycles: 'Active Cycles',
+        completed: 'Completed Reviews',
+        inProgress: 'In Review',
+        overdue: 'Overdue',
+      },
+      sections: {
+        cycles: 'Review Cycles',
+        team: 'Team Reviews',
+        goals: 'Top Goals',
+      },
+      filters: {
+        all: 'All',
+        scheduled: 'Scheduled',
+        inReview: 'In Review',
+        completed: 'Completed',
+        overdue: 'Overdue',
+      },
+      labels: {
+        employee: 'Employee',
+        role: 'Role',
+        manager: 'Manager',
+        score: 'Score',
+        progress: 'Progress',
+        status: 'Status',
+        goal: 'Goal',
+        target: 'Target',
+      },
+      createCycle: 'Create Cycle',
+      searchPlaceholder: 'Search employees or goals...',
+      footer: 'Performance will later connect to live review data without changing the screen structure.',
+    },
     common: {
       comingSoon: 'This module is part of the product roadmap and will follow the Aurora visual language when we implement it.',
       soon: 'Soon',
@@ -218,6 +392,8 @@ const APP_COPY: Record<Locale, AppCopy> = {
       people: 'Karyawan',
       leave: 'Cuti',
       approvals: 'Persetujuan',
+      recruitment: 'Rekrutmen',
+      performance: 'Kinerja',
     },
     screenInfo: {
       dashboard: { title: 'Dasbor', subtitle: 'Selamat pagi, Alex. Sel, 28 Apr 2026' },
@@ -227,6 +403,8 @@ const APP_COPY: Record<Locale, AppCopy> = {
       people: { title: 'Karyawan', subtitle: 'Telusuri dan kelola karyawan' },
       leave: { title: 'Cuti', subtitle: 'Ringkasan saldo dan permintaan' },
       approvals: { title: 'Persetujuan', subtitle: 'Tinjau tindakan alur kerja yang menunggu' },
+      recruitment: { title: 'Rekrutmen', subtitle: 'Lowongan aktif, pipeline kandidat, dan progres perekrutan' },
+      performance: { title: 'Kinerja', subtitle: 'Siklus penilaian, target, dan wawasan kinerja karyawan' },
     },
     featureMenu: {
       organization: 'Organisasi',
@@ -324,6 +502,91 @@ const APP_COPY: Record<Locale, AppCopy> = {
       rejected: 'Ditolak',
       approve: 'Setujui',
       decline: 'Tolak',
+    },
+    recruitment: {
+      heroLabel: 'Ringkasan Rekrutmen',
+      summary: 'Pantau lowongan aktif, kandidat, dan ritme perekrutan dalam satu tampilan.',
+      stats: {
+        openRoles: 'Lowongan Aktif',
+        candidates: 'Kandidat Aktif',
+        interviews: 'Wawancara Minggu Ini',
+        offers: 'Penawaran Terkirim',
+      },
+      sections: {
+        roles: 'Requisition Terbuka',
+        pipeline: 'Pipeline Perekrutan',
+        candidates: 'Antrian Kandidat',
+      },
+      filters: {
+        all: 'Semua',
+        sourcing: 'Pencarian',
+        screening: 'Seleksi',
+        interview: 'Wawancara',
+        offer: 'Penawaran',
+      },
+      labels: {
+        department: 'Departemen',
+        location: 'Lokasi',
+        openings: 'Kebutuhan',
+        recruiter: 'Recruiter',
+        source: 'Sumber',
+        nextStep: 'Langkah Berikutnya',
+      },
+      createRequisition: 'Buat Requisition',
+      createRequisitionTitle: 'Buat Requisition',
+      createRequisitionSubtitle: 'Tambahkan lowongan baru ke pipeline rekrutmen.',
+      editRequisitionTitle: 'Ubah Requisition',
+      editRequisitionSubtitle: 'Perbarui detail lowongan pada pipeline rekrutmen.',
+      deleteRequisition: 'Hapus Requisition',
+      deleteConfirm: 'Hapus requisition ini?',
+      requisitionForm: {
+        title: 'Judul posisi',
+        department: 'Departemen',
+        location: 'Lokasi',
+        openings: 'Kebutuhan',
+        stage: 'Tahap',
+        recruiter: 'Recruiter',
+        priority: 'Prioritas',
+        cancel: 'Batal',
+        submit: 'Simpan Requisition',
+      },
+      searchPlaceholder: 'Cari kandidat atau posisi...',
+      footer: 'Rekrutmen nantinya akan terhubung ke data ATS tanpa mengubah tata letak layar.',
+    },
+    performance: {
+      heroLabel: 'Ringkasan Kinerja',
+      summary: 'Pantau siklus penilaian, kinerja individu, dan progres target dalam satu tempat.',
+      stats: {
+        cycles: 'Siklus Aktif',
+        completed: 'Penilaian Selesai',
+        inProgress: 'Sedang Ditinjau',
+        overdue: 'Terlambat',
+      },
+      sections: {
+        cycles: 'Siklus Penilaian',
+        team: 'Penilaian Tim',
+        goals: 'Target Utama',
+      },
+      filters: {
+        all: 'Semua',
+        scheduled: 'Terjadwal',
+        inReview: 'Sedang Ditinjau',
+        completed: 'Selesai',
+        overdue: 'Terlambat',
+      },
+      labels: {
+        employee: 'Karyawan',
+        role: 'Jabatan',
+        manager: 'Atasan',
+        score: 'Skor',
+        progress: 'Progres',
+        status: 'Status',
+        goal: 'Target',
+        target: 'Sasaran',
+      },
+      createCycle: 'Buat Siklus',
+      searchPlaceholder: 'Cari karyawan atau target...',
+      footer: 'Kinerja nantinya akan terhubung ke data review aktual tanpa mengubah struktur layar.',
     },
     common: {
       comingSoon: 'Modul ini adalah bagian dari roadmap produk dan akan mengikuti bahasa visual Aurora saat kami mengimplementasikannya.',

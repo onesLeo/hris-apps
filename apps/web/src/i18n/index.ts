@@ -3,6 +3,8 @@ export { getPeopleCopy } from './people-copy';
 export { getOrganizationCopy } from './organization-copy';
 export { getAttendanceCopy } from './attendance-copy';
 export { getReportsCopy } from './reports-copy';
+export { getRecruitmentCopy } from './recruitment-copy';
+export { getPerformanceCopy } from './performance-copy';
 export { LocaleProvider, useLocale } from './locale-provider';
 export { LocaleToggle } from './locale-toggle';
 export type { Locale, Screen } from './types';

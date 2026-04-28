@@ -28,12 +28,18 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 - [x] Extract the Approvals screen into its own frontend feature module.
 - [x] Extract the Attendance screen into its own frontend feature module.
 - [x] Extract the Reports screen into its own frontend feature module.
+- [x] Extract the Recruitment screen into its own frontend feature module.
+- [x] Enable the Recruitment "Create Requisition" modal interaction.
+- [x] Add edit and delete actions for Recruitment requisitions.
+- [x] Extract the Performance screen into its own frontend feature module.
+- [x] Add a unit test for the Performance review helper.
 - [x] Add an isolated API test harness for the Organization backend module.
 - [x] Add a unit test for the People filtering helper.
 - [x] Add a unit test for the Organization overview helper.
 - [x] Add a unit test for the Approvals queue helper.
 - [x] Add a unit test for the Attendance overview helper.
 - [x] Add a unit test for the Reports overview helper.
+- [x] Add a unit test for the Recruitment overview helper.
 - [x] Add EN/ID locale toggle with smooth language transition for the Aurora shell and People screen.
 - [x] Add the API health module and versioned `/api/v1` prefix.
 - [x] Scaffold the first backend domain module: Organization.
