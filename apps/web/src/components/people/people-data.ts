@@ -1,0 +1,46 @@
+export type EmployeeStatus = 'Active' | 'On Leave' | 'Pending' | 'Approved' | 'Rejected';
+export type WorkType = 'Remote' | 'Office' | 'Hybrid';
+
+export type Employee = {
+  name: string;
+  role: string;
+  dept: string;
+  status: EmployeeStatus;
+  type: WorkType;
+  since: string;
+  initials: string;
+  color: string;
+};
+
+export const EMPLOYEES: Employee[] = [
+  { name: 'Sarah Chen', role: 'Senior Engineer', dept: 'Engineering', status: 'Active', type: 'Remote', since: 'Apr 2022', initials: 'SC', color: '#f43f8e' },
+  { name: 'Marcus Johnson', role: 'Product Manager', dept: 'Product', status: 'Active', type: 'Office', since: 'Jan 2023', initials: 'MJ', color: '#8b5cf6' },
+  { name: 'Aisha Patel', role: 'Data Analyst', dept: 'Operations', status: 'On Leave', type: 'Hybrid', since: 'Jul 2022', initials: 'AP', color: '#06b6d4' },
+  { name: 'Lucas Rivera', role: 'UX Designer', dept: 'Design', status: 'Active', type: 'Office', since: 'Mar 2023', initials: 'LR', color: '#10b981' },
+  { name: 'Emma Williams', role: 'Finance Lead', dept: 'Finance', status: 'Active', type: 'Office', since: 'Sep 2021', initials: 'EW', color: '#f59e0b' },
+  { name: 'James Kim', role: 'DevOps Engineer', dept: 'Engineering', status: 'Active', type: 'Remote', since: 'Feb 2023', initials: 'JK', color: '#6366f1' },
+  { name: 'Sofia Martinez', role: 'HR Specialist', dept: 'HR & Admin', status: 'Active', type: 'Office', since: 'May 2022', initials: 'SM', color: '#ec4899' },
+  { name: 'Noah Thompson', role: 'Sales Executive', dept: 'Sales', status: 'Active', type: 'Hybrid', since: 'Nov 2022', initials: 'NT', color: '#14b8a6' },
+  { name: 'Olivia Brown', role: 'Content Strategist', dept: 'Marketing', status: 'On Leave', type: 'Remote', since: 'Jan 2023', initials: 'OB', color: '#f97316' },
+  { name: 'Ethan Davis', role: 'Backend Developer', dept: 'Engineering', status: 'Active', type: 'Remote', since: 'Aug 2022', initials: 'ED', color: '#a78bfa' },
+  { name: 'Amara Osei', role: 'Recruitment Lead', dept: 'HR & Admin', status: 'Active', type: 'Office', since: 'Jun 2021', initials: 'AO', color: '#34d399' },
+  { name: 'Ryan Park', role: 'QA Engineer', dept: 'Engineering', status: 'Active', type: 'Hybrid', since: 'Oct 2023', initials: 'RP', color: '#fb7185' },
+];
+
+export const PEOPLE_FILTERS = ['All', 'Active', 'On Leave', 'Remote', 'Office'] as const;
+export type PeopleFilter = (typeof PEOPLE_FILTERS)[number];
+
+export function filterEmployees(employees: Employee[], filter: PeopleFilter, search: string): Employee[] {
+  const query = search.trim().toLowerCase();
+
+  return employees.filter((employee) => {
+    const matchesFilter = filter === 'All' || employee.status === filter || employee.type === filter;
+    const matchesSearch =
+      !query ||
+      employee.name.toLowerCase().includes(query) ||
+      employee.role.toLowerCase().includes(query) ||
+      employee.dept.toLowerCase().includes(query);
+
+    return matchesFilter && matchesSearch;
+  });
+}

@@ -93,7 +93,23 @@ Java analogy:
 - This is like keeping clean package boundaries in Spring and avoiding direct calls into another
   module's private repository or service classes.
 
-### 4. Shared contracts package
+### 4. SOLID implementation discipline
+
+Every phase should be implemented with SOLID boundaries so the codebase stays easy to extend and
+test:
+
+- single responsibility: one feature, one component, one service, one file group
+- open/closed: add languages, screens, and modules through extension points instead of editing
+  everything in place
+- Liskov substitution: interchangeable implementations should behave consistently
+- interface segregation: each component or service depends only on the methods it needs
+- dependency inversion: high-level modules depend on provider abstractions, not hardcoded literals
+
+Java analogy:
+- This is the same discipline as splitting Spring services, configuration, and adapters into
+  focused classes instead of packing everything into a single `@Service`.
+
+### 5. Shared contracts package
 
 Create the shared contract layer that both apps can use safely.
 
@@ -105,7 +121,7 @@ Java analogy:
 - This is similar to a shared `contracts` or `common-api` jar that contains DTOs and enums used
   by both backend and frontend code.
 
-### 5. Database foundation
+### 6. Database foundation
 
 Set up the schema and migration story before any domain table becomes real.
 
@@ -119,7 +135,7 @@ Java analogy:
 - This is the same role that JPA entity classes plus Flyway/Liquibase would play in a Spring
   Boot system, except the schema is written in TypeScript rather than annotated Java classes.
 
-### 6. Identity and organization baseline
+### 7. Identity and organization baseline
 
 The first domain foundation should support tenant-aware structure and access control.
 

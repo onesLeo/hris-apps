@@ -2,6 +2,8 @@
 
 Use this checklist as the execution order for `docs/hris-system-plan.md`. Complete each item in sequence unless a dependency is explicitly marked as parallel.
 
+Implementation rule for every phase: keep the work SOLID, with separate responsibilities, dependency inversion through providers or interfaces, and translation/config/data split into dedicated modules instead of mixed inside screen or service classes.
+
 ## Phase 0: Project Setup
 - [ ] Confirm the first release scope and jurisdictions.
 - [ ] Confirm tenant model, initial roles, and required biometric vendors.
@@ -18,14 +20,29 @@ Use this checklist as the execution order for `docs/hris-system-plan.md`. Comple
 - [x] Add ADR 007 consolidating the Phase 0 backend defaults and Aurora UI/UX design.
 - [x] Add Phase 0 learning docs for project setup and implementation references.
 - [x] Implement the Aurora responsive web shell for Dashboard, People, Leave, and Approvals.
+- [x] Extract the People screen into its own frontend feature module.
+- [x] Extract the Dashboard screen into its own frontend feature module.
+- [x] Move shared shell data into a dedicated module to keep `AuroraApp` focused on orchestration.
+- [x] Extract the Leave screen into its own frontend feature module.
+- [x] Extract the Organization screen into its own frontend feature module.
+- [x] Extract the Approvals screen into its own frontend feature module.
+- [x] Extract the Attendance screen into its own frontend feature module.
+- [x] Extract the Reports screen into its own frontend feature module.
+- [x] Add an isolated API test harness for the Organization backend module.
+- [x] Add a unit test for the People filtering helper.
+- [x] Add a unit test for the Organization overview helper.
+- [x] Add a unit test for the Approvals queue helper.
+- [x] Add a unit test for the Attendance overview helper.
+- [x] Add a unit test for the Reports overview helper.
+- [x] Add EN/ID locale toggle with smooth language transition for the Aurora shell and People screen.
 - [x] Add the API health module and versioned `/api/v1` prefix.
+- [x] Scaffold the first backend domain module: Organization.
 - [ ] Configure BullMQ with Redis connection.
 - [ ] Configure EventEmitter2 module for in-process domain events (ADR 003).
 - [ ] Set up i18n infrastructure for EN and ID languages (ADR 006).
 - [ ] Implement global ExceptionFilter with ADR 006 error shape.
 - [ ] Define API conventions: URL versioning, cursor-based pagination, consistent JSON error format, and OpenAPI generation from backend definitions.
 - [ ] Create base CI pipeline for lint, typecheck, unit tests, and build.
-- [x] Add ADR folder and documentation convention.
 - [ ] Add missing ADRs: policy resolution strategy, workflow engine design, biometric adapter contract, payroll calculation order, identity provider choice, and reporting storage strategy.
 - [ ] Seed Indonesia tax data: initial TER brackets, PTKP categories, and BPJS rates (ADR 004 — required before payroll can run).
 
