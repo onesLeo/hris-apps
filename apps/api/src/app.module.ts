@@ -9,7 +9,7 @@ import { OrganizationModule } from './modules/organization/organization.module';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true, cache: true }),
+    ConfigModule.forRoot({ isGlobal: true, cache: true, envFilePath: ['.env', '../../.env'] }),
     EventEmitterModule.forRoot({ wildcard: true, delimiter: '.', maxListeners: 20 }),
     BullModule.forRootAsync({
       inject: [ConfigService],
