@@ -1,11 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import type { AppCopy } from '../../i18n/app-copy';
+import { getApprovalsCopy, useLocale } from '../../i18n';
 import { Badge, Avatar, Icon } from '../aurora-primitives';
 import { APPROVALS } from './approvals-data';
 
-export function ApprovalsScreen({ copy }: { copy: AppCopy['approvals'] }) {
+export function ApprovalsScreen() {
+  const { locale } = useLocale();
+  const copy = getApprovalsCopy(locale);
   const [approved, setApproved] = useState<number[]>([]);
   const [declined, setDeclined] = useState<number[]>([]);
 
@@ -106,4 +108,3 @@ export function ApprovalsScreen({ copy }: { copy: AppCopy['approvals'] }) {
     </div>
   );
 }
-

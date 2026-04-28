@@ -21,18 +21,27 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 - [x] Add Phase 0 learning docs for project setup and implementation references.
 - [x] Implement the Aurora responsive web shell for Dashboard, People, Leave, and Approvals.
 - [x] Extract the People screen into its own frontend feature module.
+- [x] Enable the People "Add Employee" modal interaction.
+- [x] Enable the People "Edit Employee" modal interaction.
+- [x] Enable the People suspend and delete employee flow.
 - [x] Extract the Dashboard screen into its own frontend feature module.
 - [x] Move shared shell data into a dedicated module to keep `AuroraApp` focused on orchestration.
 - [x] Extract the Leave screen into its own frontend feature module.
+- [x] Enable the Leave "Apply Leave" modal interaction.
 - [x] Extract the Organization screen into its own frontend feature module.
 - [x] Extract the Approvals screen into its own frontend feature module.
+- [x] Move the Dashboard and Approvals screens to dedicated locale helpers.
 - [x] Extract the Attendance screen into its own frontend feature module.
 - [x] Extract the Reports screen into its own frontend feature module.
 - [x] Extract the Recruitment screen into its own frontend feature module.
 - [x] Enable the Recruitment "Create Requisition" modal interaction.
 - [x] Add edit and delete actions for Recruitment requisitions.
 - [x] Extract the Performance screen into its own frontend feature module.
+- [x] Enable the Performance "Create Cycle" modal interaction.
 - [x] Add a unit test for the Performance review helper.
+- [x] Extract the Learning screen into its own frontend feature module.
+- [x] Enable the Learning "Enroll Course" modal interaction.
+- [x] Add a unit test for the Learning course helper.
 - [x] Add an isolated API test harness for the Organization backend module.
 - [x] Add a unit test for the People filtering helper.
 - [x] Add a unit test for the Organization overview helper.

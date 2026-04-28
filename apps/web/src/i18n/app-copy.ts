@@ -26,24 +26,6 @@ type DashboardCopy = {
   periods: readonly [string, string, string];
 };
 
-type LeaveCopy = {
-  balanceLabels: Record<string, string>;
-  daysLeft: string;
-  used: string;
-  tabs: Record<'All' | 'Pending' | 'Approved' | 'Rejected', string>;
-  tableHeaders: {
-    employee: string;
-    leaveType: string;
-    duration: string;
-    days: string;
-    status: string;
-    actions: string;
-  };
-  applyLeave: string;
-  approve: string;
-  decline: string;
-};
-
 type ApprovalsCopy = {
   stats: {
     pending: string;
@@ -74,7 +56,6 @@ export type AppCopy = {
   featureMenu: Record<'organization' | 'attendance' | 'payroll' | 'performance' | 'recruitment' | 'learning' | 'reports', string>;
   organization: OrganizationCopy;
   dashboard: DashboardCopy;
-  leave: LeaveCopy;
   approvals: ApprovalsCopy;
   recruitment: {
     heroLabel: string;
@@ -161,6 +142,50 @@ export type AppCopy = {
     searchPlaceholder: string;
     footer: string;
   };
+  learning: {
+    heroLabel: string;
+    summary: string;
+    stats: {
+      courses: string;
+      enrolled: string;
+      inProgress: string;
+      certifications: string;
+    };
+    sections: {
+      catalog: string;
+      progress: string;
+      assignments: string;
+    };
+    filters: {
+      all: string;
+      mandatory: string;
+      optional: string;
+      inProgress: string;
+      completed: string;
+    };
+    labels: {
+      title: string;
+      owner: string;
+      duration: string;
+      progress: string;
+      due: string;
+      status: string;
+    };
+    enrollCourse: string;
+    enrollCourseTitle: string;
+    enrollCourseSubtitle: string;
+    courseForm: {
+      title: string;
+      owner: string;
+      duration: string;
+      status: string;
+      due: string;
+      cancel: string;
+      submit: string;
+    };
+    searchPlaceholder: string;
+    footer: string;
+  };
   common: CommonCopy;
 };
 
@@ -180,6 +205,7 @@ const APP_COPY: Record<Locale, AppCopy> = {
       approvals: 'Approvals',
       recruitment: 'Recruitment',
       performance: 'Performance',
+      learning: 'Learning',
     },
     screenInfo: {
       dashboard: { title: 'Dashboard', subtitle: 'Good morning, Alex. Tue, 28 Apr 2026' },
@@ -191,6 +217,7 @@ const APP_COPY: Record<Locale, AppCopy> = {
       approvals: { title: 'Approvals', subtitle: 'Review pending workflow actions' },
       recruitment: { title: 'Recruitment', subtitle: 'Open roles, candidate pipeline, and hiring progress' },
       performance: { title: 'Performance', subtitle: 'Review cycles, goals, and employee performance insights' },
+      learning: { title: 'Learning', subtitle: 'Courses, enrollments, and certification progress' },
     },
     featureMenu: {
       organization: 'Organization',
@@ -247,33 +274,6 @@ const APP_COPY: Record<Locale, AppCopy> = {
       approve: 'Approve',
       decline: 'Decline',
       periods: ['Month', 'Quarter', 'Year'],
-    },
-    leave: {
-      balanceLabels: {
-        'Annual Leave': 'Annual Leave',
-        'Sick Leave': 'Sick Leave',
-        Compensatory: 'Compensatory',
-        'WFH Days': 'WFH Days',
-      },
-      daysLeft: 'days left',
-      used: 'used',
-      tabs: {
-        All: 'All',
-        Pending: 'Pending',
-        Approved: 'Approved',
-        Rejected: 'Rejected',
-      },
-      tableHeaders: {
-        employee: 'Employee',
-        leaveType: 'Leave Type',
-        duration: 'Duration',
-        days: 'Days',
-        status: 'Status',
-        actions: 'Actions',
-      },
-      applyLeave: 'Apply Leave',
-      approve: 'Approve',
-      decline: 'Decline',
     },
     approvals: {
       stats: {
@@ -374,6 +374,50 @@ const APP_COPY: Record<Locale, AppCopy> = {
       searchPlaceholder: 'Search employees or goals...',
       footer: 'Performance will later connect to live review data without changing the screen structure.',
     },
+    learning: {
+      heroLabel: 'Learning Overview',
+      summary: 'Track training courses, enrollments, and development progress in one place.',
+      stats: {
+        courses: 'Courses',
+        enrolled: 'Enrolled',
+        inProgress: 'In Progress',
+        certifications: 'Certifications',
+      },
+      sections: {
+        catalog: 'Course Catalog',
+        progress: 'Learning Progress',
+        assignments: 'Learning Assignments',
+      },
+      filters: {
+        all: 'All',
+        mandatory: 'Mandatory',
+        optional: 'Optional',
+        inProgress: 'In Progress',
+        completed: 'Completed',
+      },
+      labels: {
+        title: 'Title',
+        owner: 'Owner',
+        duration: 'Duration',
+        progress: 'Progress',
+        due: 'Due',
+        status: 'Status',
+      },
+      enrollCourse: 'Enroll Course',
+      enrollCourseTitle: 'Enroll in Course',
+      enrollCourseSubtitle: 'Add a new learning assignment to the local catalog.',
+      courseForm: {
+        title: 'Course title',
+        owner: 'Owner',
+        duration: 'Duration',
+        status: 'Status',
+        due: 'Due date',
+        cancel: 'Cancel',
+        submit: 'Save Course',
+      },
+      searchPlaceholder: 'Search courses or owners...',
+      footer: 'Learning will later connect to live training data without changing the screen structure.',
+    },
     common: {
       comingSoon: 'This module is part of the product roadmap and will follow the Aurora visual language when we implement it.',
       soon: 'Soon',
@@ -394,6 +438,7 @@ const APP_COPY: Record<Locale, AppCopy> = {
       approvals: 'Persetujuan',
       recruitment: 'Rekrutmen',
       performance: 'Kinerja',
+      learning: 'Pembelajaran',
     },
     screenInfo: {
       dashboard: { title: 'Dasbor', subtitle: 'Selamat pagi, Alex. Sel, 28 Apr 2026' },
@@ -405,6 +450,7 @@ const APP_COPY: Record<Locale, AppCopy> = {
       approvals: { title: 'Persetujuan', subtitle: 'Tinjau tindakan alur kerja yang menunggu' },
       recruitment: { title: 'Rekrutmen', subtitle: 'Lowongan aktif, pipeline kandidat, dan progres perekrutan' },
       performance: { title: 'Kinerja', subtitle: 'Siklus penilaian, target, dan wawasan kinerja karyawan' },
+      learning: { title: 'Pembelajaran', subtitle: 'Kursus, pendaftaran, dan progres sertifikasi' },
     },
     featureMenu: {
       organization: 'Organisasi',
@@ -461,33 +507,6 @@ const APP_COPY: Record<Locale, AppCopy> = {
       approve: 'Setujui',
       decline: 'Tolak',
       periods: ['Bulan', 'Kuartal', 'Tahun'],
-    },
-    leave: {
-      balanceLabels: {
-        'Annual Leave': 'Cuti Tahunan',
-        'Sick Leave': 'Cuti Sakit',
-        Compensatory: 'Cuti Pengganti',
-        'WFH Days': 'Hari WFH',
-      },
-      daysLeft: 'hari tersisa',
-      used: 'digunakan',
-      tabs: {
-        All: 'Semua',
-        Pending: 'Menunggu',
-        Approved: 'Disetujui',
-        Rejected: 'Ditolak',
-      },
-      tableHeaders: {
-        employee: 'Karyawan',
-        leaveType: 'Jenis Cuti',
-        duration: 'Durasi',
-        days: 'Hari',
-        status: 'Status',
-        actions: 'Aksi',
-      },
-      applyLeave: 'Ajukan Cuti',
-      approve: 'Setujui',
-      decline: 'Tolak',
     },
     approvals: {
       stats: {
@@ -587,6 +606,50 @@ const APP_COPY: Record<Locale, AppCopy> = {
       createCycle: 'Buat Siklus',
       searchPlaceholder: 'Cari karyawan atau target...',
       footer: 'Kinerja nantinya akan terhubung ke data review aktual tanpa mengubah struktur layar.',
+    },
+    learning: {
+      heroLabel: 'Ringkasan Pembelajaran',
+      summary: 'Pantau kursus pelatihan, pendaftaran, dan progres pengembangan dalam satu tempat.',
+      stats: {
+        courses: 'Kursus',
+        enrolled: 'Terdaftar',
+        inProgress: 'Sedang Berjalan',
+        certifications: 'Sertifikasi',
+      },
+      sections: {
+        catalog: 'Katalog Kursus',
+        progress: 'Progres Pembelajaran',
+        assignments: 'Penugasan Belajar',
+      },
+      filters: {
+        all: 'Semua',
+        mandatory: 'Wajib',
+        optional: 'Opsional',
+        inProgress: 'Sedang Berjalan',
+        completed: 'Selesai',
+      },
+      labels: {
+        title: 'Judul',
+        owner: 'Pemilik',
+        duration: 'Durasi',
+        progress: 'Progres',
+        due: 'Jatuh Tempo',
+        status: 'Status',
+      },
+      enrollCourse: 'Daftar Kursus',
+      enrollCourseTitle: 'Daftar ke Kursus',
+      enrollCourseSubtitle: 'Tambahkan penugasan belajar baru ke katalog lokal.',
+      courseForm: {
+        title: 'Judul kursus',
+        owner: 'Pemilik',
+        duration: 'Durasi',
+        status: 'Status',
+        due: 'Tanggal jatuh tempo',
+        cancel: 'Batal',
+        submit: 'Simpan Kursus',
+      },
+      searchPlaceholder: 'Cari kursus atau pemilik...',
+      footer: 'Pembelajaran nantinya akan terhubung ke data pelatihan aktual tanpa mengubah struktur layar.',
     },
     common: {
       comingSoon: 'Modul ini adalah bagian dari roadmap produk dan akan mengikuti bahasa visual Aurora saat kami mengimplementasikannya.',

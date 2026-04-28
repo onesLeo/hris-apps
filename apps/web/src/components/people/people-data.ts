@@ -1,4 +1,4 @@
-export type EmployeeStatus = 'Active' | 'On Leave' | 'Pending' | 'Approved' | 'Rejected';
+export type EmployeeStatus = 'Active' | 'Suspended' | 'On Leave' | 'Pending' | 'Approved' | 'Rejected';
 export type WorkType = 'Remote' | 'Office' | 'Hybrid';
 
 export type Employee = {
@@ -11,6 +11,17 @@ export type Employee = {
   initials: string;
   color: string;
 };
+
+export type CreateEmployeeInput = {
+  name: string;
+  role: string;
+  dept: string;
+  status: EmployeeStatus;
+  type: WorkType;
+  since: string;
+};
+
+export type EmployeeKey = string;
 
 export const EMPLOYEES: Employee[] = [
   { name: 'Sarah Chen', role: 'Senior Engineer', dept: 'Engineering', status: 'Active', type: 'Remote', since: 'Apr 2022', initials: 'SC', color: '#f43f8e' },
@@ -43,4 +54,68 @@ export function filterEmployees(employees: Employee[], filter: PeopleFilter, sea
 
     return matchesFilter && matchesSearch;
   });
+}
+
+export function addEmployee(employees: readonly Employee[], input: CreateEmployeeInput): Employee[] {
+  const initials = input.name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0] ?? '')
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
+
+  return [
+    {
+      ...input,
+      initials: initials || 'EN',
+      color:
+        input.status === 'On Leave'
+          ? '#f59e0b'
+          : input.status === 'Suspended'
+            ? '#64748b'
+            : input.status === 'Pending'
+              ? '#8b5cf6'
+              : '#f43f8e',
+    },
+    ...employees,
+  ];
+}
+
+export function getEmployeeKey(employee: Employee): EmployeeKey {
+  return [employee.name, employee.role, employee.dept, employee.since].join('|');
+}
+
+export function updateEmployee(
+  employees: readonly Employee[],
+  key: EmployeeKey,
+  input: CreateEmployeeInput,
+): Employee[] {
+  return employees.map((employee) =>
+    getEmployeeKey(employee) === key
+      ? {
+          ...employee,
+          ...input,
+          initials: employee.initials,
+          color: employee.color,
+        }
+      : employee,
+  );
+}
+
+export function suspendEmployee(employees: readonly Employee[], key: EmployeeKey): Employee[] {
+  return employees.map((employee) =>
+    getEmployeeKey(employee) === key
+      ? {
+          ...employee,
+          status: 'Suspended',
+          color: '#64748b',
+        }
+      : employee,
+  );
+}
+
+export function removeEmployee(employees: readonly Employee[], key: EmployeeKey): Employee[] {
+  return employees.filter((employee) => getEmployeeKey(employee) !== key);
 }

@@ -1,7 +1,8 @@
 'use client';
 
 import { Badge, Avatar, Icon, SectionHeading } from '../aurora-primitives';
-import type { AppCopy } from '../../i18n/app-copy';
+import { getDashboardCopy, useLocale } from '../../i18n';
+import type { DashboardCopy } from '../../i18n/dashboard-copy';
 import { APPROVALS } from '../approvals/approvals-data';
 
 const HEADCOUNT = [1180, 1192, 1198, 1205, 1215, 1218, 1224, 1231, 1235, 1239, 1244, 1247];
@@ -72,7 +73,7 @@ function KpiCard({
   );
 }
 
-function HeadcountChart({ copy }: { copy: AppCopy['dashboard'] }) {
+function HeadcountChart({ copy }: { copy: DashboardCopy }) {
   const width = 560;
   const height = 170;
   const { linePath, areaPath, points } = makePath(HEADCOUNT, width, height, 10);
@@ -115,7 +116,7 @@ function HeadcountChart({ copy }: { copy: AppCopy['dashboard'] }) {
   );
 }
 
-function DepartmentCard({ copy }: { copy: AppCopy['dashboard'] }) {
+function DepartmentCard({ copy }: { copy: DashboardCopy }) {
   return (
     <div className="aurora-card aurora-card-padding aurora-card-lift">
       <SectionHeading title={copy.byDepartment} subtitle={copy.totalEmployeesSubtitle} />
@@ -144,7 +145,7 @@ function DepartmentCard({ copy }: { copy: AppCopy['dashboard'] }) {
   );
 }
 
-function OnboardingCard({ copy }: { copy: AppCopy['dashboard'] }) {
+function OnboardingCard({ copy }: { copy: DashboardCopy }) {
   return (
     <div className="aurora-card aurora-card-padding aurora-card-lift">
       <SectionHeading title={copy.recentOnboardings} action={<span style={{ color: 'var(--accent)', fontSize: 12, fontWeight: 600 }}>{copy.viewAll}</span>} />
@@ -175,7 +176,7 @@ function OnboardingCard({ copy }: { copy: AppCopy['dashboard'] }) {
   );
 }
 
-function PendingApprovalsCard({ copy }: { copy: AppCopy['dashboard'] }) {
+function PendingApprovalsCard({ copy }: { copy: DashboardCopy }) {
   return (
     <div className="aurora-card aurora-card-padding aurora-card-lift">
       <SectionHeading title={copy.pending} action={<Badge label="5" tone="accent" />} />
@@ -202,7 +203,10 @@ function PendingApprovalsCard({ copy }: { copy: AppCopy['dashboard'] }) {
   );
 }
 
-export function DashboardScreen({ copy }: { copy: AppCopy['dashboard'] }) {
+export function DashboardScreen() {
+  const { locale } = useLocale();
+  const copy = getDashboardCopy(locale);
+
   return (
     <div className="aurora-screen-stack" style={{ animation: 'auroraFadeUp 0.4s ease' }}>
       <div className="aurora-kpi-grid">

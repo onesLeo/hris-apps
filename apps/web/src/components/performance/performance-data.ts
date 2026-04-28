@@ -10,6 +10,8 @@ export type PerformanceCycle = {
   accent: string;
 };
 
+export type CreatePerformanceCycleInput = Omit<PerformanceCycle, 'accent'>;
+
 export type PerformanceReview = {
   employee: string;
   initials: string;
@@ -91,4 +93,24 @@ export function filterPerformanceReviews(
 
     return matchesFilter && matchesSearch;
   });
+}
+
+export function addPerformanceCycle(
+  cycles: readonly PerformanceCycle[],
+  input: CreatePerformanceCycleInput,
+): readonly PerformanceCycle[] {
+  return [
+    {
+      ...input,
+      accent:
+        input.status === 'Completed'
+          ? '#10b981'
+          : input.status === 'In Review'
+            ? '#e8317a'
+            : input.status === 'Scheduled'
+              ? '#8b5cf6'
+              : '#f59e0b',
+    },
+    ...cycles,
+  ];
 }

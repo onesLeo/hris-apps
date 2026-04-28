@@ -32,6 +32,17 @@ export type PerformanceCopy = {
     target: string;
   };
   createCycle: string;
+  createCycleTitle: string;
+  createCycleSubtitle: string;
+  cycleForm: {
+    name: string;
+    period: string;
+    status: string;
+    participants: string;
+    completion: string;
+    cancel: string;
+    submit: string;
+  };
   searchPlaceholder: string;
   footer: string;
 };
@@ -69,6 +80,17 @@ const PERFORMANCE_COPY: Record<Locale, PerformanceCopy> = {
       target: 'Target',
     },
     createCycle: 'Create Cycle',
+    createCycleTitle: 'Create Performance Cycle',
+    createCycleSubtitle: 'Add a new review cycle to the local performance timeline.',
+    cycleForm: {
+      name: 'Cycle name',
+      period: 'Period',
+      status: 'Status',
+      participants: 'Participants',
+      completion: 'Completion %',
+      cancel: 'Cancel',
+      submit: 'Save Cycle',
+    },
     searchPlaceholder: 'Search employees or goals...',
     footer: 'Performance will later connect to live review data without changing the screen structure.',
   },
@@ -104,6 +126,17 @@ const PERFORMANCE_COPY: Record<Locale, PerformanceCopy> = {
       target: 'Sasaran',
     },
     createCycle: 'Buat Siklus',
+    createCycleTitle: 'Buat Siklus Kinerja',
+    createCycleSubtitle: 'Tambahkan siklus penilaian baru ke timeline kinerja lokal.',
+    cycleForm: {
+      name: 'Nama siklus',
+      period: 'Periode',
+      status: 'Status',
+      participants: 'Peserta',
+      completion: 'Progres %',
+      cancel: 'Batal',
+      submit: 'Simpan Siklus',
+    },
     searchPlaceholder: 'Cari karyawan atau target...',
     footer: 'Kinerja nantinya akan terhubung ke data review aktual tanpa mengubah struktur layar.',
   },

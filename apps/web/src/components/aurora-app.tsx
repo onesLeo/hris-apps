@@ -15,6 +15,7 @@ import { PeopleScreen } from './people/people-screen';
 import { ReportsScreen } from './reports/reports-screen';
 import { RecruitmentScreen } from './recruitment/recruitment-screen';
 import { PerformanceScreen } from './performance/performance-screen';
+import { LearningScreen } from './learning/learning-screen';
 
 export function AuroraApp() {
   return (
@@ -32,7 +33,7 @@ function AuroraAppShell() {
 
   let activeScreen: ReactNode;
   if (active === 'dashboard') {
-    activeScreen = <DashboardScreen copy={copy.dashboard} />;
+    activeScreen = <DashboardScreen />;
   } else if (active === 'organization') {
     activeScreen = <OrganizationScreen />;
   } else if (active === 'attendance') {
@@ -43,12 +44,14 @@ function AuroraAppShell() {
     activeScreen = <RecruitmentScreen />;
   } else if (active === 'performance') {
     activeScreen = <PerformanceScreen />;
+  } else if (active === 'learning') {
+    activeScreen = <LearningScreen />;
   } else if (active === 'people') {
     activeScreen = <PeopleScreen />;
   } else if (active === 'leave') {
-    activeScreen = <LeaveScreen copy={copy.leave} />;
+    activeScreen = <LeaveScreen />;
   } else {
-    activeScreen = <ApprovalsScreen copy={copy.approvals} />;
+    activeScreen = <ApprovalsScreen />;
   }
 
   return (

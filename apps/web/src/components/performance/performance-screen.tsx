@@ -3,7 +3,8 @@
 import { useMemo, useState } from 'react';
 import { Avatar, Badge, Button, Icon, SectionHeading } from '../aurora-primitives';
 import { getPerformanceCopy, useLocale } from '../../i18n';
-import { filterPerformanceReviews, getPerformanceOverview, PERFORMANCE_FILTERS, type PerformanceFilter, type PerformanceStatus } from './performance-data';
+import { PerformanceCreateDialog } from './performance-create-dialog';
+import { addPerformanceCycle, filterPerformanceReviews, getPerformanceOverview, PERFORMANCE_FILTERS, type CreatePerformanceCycleInput, type PerformanceFilter, type PerformanceStatus } from './performance-data';
 
 const STATUS_TONE: Record<PerformanceStatus, 'accent' | 'violet' | 'warning' | 'info' | 'success' | 'danger' | 'ghost'> = {
   Scheduled: 'violet',
@@ -18,11 +19,30 @@ export function PerformanceScreen() {
   const overview = getPerformanceOverview();
   const [filter, setFilter] = useState<PerformanceFilter>('All');
   const [search, setSearch] = useState('');
+  const [isCreateOpen, setIsCreateOpen] = useState(false);
+  const [cycles, setCycles] = useState(overview.reviewCycles);
 
   const filteredReviews = useMemo(
     () => filterPerformanceReviews(overview.teamReviews, filter, search),
     [filter, overview.teamReviews, search],
   );
+
+  const stats = useMemo(() => {
+    const completed = cycles.filter((cycle) => cycle.status === 'Completed').length;
+    const inReview = cycles.filter((cycle) => cycle.status === 'In Review').length;
+    const overdue = cycles.filter((cycle) => cycle.status === 'Overdue').length;
+
+    return {
+      cycles: cycles.length,
+      completed,
+      inReview,
+      overdue,
+    };
+  }, [cycles]);
+
+  const createCycle = (input: CreatePerformanceCycleInput) => {
+    setCycles((current) => addPerformanceCycle(current, input));
+  };
 
   return (
     <div className="aurora-screen-stack" style={{ animation: 'auroraFadeUp 0.4s ease' }}>
@@ -40,10 +60,10 @@ export function PerformanceScreen() {
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(110px, 1fr))', gap: 10, flex: 1.1 }}>
             {[
-              { label: copy.stats.cycles, value: overview.cycles },
-              { label: copy.stats.completed, value: overview.completedReviews },
-              { label: copy.stats.inProgress, value: overview.inReview },
-              { label: copy.stats.overdue, value: overview.overdue },
+              { label: copy.stats.cycles, value: stats.cycles },
+              { label: copy.stats.completed, value: stats.completed },
+              { label: copy.stats.inProgress, value: stats.inReview },
+              { label: copy.stats.overdue, value: stats.overdue },
             ].map((item) => (
               <div key={item.label} className="aurora-card" style={{ padding: 14, background: 'rgba(255,255,255,0.6)', boxShadow: 'none' }}>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.45px' }}>{item.label}</div>
@@ -74,7 +94,7 @@ export function PerformanceScreen() {
         </div>
 
         <div style={{ marginLeft: 'auto' }}>
-          <Button variant="primary">
+          <Button variant="primary" onClick={() => setIsCreateOpen(true)}>
             <Icon name="plus" size={14} color="#fff" strokeWidth={2} />
             {copy.createCycle}
           </Button>
@@ -85,8 +105,8 @@ export function PerformanceScreen() {
         <div className="aurora-card aurora-card-padding aurora-card-lift">
           <SectionHeading title={copy.sections.cycles} subtitle={copy.summary} />
           <div className="aurora-screen-stack" style={{ gap: 12 }}>
-            {overview.reviewCycles.map((cycle) => (
-              <div key={cycle.name} style={{ padding: 14, borderRadius: 16, border: '1px solid var(--border)', background: 'rgba(255,255,255,0.55)' }}>
+            {cycles.map((cycle) => (
+              <div key={`${cycle.name}-${cycle.period}`} style={{ padding: 14, borderRadius: 16, border: '1px solid var(--border)', background: 'rgba(255,255,255,0.55)' }}>
                 <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{cycle.name}</div>
@@ -167,6 +187,13 @@ export function PerformanceScreen() {
           ))}
         </div>
       </div>
+
+      <PerformanceCreateDialog
+        open={isCreateOpen}
+        copy={copy}
+        onClose={() => setIsCreateOpen(false)}
+        onSubmit={createCycle}
+      />
 
       <div className="aurora-footer-note">{copy.footer}</div>
     </div>
