@@ -54,14 +54,14 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 - [x] Add EN/ID locale toggle with smooth language transition for the Aurora shell and People screen.
 - [x] Add the API health module and versioned `/api/v1` prefix.
 - [x] Scaffold the first backend domain module: Organization.
-- [ ] Configure BullMQ with Redis connection.
-- [ ] Configure EventEmitter2 module for in-process domain events (ADR 003).
-- [ ] Set up i18n infrastructure for EN and ID languages (ADR 006).
-- [ ] Implement global ExceptionFilter with ADR 006 error shape.
-- [ ] Define API conventions: URL versioning, cursor-based pagination, consistent JSON error format, and OpenAPI generation from backend definitions.
-- [ ] Create base CI pipeline for lint, typecheck, unit tests, and build.
-- [ ] Add missing ADRs: policy resolution strategy, workflow engine design, biometric adapter contract, payroll calculation order, identity provider choice, and reporting storage strategy.
-- [ ] Seed Indonesia tax data: initial TER brackets, PTKP categories, and BPJS rates (ADR 004 — required before payroll can run).
+- [x] Configure BullMQ with Redis connection.
+- [x] Configure EventEmitter2 module for in-process domain events (ADR 003).
+- [x] Set up i18n infrastructure for EN and ID languages (ADR 006).
+- [x] Implement global ExceptionFilter with ADR 006 error shape.
+- [x] Define API conventions: URL versioning, cursor-based pagination, consistent JSON error format, and OpenAPI generation from backend definitions.
+- [x] Create base CI pipeline for lint, typecheck, unit tests, and build.
+- [x] Add missing ADRs: policy resolution strategy, workflow engine design, biometric adapter contract, payroll calculation order, identity provider choice, and reporting storage strategy.
+- [x] Seed Indonesia tax data: initial TER brackets, PTKP categories, and BPJS rates (ADR 004 — required before payroll can run).
 
 ## Phase 1: Foundation
 - [ ] Implement authentication provider integration (Keycloak / OIDC).
