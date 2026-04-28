@@ -1,6 +1,11 @@
-const { readdirSync } = require('node:fs');
-const { join, sep } = require('node:path');
-const { spawnSync } = require('node:child_process');
+import { readdirSync } from 'node:fs';
+import { join, sep, dirname } from 'node:path';
+import { spawnSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
+import { createRequire } from 'node:module';
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const require = createRequire(import.meta.url);
 
 function collectTests(dir) {
   const entries = readdirSync(dir, { withFileTypes: true });
@@ -16,11 +21,10 @@ function collectTests(dir) {
   return files.sort();
 }
 
-const testsDir = __dirname;
 const unitOnly = process.argv.includes('--unit');
 const integrationOnly = process.argv.includes('--integration');
 
-let testFiles = collectTests(testsDir);
+let testFiles = collectTests(__dirname);
 
 if (unitOnly) {
   testFiles = testFiles.filter((f) => !f.includes(`${sep}integration${sep}`));
@@ -37,15 +41,16 @@ if (testFiles.length === 0) {
 console.log(`Running ${testFiles.length} test file(s)...\n`);
 
 const env = { ...process.env };
-// Integration tests need a running API — skip them by default in CI unless
-// SKIP_INTEGRATION is explicitly set to 'false'.
 if (!integrationOnly && env['SKIP_INTEGRATION'] === undefined) {
   env['SKIP_INTEGRATION'] = 'true';
 }
 
+// tsx handles all TypeScript including NestJS legacy decorators + emitDecoratorMetadata
+const tsxBin = join(dirname(fileURLToPath(import.meta.url)), '../node_modules/.bin/tsx');
+
 const result = spawnSync(
-  process.execPath,
-  ['--experimental-transform-types', '--test', '--experimental-test-isolation=none', ...testFiles],
+  tsxBin,
+  ['--test', '--experimental-test-isolation=none', ...testFiles],
   { stdio: 'inherit', env },
 );
 
