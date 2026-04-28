@@ -4,6 +4,16 @@ import type { ReactNode } from 'react';
 import { useMemo, useState } from 'react';
 
 type Screen = 'dashboard' | 'people' | 'leave' | 'approvals';
+
+type LeaveForm = {
+  leaveType: string;
+  fromDate: string;
+  toDate: string;
+  notes: string;
+  file: File | null;
+};
+
+type UploadState = 'idle' | 'uploading' | 'success' | 'error';
 type Accent =
   | 'accent'
   | 'violet'
@@ -583,13 +593,212 @@ function PeopleScreen() {
   );
 }
 
+const LEAVE_TYPES = [
+  'Annual Leave',
+  'Sick Leave',
+  'Compensatory',
+  'Maternity Leave',
+  'Paternity Leave',
+  'WFH Days',
+  'Unpaid Leave',
+];
+
+const ACCEPTED_FILE_TYPES = '.pdf,.jpg,.jpeg,.png,.doc,.docx';
+const MAX_FILE_BYTES = 10 * 1024 * 1024;
+
+function formatBytes(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function LeaveApplicationModal({ onClose }: { onClose: () => void }) {
+  const [form, setForm] = useState<LeaveForm>({
+    leaveType: 'Annual Leave',
+    fromDate: '',
+    toDate: '',
+    notes: '',
+    file: null,
+  });
+  const [uploadState, setUploadState] = useState<UploadState>('idle');
+  const [fileError, setFileError] = useState('');
+  const [submittedName, setSubmittedName] = useState('');
+
+  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const picked = event.target.files?.[0] ?? null;
+    setFileError('');
+    if (!picked) { setForm((f) => ({ ...f, file: null })); return; }
+    if (picked.size > MAX_FILE_BYTES) {
+      setFileError('File exceeds 10 MB limit.');
+      event.target.value = '';
+      return;
+    }
+    setForm((f) => ({ ...f, file: picked }));
+  }
+
+  async function handleSubmit() {
+    if (!form.fromDate || !form.toDate) return;
+    setUploadState('uploading');
+    try {
+      if (form.file) {
+        const body = new FormData();
+        body.append('file', form.file);
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000'}/api/v1/upload/leave-document`,
+          { method: 'POST', body },
+        );
+        if (!res.ok) throw new Error('Upload failed');
+      }
+      setSubmittedName(form.leaveType);
+      setUploadState('success');
+    } catch {
+      setUploadState('error');
+    }
+  }
+
+  if (uploadState === 'success') {
+    return (
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+        <div className="aurora-card aurora-card-padding" style={{ width: 400, textAlign: 'center', gap: 14, display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+          <div style={{ width: 52, height: 52, borderRadius: 16, background: 'rgba(16,185,129,0.12)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Icon name="checkCircle" size={26} color="#10b981" strokeWidth={1.8} />
+          </div>
+          <div className="aurora-card-title">Leave Applied</div>
+          <div className="aurora-card-subtitle">{submittedName} request submitted successfully{form.file ? ' with supporting document' : ''}.</div>
+          <Button variant="primary" onClick={onClose}>Done</Button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000 }}>
+      <div className="aurora-card aurora-card-padding" style={{ width: 480, display: 'flex', flexDirection: 'column', gap: 18 }}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="aurora-card-title">Apply for Leave</div>
+          <button type="button" onClick={onClose} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 4 }}>
+            <Icon name="xMark" size={18} color="var(--text-muted)" strokeWidth={2} />
+          </button>
+        </div>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-mid)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Leave Type</span>
+            <select
+              value={form.leaveType}
+              onChange={(e) => setForm((f) => ({ ...f, leaveType: e.target.value }))}
+              style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '9px 12px', fontSize: 13, color: 'var(--text-primary)', outline: 'none' }}
+            >
+              {LEAVE_TYPES.map((type) => <option key={type}>{type}</option>)}
+            </select>
+          </label>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+            {(['fromDate', 'toDate'] as const).map((field) => (
+              <label key={field} style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+                <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-mid)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
+                  {field === 'fromDate' ? 'From' : 'To'}
+                </span>
+                <input
+                  type="date"
+                  value={form[field]}
+                  onChange={(e) => setForm((f) => ({ ...f, [field]: e.target.value }))}
+                  style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '9px 12px', fontSize: 13, color: 'var(--text-primary)', outline: 'none' }}
+                />
+              </label>
+            ))}
+          </div>
+
+          <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-mid)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Reason (optional)</span>
+            <textarea
+              rows={3}
+              value={form.notes}
+              onChange={(e) => setForm((f) => ({ ...f, notes: e.target.value }))}
+              placeholder="Briefly describe the reason for leave..."
+              style={{ background: 'var(--card-bg)', border: '1px solid var(--border)', borderRadius: 10, padding: '9px 12px', fontSize: 13, color: 'var(--text-primary)', outline: 'none', resize: 'vertical', fontFamily: 'inherit' }}
+            />
+          </label>
+
+          {/* File attachment */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+            <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-mid)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>Supporting Document (optional)</span>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 10,
+                border: `1.5px dashed ${fileError ? 'var(--danger)' : 'var(--border)'}`,
+                borderRadius: 10,
+                padding: '12px 16px',
+                cursor: 'pointer',
+                background: form.file ? 'rgba(16,185,129,0.04)' : 'transparent',
+                transition: 'background 0.15s',
+              }}
+            >
+              <input
+                type="file"
+                accept={ACCEPTED_FILE_TYPES}
+                onChange={handleFileChange}
+                style={{ display: 'none' }}
+              />
+              <Icon
+                name={form.file ? 'checkCircle' : 'clipboard'}
+                size={18}
+                color={form.file ? '#10b981' : 'var(--text-muted)'}
+                strokeWidth={1.8}
+              />
+              {form.file ? (
+                <div style={{ flex: 1 }}>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{form.file.name}</div>
+                  <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{formatBytes(form.file.size)}</div>
+                </div>
+              ) : (
+                <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>Attach PDF, image, or Word document &mdash; max 10 MB</span>
+              )}
+              {form.file && (
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); setForm((f) => ({ ...f, file: null })); setFileError(''); }}
+                  style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 2 }}
+                >
+                  <Icon name="xMark" size={14} color="var(--text-muted)" strokeWidth={2} />
+                </button>
+              )}
+            </label>
+            {fileError && <span style={{ fontSize: 12, color: 'var(--danger)' }}>{fileError}</span>}
+          </div>
+        </div>
+
+        {uploadState === 'error' && (
+          <div style={{ fontSize: 13, color: 'var(--danger)', background: 'rgba(239,68,68,0.06)', borderRadius: 8, padding: '9px 12px' }}>
+            Something went wrong. Please try again.
+          </div>
+        )}
+
+        <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button
+            variant="primary"
+            onClick={handleSubmit}
+          >
+            {uploadState === 'uploading' ? 'Submitting…' : 'Submit Request'}
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function LeaveScreen() {
   const [tab, setTab] = useState('All');
   const tabs = ['All', 'Pending', 'Approved', 'Rejected'];
   const filtered = tab === 'All' ? LEAVE_REQUESTS : LEAVE_REQUESTS.filter((request) => request.status === tab);
+  const [showApplyModal, setShowApplyModal] = useState(false);
 
   return (
     <div className="aurora-screen-stack" style={{ animation: 'auroraFadeUp 0.4s ease' }}>
+      {showApplyModal && <LeaveApplicationModal onClose={() => setShowApplyModal(false)} />}
       <div className="aurora-kpi-grid">
         {LEAVE_BALANCES.map((balance) => (
           <div key={balance.label} className="aurora-card aurora-card-padding aurora-card-lift">
@@ -632,7 +841,7 @@ function LeaveScreen() {
               </button>
             ))}
           </div>
-          <Button size="sm" variant="primary">
+          <Button size="sm" variant="primary" onClick={() => setShowApplyModal(true)}>
             <Icon name="plus" size={13} color="#fff" strokeWidth={2} />
             Apply Leave
           </Button>
