@@ -6,12 +6,12 @@ Use this checklist as the execution order for `docs/hris-system-plan.md`. Comple
 - [ ] Confirm the first release scope and jurisdictions.
 - [ ] Confirm tenant model, initial roles, and required biometric vendors.
 - [ ] Confirm delivery model for client-hosted portable installation.
-- [ ] Initialize pnpm workspace with Turborepo config.
-- [ ] Scaffold `apps/api` (NestJS), `apps/web` (Next.js), `packages/types`, `packages/db`, `packages/config`.
-- [ ] Create repo structure for app, API, workers, shared libs, docs, and tests.
-- [ ] Set up local development environment and environment variables.
-- [ ] Set up Docker Compose local dev stack (postgres, redis, api, web, worker).
-- [ ] Set up Drizzle ORM schema and migration toolchain (drizzle-kit).
+- [x] Initialize pnpm workspace with Turborepo config.
+- [x] Scaffold `apps/api` (NestJS), `apps/web` (Next.js), `packages/types`, `packages/db`, `packages/config`.
+- [x] Create repo structure for app, API, workers, shared libs, docs, and tests.
+- [x] Set up local development environment and environment variables.
+- [x] Set up Docker Compose local dev stack (postgres, redis, api, web, worker).
+- [x] Set up Drizzle ORM schema and migration toolchain (drizzle-kit).
 - [ ] Configure BullMQ with Redis connection.
 - [ ] Configure EventEmitter2 module for in-process domain events (ADR 003).
 - [ ] Set up i18n infrastructure for EN and ID languages (ADR 006).
