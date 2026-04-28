@@ -12,6 +12,12 @@ Use this checklist as the execution order for `docs/hris-system-plan.md`. Comple
 - [x] Set up local development environment and environment variables.
 - [x] Set up Docker Compose local dev stack (postgres, redis, api, web, worker).
 - [x] Set up Drizzle ORM schema and migration toolchain (drizzle-kit).
+- [x] Define Phase 0 backend defaults for module boundaries, auth/tenant model, first entities, and API conventions.
+- [x] Add ADR folder and documentation convention.
+- [x] Review Aurora UI/UX handoff and capture the desktop/mobile design system.
+- [x] Add Phase 0 learning docs for project setup, backend defaults, and Aurora UI/UX design.
+- [x] Implement the Aurora responsive web shell for Dashboard, People, Leave, and Approvals.
+- [x] Add the API health module and versioned `/api/v1` prefix.
 - [ ] Configure BullMQ with Redis connection.
 - [ ] Configure EventEmitter2 module for in-process domain events (ADR 003).
 - [ ] Set up i18n infrastructure for EN and ID languages (ADR 006).

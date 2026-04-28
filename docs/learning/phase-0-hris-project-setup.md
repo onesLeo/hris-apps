@@ -10,6 +10,7 @@ Primary references:
 - [Org Structure ERD](../erd/01-org-structure.md)
 - [Identity / Access ERD](../erd/02-identity-access.md)
 - [Employee Lifecycle ERD](../erd/03-employee-lifecycle.md)
+- [Aurora UI/UX Design](phase-0-aurora-uiux-design.md)
 
 ---
 
@@ -173,6 +174,20 @@ Keep the architecture reasoning discoverable so future phases do not need to gue
 Java analogy:
 - This is the combination of design docs, package docs, and architecture notes that teams often
   keep alongside a Spring Boot platform codebase.
+
+### 10. UI/UX baseline
+
+The frontend should use the Aurora visual system as its initial design language.
+
+- blush and lavender gradients
+- frosted sidebar and translucent header
+- white cards with soft shadows
+- rose-pink primary actions
+- violet secondary accents
+- DM Sans typography
+
+Reference the design note for the full implementation target:
+- [Aurora UI/UX Design](phase-0-aurora-uiux-design.md)
 
 ---
 
