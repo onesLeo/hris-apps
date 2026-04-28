@@ -1,11 +1,16 @@
 import { BullModule } from '@nestjs/bullmq';
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule, RequestMethod } from '@nestjs/common';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { EventEmitterModule } from '@nestjs/event-emitter';
 
+import { RequestContextMiddleware } from './common/context/request-context.middleware';
 import { I18nService } from './common/i18n/i18n.service';
+import { AuditModule } from './modules/audit/audit.module';
+import { AuthModule } from './modules/auth/auth.module';
 import { HealthModule } from './modules/health/health.module';
 import { OrganizationModule } from './modules/organization/organization.module';
+import { TenantMiddleware } from './modules/tenant/tenant.middleware';
+import { TenantModule } from './modules/tenant/tenant.module';
 
 @Module({
   imports: [
@@ -25,10 +30,19 @@ import { OrganizationModule } from './modules/organization/organization.module';
         };
       },
     }),
+    AuthModule,
+    TenantModule,
+    AuditModule,
     HealthModule,
     OrganizationModule,
   ],
   providers: [I18nService],
   exports: [I18nService],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer): void {
+    consumer
+      .apply(RequestContextMiddleware, TenantMiddleware)
+      .forRoutes({ path: '*', method: RequestMethod.ALL });
+  }
+}

@@ -5,9 +5,13 @@ import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { GlobalExceptionFilter } from './common/filters/http-exception.filter';
 import { I18nService } from './common/i18n/i18n.service';
+import { StructuredLoggerService } from './common/logging/structured-logger.service';
+import { bootstrapWorker } from './worker/main';
 
-async function bootstrap(): Promise<void> {
-  const app = await NestFactory.create(AppModule);
+async function bootstrapApi(): Promise<void> {
+  const app = await NestFactory.create(AppModule, {
+    logger: new StructuredLoggerService(),
+  });
 
   app.setGlobalPrefix('api/v1');
 
@@ -36,7 +40,16 @@ async function bootstrap(): Promise<void> {
   await app.listen(port);
 }
 
-void bootstrap().catch((error: unknown) => {
-  console.error(error);
-  process.exit(1);
-});
+const runMode = process.env['RUN_MODE'];
+
+if (runMode === 'worker') {
+  void bootstrapWorker().catch((err: unknown) => {
+    console.error(err);
+    process.exit(1);
+  });
+} else {
+  void bootstrapApi().catch((err: unknown) => {
+    console.error(err);
+    process.exit(1);
+  });
+}

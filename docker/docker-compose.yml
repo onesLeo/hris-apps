@@ -18,6 +18,22 @@ services:
     volumes:
       - redis_data:/data
 
+  keycloak:
+    image: quay.io/keycloak/keycloak:24.0
+    command: start-dev
+    environment:
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/hris
+      KC_DB_USERNAME: hris_user
+      KC_DB_PASSWORD: password
+      KC_HTTP_PORT: 8080
+    ports:
+      - "8080:8080"
+    depends_on:
+      - postgres
+
   api:
     build:
       context: ..
@@ -28,11 +44,13 @@ services:
       DATABASE_URL: postgresql://hris_user:password@postgres:5432/hris
       REDIS_URL: redis://:password@redis:6379
       JWT_SECRET: replace-me-with-a-long-random-secret
+      KEYCLOAK_JWKS_URI: http://keycloak:8080/realms/hris/protocol/openid-connect/certs
     ports:
       - "3000:3000"
     depends_on:
       - postgres
       - redis
+      - keycloak
 
   web:
     build:

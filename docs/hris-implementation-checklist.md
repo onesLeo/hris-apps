@@ -62,7 +62,7 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 - [x] Seed Indonesia tax data: initial TER brackets, PTKP categories, and BPJS rates (ADR 004 — required before payroll can run).
 
 ## Phase 1: Foundation
-- [ ] Implement authentication provider integration (Keycloak / OIDC).
+- [x] Implement authentication provider integration (Keycloak / OIDC).
 - [ ] Add MFA enforcement for admin, HR, payroll, and security roles.
 - [ ] Implement short-lived session management and secure cookie handling.
 - [ ] Add anti-CSRF protections for browser-based sessions.
@@ -72,17 +72,17 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 - [ ] Implement just-in-time account provisioning and scheduled sync jobs.
 - [ ] Add local permission override and audit tracking for directory-driven access.
 - [ ] Add directory provisioning workflow and role/group mapping examples.
-- [ ] Implement tenant model and tenant-aware request context.
+- [x] Implement tenant model and tenant-aware request context.
 - [ ] Implement RLS middleware that sets the PostgreSQL `app.tenant_id` session variable on every request (blocks all other tenant-scoped work).
 - [ ] Add row-level security strategy and tenant scoping enforcement.
-- [ ] Create user, role, permission, and menu access models (14 roles per requirements).
+- [x] Create user, role, permission, and menu access models (14 roles per requirements).
 - [ ] Implement fine-grained RBAC + ABAC authorization with tenant, location, department, and reporting-line scoping.
 - [ ] Add People menu structure for onboarding, lifecycle, and self-service employment actions.
-- [ ] Create organization models for location, department, team, and manager relationships.
-- [ ] Implement structured logging middleware (structured JSON; required fields: `request_id`, `trace_id`, `tenant_id`, `user_id`, `actor_role`, `module`, `action`, `entity_type`, `entity_id`; no PII).
+- [x] Create organization models for location, department, team, and manager relationships.
+- [x] Implement structured logging middleware (structured JSON; required fields: `request_id`, `trace_id`, `tenant_id`, `user_id`, `actor_role`, `module`, `action`, `entity_type`, `entity_id`; no PII).
 - [ ] Implement policy resolution engine (5-level hierarchy: employee → department → location → company → system default) with resolution path logging.
-- [ ] Set up BullMQ worker entry point controlled by `RUN_MODE` environment variable (ADR 002).
-- [ ] Add audit log foundation for all mutating actions (append-only).
+- [x] Set up BullMQ worker entry point controlled by `RUN_MODE` environment variable (ADR 002).
+- [x] Add audit log foundation for all mutating actions (append-only).
 - [ ] Add sensitive field encryption at rest (NPWP, bank details, salary fields).
 
 ## Phase 2: Employee Core

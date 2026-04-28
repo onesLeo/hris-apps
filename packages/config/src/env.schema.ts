@@ -6,6 +6,7 @@ export const envSchema = z.object({
   DATABASE_URL: z.string().min(1),
   REDIS_URL: z.string().min(1),
   JWT_SECRET: z.string().min(1),
+  KEYCLOAK_JWKS_URI: z.string().url().optional(),
 });
 
 export type Env = z.infer<typeof envSchema>;
