@@ -493,18 +493,66 @@ a {
 
 .aurora-row-actions {
   display: flex;
-  gap: 6px;
+  gap: 8px;
   justify-content: flex-start;
+  align-items: center;
+  padding: 6px 8px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  border-radius: 999px;
+  background: rgba(148, 163, 184, 0.06);
+  width: fit-content;
+  margin-left: auto;
 }
 
 .aurora-icon-swatch {
-  width: 28px;
-  height: 28px;
-  border-radius: 8px;
-  background: rgba(0, 0, 0, 0.04);
+  width: 32px;
+  height: 32px;
+  border-radius: 10px;
+  border: 1px solid rgba(148, 163, 184, 0.18);
+  background: rgba(255, 255, 255, 0.72);
   display: flex;
   align-items: center;
   justify-content: center;
+  color: var(--text-muted);
+  transition: transform 150ms ease, background 150ms ease, border-color 150ms ease, box-shadow 150ms ease, color 150ms ease;
+}
+
+button.aurora-icon-swatch {
+  cursor: pointer;
+}
+
+button.aurora-icon-swatch:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+}
+
+button.aurora-icon-swatch:focus-visible {
+  outline: 2px solid rgba(59, 130, 246, 0.32);
+  outline-offset: 2px;
+}
+
+.aurora-icon-swatch.is-accent:hover {
+  background: rgba(59, 130, 246, 0.12);
+  border-color: rgba(59, 130, 246, 0.25);
+  color: var(--accent);
+}
+
+.aurora-icon-swatch.is-success:hover {
+  background: rgba(16, 185, 129, 0.12);
+  border-color: rgba(16, 185, 129, 0.25);
+  color: var(--success);
+}
+
+.aurora-icon-swatch.is-warning:hover {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.25);
+  color: var(--warning);
+}
+
+.aurora-icon-swatch.is-danger:hover {
+  background: rgba(239, 68, 68, 0.12);
+  border-color: rgba(239, 68, 68, 0.25);
+  color: var(--danger);
 }
 
 .aurora-button {

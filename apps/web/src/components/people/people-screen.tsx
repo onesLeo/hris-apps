@@ -69,7 +69,8 @@ export function PeopleScreen() {
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [employeeHistory, setEmployeeHistory] = useState<EmployeeHistory | null>(null);
   const [employees, setEmployees] = useState<Employee[]>(EMPLOYEES);
-  const [usingApi, setUsingApi] = useState(false);
+  const [employeesApiReady, setEmployeesApiReady] = useState(false);
+  const [catalogReady, setCatalogReady] = useState(false);
   const fallbackOrganization = getOrganizationOverview();
   const [departmentOptions, setDepartmentOptions] = useState<OrganizationCatalogDepartment[]>(
     fallbackOrganization.departmentMap.map((department, index) => ({
@@ -99,14 +100,17 @@ export function PeopleScreen() {
 
       if (employeesResult.status === 'fulfilled') {
         setEmployees(employeesResult.value);
-        setUsingApi(true);
+        setEmployeesApiReady(true);
+      } else {
+        setEmployeesApiReady(false);
       }
 
       if (catalogResult.status === 'fulfilled' && catalogResult.value.locations.length > 0 && catalogResult.value.departments.length > 0) {
         setDepartmentOptions(catalogResult.value.departments);
         setLocationOptions(catalogResult.value.locations);
+        setCatalogReady(true);
       } else {
-        setUsingApi(false);
+        setCatalogReady(false);
       }
     });
 
@@ -165,7 +169,7 @@ export function PeopleScreen() {
     setHistoryError(null);
     setEmployeeHistory(null);
 
-    if (!usingApi || !employee.id) {
+    if (!employeesApiReady || !employee.id) {
       setHistoryError('Lifecycle history is available when the API is connected.');
       return;
     }
@@ -197,7 +201,7 @@ export function PeopleScreen() {
     const employeeKey = lifecycleKey ?? getEmployeeKey(target);
 
     if (payload.mode === 'transfer') {
-      if (usingApi && target.id) {
+      if (employeesApiReady && catalogReady && target.id) {
         try {
           const updated = await apiTransfer(target.id, {
             departmentId: payload.departmentId,
@@ -242,7 +246,7 @@ export function PeopleScreen() {
     }
 
     if (payload.mode === 'promote') {
-      if (usingApi && target.id) {
+      if (employeesApiReady && catalogReady && target.id) {
         try {
           const updated = await apiPromote(target.id, {
             jobTitle: payload.jobTitle,
@@ -281,7 +285,7 @@ export function PeopleScreen() {
       return;
     }
 
-    if (usingApi && target.id) {
+    if (employeesApiReady && target.id) {
       try {
         const updated = await apiResign(target.id, {
           resignationDate: payload.resignationDate,
@@ -320,7 +324,7 @@ export function PeopleScreen() {
   const submitDialog = async (input: CreateEmployeeInput) => {
     if (dialogMode === 'edit' && editingKey) {
       const target = employees.find((e) => getEmployeeKey(e) === editingKey);
-      if (usingApi && target?.id) {
+      if (employeesApiReady && target?.id) {
         try {
           const updated = await apiUpdate(target.id, input);
           setEmployees((curr) =>
@@ -337,7 +341,7 @@ export function PeopleScreen() {
       return;
     }
 
-    if (usingApi) {
+    if (employeesApiReady && catalogReady) {
       try {
         const created = await apiCreate(input);
         setEmployees((curr) => [created, ...curr]);
@@ -375,7 +379,7 @@ export function PeopleScreen() {
       return;
     }
 
-    if (usingApi && employee.id) {
+    if (employeesApiReady && employee.id) {
       try {
         const updated = await apiSuspend(employee.id);
         setEmployees((curr) =>
@@ -393,7 +397,7 @@ export function PeopleScreen() {
     const confirmed = window.confirm(localeCopy.actionMenu.deleteConfirm);
     if (!confirmed) return;
 
-    if (usingApi && employee.id) {
+    if (employeesApiReady && employee.id) {
       try {
         await apiTerminate(employee.id);
         setEmployees((curr) => removeEmployee(curr, getEmployeeKey(employee)));
@@ -456,27 +460,27 @@ export function PeopleScreen() {
             <Badge label={statusLabel(employee.status)} tone={BADGE_TONE[employee.status]} />
             <Badge label={statusLabel(employee.type)} tone={BADGE_TONE[employee.type]} />
             <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{employee.since}</span>
-            <div className="aurora-row-actions" style={{ justifyContent: 'flex-end', flexWrap: 'wrap', gap: 6 }}>
-              <button type="button" className="aurora-icon-swatch" onClick={() => openHistoryDialog(employee)} aria-label="History">
-                <Icon name="clipboard" size={14} color="var(--text-muted)" strokeWidth={1.8} />
+            <div className="aurora-row-actions" style={{ justifyContent: 'flex-end', flexWrap: 'wrap' }}>
+              <button type="button" className="aurora-icon-swatch is-accent" onClick={() => openHistoryDialog(employee)} aria-label="History">
+                <Icon name="clipboard" size={14} color="currentColor" strokeWidth={1.8} />
               </button>
-              <button type="button" className="aurora-icon-swatch" onClick={() => openLifecycleDialog(employee, 'transfer')} aria-label="Transfer">
-                <Icon name="building" size={14} color="var(--text-muted)" strokeWidth={1.8} />
+              <button type="button" className="aurora-icon-swatch is-accent" onClick={() => openLifecycleDialog(employee, 'transfer')} aria-label="Transfer">
+                <Icon name="building" size={14} color="currentColor" strokeWidth={1.8} />
               </button>
-              <button type="button" className="aurora-icon-swatch" onClick={() => openLifecycleDialog(employee, 'promote')} aria-label="Promote">
-                <Icon name="trending" size={14} color="var(--text-muted)" strokeWidth={1.8} />
+              <button type="button" className="aurora-icon-swatch is-success" onClick={() => openLifecycleDialog(employee, 'promote')} aria-label="Promote">
+                <Icon name="trending" size={14} color="currentColor" strokeWidth={1.8} />
               </button>
-              <button type="button" className="aurora-icon-swatch" onClick={() => openLifecycleDialog(employee, 'resign')} aria-label="Resign">
-                <Icon name="send" size={14} color="var(--text-muted)" strokeWidth={1.8} />
+              <button type="button" className="aurora-icon-swatch is-warning" onClick={() => openLifecycleDialog(employee, 'resign')} aria-label="Resign">
+                <Icon name="send" size={14} color="currentColor" strokeWidth={1.8} />
               </button>
-              <button type="button" className="aurora-icon-swatch" onClick={() => openEditDialog(employee)} aria-label={localeCopy.actionMenu.edit}>
-                <Icon name="edit" size={14} color="var(--text-muted)" strokeWidth={1.8} />
+              <button type="button" className="aurora-icon-swatch is-accent" onClick={() => openEditDialog(employee)} aria-label={localeCopy.actionMenu.edit}>
+                <Icon name="edit" size={14} color="currentColor" strokeWidth={1.8} />
               </button>
-              <button type="button" className="aurora-icon-swatch" onClick={() => toggleSuspendEmployee(employee)} aria-label={employee.status === 'Suspended' ? localeCopy.actionMenu.reactivate : localeCopy.actionMenu.suspend}>
-                <Icon name="logout" size={14} color="var(--text-muted)" strokeWidth={1.8} />
+              <button type="button" className={`aurora-icon-swatch ${employee.status === 'Suspended' ? 'is-success' : 'is-warning'}`} onClick={() => toggleSuspendEmployee(employee)} aria-label={employee.status === 'Suspended' ? localeCopy.actionMenu.reactivate : localeCopy.actionMenu.suspend}>
+                <Icon name="logout" size={14} color="currentColor" strokeWidth={1.8} />
               </button>
-              <button type="button" className="aurora-icon-swatch" onClick={() => deleteCurrentEmployee(employee)} aria-label={localeCopy.actionMenu.delete}>
-                <Icon name="trash" size={14} color="var(--text-muted)" strokeWidth={1.8} />
+              <button type="button" className="aurora-icon-swatch is-danger" onClick={() => deleteCurrentEmployee(employee)} aria-label={localeCopy.actionMenu.delete}>
+                <Icon name="trash" size={14} color="currentColor" strokeWidth={1.8} />
               </button>
             </div>
           </div>

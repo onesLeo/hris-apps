@@ -26,6 +26,12 @@ test('filterEmployees combines filter and search', () => {
   assert.deepEqual(result.map((employee) => employee.name), ['James Kim']);
 });
 
+test('filterEmployees trims search text and keeps case-insensitive matching', () => {
+  const result = filterEmployees(EMPLOYEES, 'All', '  FINANCE  ');
+
+  assert.deepEqual(result.map((employee) => employee.name), ['Emma Williams']);
+});
+
 test('addEmployee prepends a new employee with derived initials', () => {
   const next = addEmployee(EMPLOYEES, {
     name: 'Alex Lee',
@@ -70,4 +76,29 @@ test('removeEmployee deletes the matching employee record', () => {
 
   assert.equal(next.length, EMPLOYEES.length - 1);
   assert.ok(next.every((employee) => getEmployeeKey(employee) !== key));
+});
+
+test('updateEmployee leaves the list unchanged when the key does not match', () => {
+  const next = updateEmployee(EMPLOYEES, 'missing-key', {
+    name: 'Nobody',
+    role: 'Nobody',
+    dept: 'Nobody',
+    status: 'Active',
+    type: 'Office',
+    since: 'Jan 2026',
+  });
+
+  assert.deepEqual(next, EMPLOYEES);
+});
+
+test('removeEmployee leaves the list unchanged when the key does not match', () => {
+  const next = removeEmployee(EMPLOYEES, 'missing-key');
+
+  assert.deepEqual(next, EMPLOYEES);
+});
+
+test('suspendEmployee leaves the list unchanged when the key does not match', () => {
+  const next = suspendEmployee(EMPLOYEES, 'missing-key');
+
+  assert.deepEqual(next, EMPLOYEES);
 });
