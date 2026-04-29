@@ -11,6 +11,8 @@ import type {
 
 type PeopleDialogMode = 'create' | 'edit';
 
+type ManagerOption = { id: string; name: string };
+
 type PeopleCreateDialogProps = {
   open: boolean;
   mode: PeopleDialogMode;
@@ -20,6 +22,7 @@ type PeopleCreateDialogProps = {
   initialLocationId: string | undefined;
   departmentOptions: readonly OrganizationCatalogDepartment[];
   locationOptions: readonly OrganizationCatalogLocation[];
+  managerOptions: readonly ManagerOption[];
   onClose: () => void;
   onSubmit: (employee: CreateEmployeeInput) => void;
 };
@@ -29,6 +32,7 @@ type FormState = {
   role: string;
   departmentId: string;
   locationId: string;
+  managerId: string;
   status: EmployeeStatus;
   type: WorkType;
   since: string;
@@ -39,12 +43,14 @@ const INITIAL_FORM_STATE: FormState = {
   role: '',
   departmentId: '',
   locationId: '',
+  managerId: '',
   status: 'Active',
   type: 'Office',
   since: '',
 };
 
-const STATUSES: readonly EmployeeStatus[] = ['Active', 'Suspended', 'On Leave', 'Pending', 'Approved', 'Rejected'] as const;
+// Terminated and Pre_Boarding are set by system actions, not manually via this form.
+const STATUSES: readonly EmployeeStatus[] = ['Active', 'Suspended', 'On Leave'] as const;
 const WORK_TYPES: readonly WorkType[] = ['Remote', 'Office', 'Hybrid'] as const;
 
 export function PeopleCreateDialog({
@@ -56,6 +62,7 @@ export function PeopleCreateDialog({
   initialLocationId,
   departmentOptions,
   locationOptions,
+  managerOptions,
   onClose,
   onSubmit,
 }: PeopleCreateDialogProps) {
@@ -83,7 +90,10 @@ export function PeopleCreateDialog({
         role: initialEmployee.role,
         departmentId: initialDepartment?.id ?? '',
         locationId: initialLocation?.id ?? '',
-        status: initialEmployee.status,
+        managerId: initialEmployee.managerId ?? '',
+        status: (STATUSES as readonly string[]).includes(initialEmployee.status)
+          ? initialEmployee.status as EmployeeStatus
+          : 'Active',
         type: initialEmployee.type,
         since: initialEmployee.since,
       });
@@ -99,6 +109,7 @@ export function PeopleCreateDialog({
       ...INITIAL_FORM_STATE,
       departmentId: defaultDepartment?.id ?? '',
       locationId: defaultLocation?.id ?? locationOptions[0]?.id ?? '',
+      managerId: '',
     });
   }, [departmentOptions, initialDepartmentId, initialEmployee, initialLocationId, locationOptions, mode, open]);
 
@@ -127,6 +138,7 @@ export function PeopleCreateDialog({
       status: form.status,
       type: form.type,
       since: form.since.trim(),
+      ...(form.managerId ? { managerId: form.managerId } : {}),
     });
 
     onClose();
@@ -234,6 +246,16 @@ export function PeopleCreateDialog({
               </select>
             </label>
           </div>
+
+          <label style={{ display: 'grid', gap: 6 }}>
+            <span className="aurora-card-subtitle">{copy.employeeForm.manager}</span>
+            <select value={form.managerId} onChange={(event) => setForm((current) => ({ ...current, managerId: event.target.value }))} style={inputStyle}>
+              <option value="">— {copy.employeeForm.manager} (optional)</option>
+              {managerOptions.map((manager) => (
+                <option key={manager.id} value={manager.id}>{manager.name}</option>
+              ))}
+            </select>
+          </label>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14 }}>
             <label style={{ display: 'grid', gap: 6 }}>

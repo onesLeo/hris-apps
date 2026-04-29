@@ -1,4 +1,4 @@
-export type EmployeeStatus = 'Active' | 'Suspended' | 'On Leave' | 'Pending' | 'Approved' | 'Rejected';
+export type EmployeeStatus = 'Active' | 'Suspended' | 'On Leave' | 'Terminated' | 'Pre_Boarding';
 export type WorkType = 'Remote' | 'Office' | 'Hybrid';
 
 export type Employee = {
@@ -11,6 +11,8 @@ export type Employee = {
   since: string;
   initials: string;
   color: string;
+  managerId?: string;
+  managerName?: string;
 };
 
 export type CreateEmployeeInput = {
@@ -23,6 +25,7 @@ export type CreateEmployeeInput = {
   status: EmployeeStatus;
   type: WorkType;
   since: string;
+  managerId?: string;
 };
 
 export type EmployeeKey = string;
@@ -42,14 +45,24 @@ export const EMPLOYEES: Employee[] = [
   { name: 'Ryan Park', role: 'QA Engineer', dept: 'Engineering', status: 'Active', type: 'Hybrid', since: 'Oct 2023', initials: 'RP', color: '#fb7185' },
 ];
 
-export const PEOPLE_FILTERS = ['All', 'Active', 'On Leave', 'Remote', 'Office'] as const;
+// 'All' excludes Terminated so the default view is the active roster.
+// Select 'Terminated' explicitly to see former employees.
+export const PEOPLE_FILTERS = ['All', 'Active', 'On Leave', 'Terminated', 'Remote', 'Office'] as const;
 export type PeopleFilter = (typeof PEOPLE_FILTERS)[number];
 
 export function filterEmployees(employees: Employee[], filter: PeopleFilter, search: string): Employee[] {
   const query = search.trim().toLowerCase();
 
   return employees.filter((employee) => {
-    const matchesFilter = filter === 'All' || employee.status === filter || employee.type === filter;
+    let matchesFilter: boolean;
+    if (filter === 'Terminated') {
+      matchesFilter = employee.status === 'Terminated';
+    } else if (filter === 'All') {
+      matchesFilter = employee.status !== 'Terminated';
+    } else {
+      matchesFilter = employee.status !== 'Terminated' && (employee.status === filter || employee.type === filter);
+    }
+
     const matchesSearch =
       !query ||
       employee.name.toLowerCase().includes(query) ||
@@ -79,12 +92,13 @@ export function addEmployee(employees: readonly Employee[], input: CreateEmploye
       type: input.type,
       since: input.since,
       initials: initials || 'EN',
+      ...(input.managerId ? { managerId: input.managerId } : {}),
       color:
         input.status === 'On Leave'
           ? '#f59e0b'
           : input.status === 'Suspended'
             ? '#64748b'
-            : input.status === 'Pending'
+            : input.status === 'Pre_Boarding'
               ? '#8b5cf6'
               : '#f43f8e',
     },
@@ -111,6 +125,7 @@ export function updateEmployee(
           status: input.status,
           type: input.type,
           since: input.since,
+          ...(input.managerId ? { managerId: input.managerId } : employee.managerId ? { managerId: employee.managerId } : {}),
           initials: employee.initials,
           color: employee.color,
         }
@@ -121,15 +136,22 @@ export function updateEmployee(
 export function suspendEmployee(employees: readonly Employee[], key: EmployeeKey): Employee[] {
   return employees.map((employee) =>
     getEmployeeKey(employee) === key
-      ? {
-          ...employee,
-          status: 'Suspended',
-          color: '#64748b',
-        }
+      ? { ...employee, status: 'Suspended', color: '#64748b' }
       : employee,
   );
 }
 
+// Marks the employee as Terminated in local state — does NOT remove from the array.
+// Terminated employees are hidden from 'All' and visible only under the 'Terminated' filter.
+export function terminateEmployeeLocally(employees: readonly Employee[], key: EmployeeKey): Employee[] {
+  return employees.map((employee) =>
+    getEmployeeKey(employee) === key
+      ? { ...employee, status: 'Terminated', color: '#94a3b8' }
+      : employee,
+  );
+}
+
+/** @deprecated Use terminateEmployeeLocally — employees should never be deleted from the list. */
 export function removeEmployee(employees: readonly Employee[], key: EmployeeKey): Employee[] {
   return employees.filter((employee) => getEmployeeKey(employee) !== key);
 }

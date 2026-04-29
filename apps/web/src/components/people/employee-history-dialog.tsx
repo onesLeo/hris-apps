@@ -556,12 +556,10 @@ function getStatusTone(status: Employee['status']): Accent {
       return 'warning';
     case 'On Leave':
       return 'info';
-    case 'Pending':
-      return 'violet';
-    case 'Approved':
-      return 'success';
-    case 'Rejected':
+    case 'Terminated':
       return 'danger';
+    case 'Pre_Boarding':
+      return 'violet';
     default:
       return 'ghost';
   }

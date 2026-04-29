@@ -12,6 +12,7 @@ export type PeopleCopy = {
     role: string;
     department: string;
     location: string;
+    manager: string;
     status: string;
     workType: string;
     joined: string;
@@ -20,7 +21,7 @@ export type PeopleCopy = {
   };
   columns: readonly [string, string, string, string, string, string];
   footer: (shown: number, total: number) => string;
-  status: Record<'Active' | 'Suspended' | 'On Leave' | 'Pending' | 'Approved' | 'Rejected' | 'Remote' | 'Office' | 'Hybrid', string>;
+  status: Record<'Active' | 'Suspended' | 'On Leave' | 'Terminated' | 'Pre_Boarding' | 'Remote' | 'Office' | 'Hybrid', string>;
   actionMenu: {
     history: string;
     transfer: string;
@@ -29,8 +30,8 @@ export type PeopleCopy = {
     edit: string;
     suspend: string;
     reactivate: string;
-    delete: string;
-    deleteConfirm: string;
+    terminate: string;
+    terminateConfirm: string;
   };
   validation: {
     createRequired: string;
@@ -55,6 +56,7 @@ const PEOPLE_COPY: Record<Locale, PeopleCopy> = {
       role: 'Role',
       department: 'Department',
       location: 'Location',
+      manager: 'Direct manager',
       status: 'Status',
       workType: 'Work type',
       joined: 'Joined',
@@ -67,9 +69,8 @@ const PEOPLE_COPY: Record<Locale, PeopleCopy> = {
       Active: 'Active',
       Suspended: 'Suspended',
       'On Leave': 'On Leave',
-      Pending: 'Pending',
-      Approved: 'Approved',
-      Rejected: 'Rejected',
+      Terminated: 'Terminated',
+      Pre_Boarding: 'Pre-Boarding',
       Remote: 'Remote',
       Office: 'Office',
       Hybrid: 'Hybrid',
@@ -82,8 +83,8 @@ const PEOPLE_COPY: Record<Locale, PeopleCopy> = {
       edit: 'Edit',
       suspend: 'Suspend',
       reactivate: 'Reactivate',
-      delete: 'Delete',
-      deleteConfirm: 'Delete this employee record?',
+      terminate: 'Terminate',
+      terminateConfirm: 'Terminate this employee? This marks them as a former employee and cannot be undone without a rehire.',
     },
     validation: {
       createRequired: 'Please complete the name, role, department, location, and joined date before saving.',
@@ -106,6 +107,7 @@ const PEOPLE_COPY: Record<Locale, PeopleCopy> = {
       role: 'Jabatan',
       department: 'Departemen',
       location: 'Lokasi',
+      manager: 'Atasan langsung',
       status: 'Status',
       workType: 'Tipe kerja',
       joined: 'Bergabung',
@@ -116,11 +118,10 @@ const PEOPLE_COPY: Record<Locale, PeopleCopy> = {
     footer: (shown, total) => `Menampilkan ${shown} dari ${total} karyawan`,
     status: {
       Active: 'Aktif',
-      Suspended: 'Suspended',
+      Suspended: 'Ditangguhkan',
       'On Leave': 'Cuti',
-      Pending: 'Menunggu',
-      Approved: 'Disetujui',
-      Rejected: 'Ditolak',
+      Terminated: 'Tidak Aktif',
+      Pre_Boarding: 'Pra-Bergabung',
       Remote: 'Remote',
       Office: 'Kantor',
       Hybrid: 'Hybrid',
@@ -133,8 +134,8 @@ const PEOPLE_COPY: Record<Locale, PeopleCopy> = {
       edit: 'Ubah',
       suspend: 'Nonaktifkan',
       reactivate: 'Aktifkan Kembali',
-      delete: 'Hapus',
-      deleteConfirm: 'Hapus data karyawan ini?',
+      terminate: 'Putus Hubungan Kerja',
+      terminateConfirm: 'Putuskan hubungan kerja karyawan ini? Status akan berubah menjadi mantan karyawan dan tidak dapat dibatalkan tanpa proses rehire.',
     },
     validation: {
       createRequired: 'Lengkapi nama, jabatan, departemen, lokasi, dan tanggal bergabung sebelum menyimpan.',

@@ -9,11 +9,13 @@ type ApiEmployee = {
   last_name: string;
   display_name: string;
   email: string;
-  status: 'active' | 'inactive' | 'suspended' | 'on_leave' | 'terminated';
+  status: 'active' | 'inactive' | 'suspended' | 'on_leave' | 'terminated' | 'pre_boarding';
   hire_date: string;
   job_title: string | null;
   department_name: string | null;
   work_arrangement: 'office' | 'remote' | 'hybrid' | null;
+  manager_id: string | null;
+  manager_display_name: string | null;
 };
 
 type ApiListResponse = { data: ApiEmployee[]; nextCursor: string | null };
@@ -46,11 +48,12 @@ export type EmployeeHistory = {
 
 // Map DB status → UI status label
 const STATUS_MAP: Record<ApiEmployee['status'], Employee['status']> = {
-  active:     'Active',
-  inactive:   'Pending',
-  suspended:  'Suspended',
-  on_leave:   'On Leave',
-  terminated: 'Pending',
+  active:      'Active',
+  inactive:    'Active',
+  suspended:   'Suspended',
+  on_leave:    'On Leave',
+  terminated:  'Terminated',
+  pre_boarding:'Pre_Boarding',
 };
 
 // Map DB work arrangement → UI WorkType
@@ -97,6 +100,8 @@ function toUiEmployee(api: ApiEmployee): Employee {
     since,
     initials,
     color: colorForName(api.display_name),
+    ...(api.manager_id ? { managerId: api.manager_id } : {}),
+    ...(api.manager_display_name ? { managerName: api.manager_display_name } : {}),
   };
 }
 
@@ -118,6 +123,7 @@ export async function createEmployee(input: CreateEmployeeInput): Promise<Employ
     departmentId: input.departmentId,
     locationId: input.locationId,
     workArrangement: input.type.toLowerCase() as 'office' | 'remote' | 'hybrid',
+    managerId: input.managerId ?? null,
   });
   return {
     ...toUiEmployee(api),

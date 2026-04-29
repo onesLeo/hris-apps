@@ -36,13 +36,14 @@ export class EmployeeService {
     const [employee] = await this.db.queryWithTenant<EmployeeRow>(tenantId, `
       INSERT INTO employees (
         tenant_id, employee_number, first_name, last_name, display_name,
-        email, phone, date_of_birth, gender, nationality, status, hire_date
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'active',$11)
+        email, phone, date_of_birth, gender, nationality, status, hire_date, manager_id
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'active',$11,$12)
       RETURNING *
     `, [
       tenantId, dto.employeeNumber, dto.firstName, dto.lastName, displayName,
       dto.email, dto.phone ?? null, dto.dateOfBirth ?? null,
       dto.gender ?? null, dto.nationality ?? null, dto.hireDate,
+      dto.managerId ?? null,
     ]);
 
     if (!employee) throw new BadRequestException('Failed to create employee record');
@@ -100,12 +101,14 @@ export class EmployeeService {
         s.job_title, s.department_id, s.employment_type, s.work_arrangement,
         s.location_id,
         d.name AS department_name,
-        l.name AS location_name
+        l.name AS location_name,
+        m.display_name AS manager_display_name
       FROM employees e
       LEFT JOIN employment_spells s
         ON s.employee_id = e.id AND s.effective_to IS NULL
       LEFT JOIN departments d ON d.id = s.department_id
       LEFT JOIN locations   l ON l.id = s.location_id
+      LEFT JOIN employees   m ON m.id = e.manager_id
       WHERE ${where}
       ORDER BY e.id
       LIMIT $${i}
@@ -122,12 +125,14 @@ export class EmployeeService {
         s.job_title, s.department_id, s.employment_type, s.work_arrangement,
         s.location_id,
         d.name AS department_name,
-        l.name AS location_name
+        l.name AS location_name,
+        m.display_name AS manager_display_name
       FROM employees e
       LEFT JOIN employment_spells s
         ON s.employee_id = e.id AND s.effective_to IS NULL
       LEFT JOIN departments d ON d.id = s.department_id
       LEFT JOIN locations   l ON l.id = s.location_id
+      LEFT JOIN employees   m ON m.id = e.manager_id
       WHERE e.id = $1 AND e.tenant_id = $2
     `, [id, tenantId]);
 

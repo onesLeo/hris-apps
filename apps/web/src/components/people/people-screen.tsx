@@ -17,8 +17,8 @@ import {
   filterEmployees,
   getEmployeeKey,
   PEOPLE_FILTERS,
-  removeEmployee,
   suspendEmployee,
+  terminateEmployeeLocally,
   updateEmployee,
   type CreateEmployeeInput,
   type Employee,
@@ -47,9 +47,8 @@ const BADGE_TONE: Record<EmployeeStatus | WorkType, 'accent' | 'violet' | 'warni
   Active: 'success',
   Suspended: 'ghost',
   'On Leave': 'warning',
-  Pending: 'warning',
-  Approved: 'success',
-  Rejected: 'danger',
+  Terminated: 'danger',
+  Pre_Boarding: 'info',
   Remote: 'info',
   Office: 'violet',
   Hybrid: 'accent',
@@ -58,7 +57,7 @@ const BADGE_TONE: Record<EmployeeStatus | WorkType, 'accent' | 'violet' | 'warni
 export function PeopleScreen() {
   const { locale } = useLocale();
   const localeCopy = getPeopleCopy(locale);
-  const [filter, setFilter] = useState<'All' | 'Active' | 'On Leave' | 'Remote' | 'Office'>('All');
+  const [filter, setFilter] = useState<'All' | 'Active' | 'On Leave' | 'Terminated' | 'Remote' | 'Office'>('All');
   const [search, setSearch] = useState('');
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | null>(null);
   const [editingKey, setEditingKey] = useState<string | null>(null);
@@ -313,7 +312,7 @@ export function PeopleScreen() {
         departmentName: currentDepartment?.name ?? target.dept,
         locationId: currentLocation?.id ?? '',
         locationName: currentLocation?.name ?? '',
-        status: 'Pending',
+        status: 'Active',
         type: target.type,
         since: target.since,
       }),
@@ -393,20 +392,19 @@ export function PeopleScreen() {
     setEmployees((curr) => suspendEmployee(curr, key));
   };
 
-  const deleteCurrentEmployee = async (employee: Employee) => {
-    const confirmed = window.confirm(localeCopy.actionMenu.deleteConfirm);
+  const terminateCurrentEmployee = async (employee: Employee) => {
+    const confirmed = window.confirm(localeCopy.actionMenu.terminateConfirm);
     if (!confirmed) return;
 
     if (employeesApiReady && employee.id) {
       try {
         await apiTerminate(employee.id);
-        setEmployees((curr) => removeEmployee(curr, getEmployeeKey(employee)));
-        return;
       } catch {
-        // fall through to local remove
+        // fall through — mark locally regardless
       }
     }
-    setEmployees((curr) => removeEmployee(curr, getEmployeeKey(employee)));
+    // Keep the row in state, change status to Terminated so they appear under the Terminated filter.
+    setEmployees((curr) => terminateEmployeeLocally(curr, getEmployeeKey(employee)));
   };
 
   return (
@@ -453,7 +451,7 @@ export function PeopleScreen() {
               <Avatar initials={employee.initials} color={employee.color} />
               <div>
                 <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>{employee.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{employee.role}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{employee.role}{employee.managerName ? ` · ${employee.managerName}` : ''}</div>
               </div>
             </div>
             <span style={{ fontSize: 13, color: 'var(--text-mid)' }}>{employee.dept}</span>
@@ -464,6 +462,7 @@ export function PeopleScreen() {
               <button type="button" className="aurora-icon-swatch is-accent" onClick={() => openHistoryDialog(employee)} aria-label={localeCopy.actionMenu.history} title={localeCopy.actionMenu.history}>
                 <Icon name="clipboard" size={14} color="currentColor" strokeWidth={1.8} />
               </button>
+              {employee.status !== 'Terminated' && (<>
               <button type="button" className="aurora-icon-swatch is-accent" onClick={() => openLifecycleDialog(employee, 'transfer')} aria-label={localeCopy.actionMenu.transfer} title={localeCopy.actionMenu.transfer}>
                 <Icon name="building" size={14} color="currentColor" strokeWidth={1.8} />
               </button>
@@ -479,7 +478,8 @@ export function PeopleScreen() {
               <button type="button" className={`aurora-icon-swatch ${employee.status === 'Suspended' ? 'is-success' : 'is-warning'}`} onClick={() => toggleSuspendEmployee(employee)} aria-label={employee.status === 'Suspended' ? localeCopy.actionMenu.reactivate : localeCopy.actionMenu.suspend} title={employee.status === 'Suspended' ? localeCopy.actionMenu.reactivate : localeCopy.actionMenu.suspend}>
                 <Icon name="logout" size={14} color="currentColor" strokeWidth={1.8} />
               </button>
-              <button type="button" className="aurora-icon-swatch is-danger" onClick={() => deleteCurrentEmployee(employee)} aria-label={localeCopy.actionMenu.delete} title={localeCopy.actionMenu.delete}>
+              </>)}
+              <button type="button" className="aurora-icon-swatch is-danger" onClick={() => terminateCurrentEmployee(employee)} aria-label={localeCopy.actionMenu.terminate} title={localeCopy.actionMenu.terminate} disabled={employee.status === 'Terminated'}>
                 <Icon name="trash" size={14} color="currentColor" strokeWidth={1.8} />
               </button>
             </div>
@@ -496,6 +496,9 @@ export function PeopleScreen() {
         initialLocationId={editingLocation?.id}
         departmentOptions={departmentOptions}
         locationOptions={locationOptions}
+        managerOptions={employees
+          .filter((e) => e.status === 'Active' && e.id !== editingEmployee?.id)
+          .map((e) => ({ id: e.id ?? getEmployeeKey(e), name: e.name }))}
         onClose={closeDialog}
         onSubmit={submitDialog}
       />

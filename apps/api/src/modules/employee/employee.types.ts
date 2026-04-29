@@ -15,6 +15,7 @@ export type HireEmployeeDto = {
   locationId: string;
   employmentType?: 'full_time' | 'part_time' | 'contract' | 'intern';
   workArrangement?: 'office' | 'remote' | 'hybrid';
+  managerId?: string;          // direct manager employee UUID (optional)
 };
 
 export type UpdateEmployeeDto = {
@@ -81,6 +82,8 @@ export type EmployeeRow = {
   termination_date: string | null;
   created_at: string;
   updated_at: string;
+  manager_id: string | null;
+  manager_display_name: string | null;  // joined from manager employee row
   // joined from current spell
   job_title: string | null;
   department_id: string | null;
