@@ -9,6 +9,13 @@ $ComposeFile = "docker\docker-compose.infra.yml"
 if ($Down) {
   Write-Host "Stopping infrastructure..."
   docker compose -f $ComposeFile down
+
+  Write-Host "Killing any Node processes on ports 3000 and 3001..."
+  @(3000, 3001) | ForEach-Object {
+    $conn = Get-NetTCPConnection -LocalPort $_ -ErrorAction SilentlyContinue
+    if ($conn) { Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue }
+  }
+
   Write-Host "Done."
   exit 0
 }
@@ -16,6 +23,16 @@ if ($Down) {
 Write-Host ""
 Write-Host "=== HRIS Dev Environment ==="
 Write-Host ""
+
+# Kill any leftover processes from previous runs
+Write-Host "[0/3] Clearing ports 3000 and 3001..."
+@(3000, 3001) | ForEach-Object {
+  $conn = Get-NetTCPConnection -LocalPort $_ -ErrorAction SilentlyContinue
+  if ($conn) {
+    Write-Host "    Killing process $($conn.OwningProcess) on port $_"
+    Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue
+  }
+}
 
 # 1. Start infrastructure
 Write-Host "[1/3] Starting infrastructure (postgres, redis, keycloak)..."
