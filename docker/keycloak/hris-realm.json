@@ -1,0 +1,105 @@
+{
+  "realm": "hris",
+  "enabled": true,
+  "displayName": "HRIS PeopleOS",
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "resetPasswordAllowed": true,
+  "editUsernameAllowed": false,
+  "accessTokenLifespan": 900,
+  "roles": {
+    "realm": [
+      { "name": "super_admin",         "description": "Full system access" },
+      { "name": "hris_admin",          "description": "HRIS administrator" },
+      { "name": "hr_manager",          "description": "HR manager" },
+      { "name": "hr_staff",            "description": "HR staff" },
+      { "name": "payroll_manager",     "description": "Payroll manager" },
+      { "name": "payroll_staff",       "description": "Payroll staff" },
+      { "name": "plant_manager",       "description": "Plant manager" },
+      { "name": "department_manager",  "description": "Department manager" },
+      { "name": "team_lead",           "description": "Team lead" },
+      { "name": "employee",            "description": "Regular employee" },
+      { "name": "recruitment_manager", "description": "Recruitment manager" },
+      { "name": "security_officer",    "description": "Security officer" },
+      { "name": "finance_controller",  "description": "Finance controller" },
+      { "name": "read_only",           "description": "Read-only access" }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "hris-web",
+      "name": "HRIS Web App",
+      "description": "Next.js frontend for PeopleOS HRIS",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "hris-web-secret",
+      "redirectUris": [
+        "http://localhost:3001/*",
+        "http://localhost:3001/api/auth/callback/keycloak"
+      ],
+      "webOrigins": ["http://localhost:3001"],
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "protocol": "openid-connect",
+      "fullScopeAllowed": true,
+      "protocolMappers": [
+        {
+          "name": "realm-roles-mapper",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usermodel-realm-role-mapper",
+          "consentRequired": false,
+          "config": {
+            "multivalued": "true",
+            "userinfo.token.claim": "true",
+            "id.token.claim": "true",
+            "access.token.claim": "true",
+            "claim.name": "roles",
+            "jsonType.label": "String"
+          }
+        }
+      ]
+    }
+  ],
+  "users": [
+    {
+      "username": "hris.admin",
+      "email": "hris.admin@test.com",
+      "firstName": "HRIS",
+      "lastName": "Admin",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "Test@1234", "temporary": false }
+      ],
+      "realmRoles": ["hris_admin"]
+    },
+    {
+      "username": "hr.manager",
+      "email": "hr.manager@test.com",
+      "firstName": "HR",
+      "lastName": "Manager",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "Test@1234", "temporary": false }
+      ],
+      "realmRoles": ["hr_manager"]
+    },
+    {
+      "username": "john.employee",
+      "email": "john.employee@test.com",
+      "firstName": "John",
+      "lastName": "Employee",
+      "enabled": true,
+      "emailVerified": true,
+      "credentials": [
+        { "type": "password", "value": "Test@1234", "temporary": false }
+      ],
+      "realmRoles": ["employee"]
+    }
+  ]
+}

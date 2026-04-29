@@ -1,7 +1,7 @@
 // Thin fetch wrapper for the HRIS API.
 // Auth token source priority:
 //   1. NEXT_PUBLIC_DEV_AUTH_TOKEN env var  (dev only — never set in production)
-//   2. window.__hrisAuthToken              (set by Keycloak OIDC in Phase 3)
+//   2. window.__hrisAuthToken              (set by AuroraAppShell from NextAuth session)
 // If neither is available the request is sent without Authorization and the
 // API will return 401, which callers handle by falling back to mock data.
 

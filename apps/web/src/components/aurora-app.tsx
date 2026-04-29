@@ -1,7 +1,8 @@
 'use client';
 
 import type { ReactNode } from 'react';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+import { signOut, useSession } from 'next-auth/react';
 import { getAppCopy, LocaleProvider, LocaleToggle, useLocale } from '../i18n';
 import type { Screen } from '../i18n';
 import { FEATURE_MENU, NAV_ITEMS, isActiveFeatureKey } from './aurora-shell-data';
@@ -25,11 +26,38 @@ export function AuroraApp() {
   );
 }
 
+function initials(name: string | null | undefined): string {
+  if (!name) return 'U';
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((p) => p[0] ?? '')
+    .join('')
+    .toUpperCase()
+    .slice(0, 2) || 'U';
+}
+
 function AuroraAppShell() {
   const [active, setActive] = useState<Screen>('dashboard');
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const { locale, isTransitioning } = useLocale();
   const copy = getAppCopy(locale);
+  const { data: session } = useSession();
+
+  const userName = session?.user?.name ?? 'User';
+  const userInitials = initials(userName);
+
+  // Keep window.__hrisAuthToken in sync so api-client picks up the Keycloak token
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      if (session?.accessToken) {
+        window.__hrisAuthToken = session.accessToken;
+      } else {
+        delete window.__hrisAuthToken;
+      }
+    }
+  }, [session?.accessToken]);
 
   let activeScreen: ReactNode;
   if (active === 'dashboard') {
@@ -130,18 +158,43 @@ function AuroraAppShell() {
           </div>
         </nav>
 
+        {/* User profile + logout */}
         <div className="aurora-sidebar-footer">
-          <div className={`aurora-nav-item ${sidebarOpen ? '' : 'is-collapsed'}`} style={{ cursor: 'default' }}>
-            <div style={{ width: 30, height: 30, borderRadius: 9, background: 'linear-gradient(135deg,#f43f8e,#a78bfa)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, color: '#fff', fontSize: 11, fontWeight: 700 }}>
-              AL
+          <div
+            className={`aurora-nav-item ${sidebarOpen ? '' : 'is-collapsed'}`}
+            style={{ cursor: 'default' }}
+          >
+            <div style={{
+              width: 30, height: 30, borderRadius: 9,
+              background: 'linear-gradient(135deg,#f43f8e,#a78bfa)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0, color: '#fff', fontSize: 11, fontWeight: 700,
+            }}>
+              {userInitials}
             </div>
             {sidebarOpen && (
               <>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>Alex Lee</div>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {userName}
+                  </div>
                   <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{copy.profileRole}</div>
                 </div>
-                <Icon name="settings" size={14} color="var(--text-muted)" strokeWidth={1.5} />
+                <button
+                  type="button"
+                  title="Sign out"
+                  onClick={() => signOut({ callbackUrl: '/login' })}
+                  style={{
+                    background: 'none', border: 'none', padding: 4,
+                    cursor: 'pointer', borderRadius: 6, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center',
+                    opacity: 0.7,
+                  }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = '1'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLButtonElement).style.opacity = '0.7'; }}
+                >
+                  <Icon name="logout" size={14} color="var(--text-muted)" strokeWidth={1.5} />
+                </button>
               </>
             )}
           </div>
@@ -170,7 +223,14 @@ function AuroraAppShell() {
               <Icon name="bell" size={16} color="var(--text-mid)" strokeWidth={1.8} />
               <span className="aurora-dot" />
             </div>
-            <div className="aurora-avatar">AL</div>
+            <div
+              className="aurora-avatar"
+              title={`${userName} — click to sign out`}
+              onClick={() => signOut({ callbackUrl: '/login' })}
+              style={{ cursor: 'pointer' }}
+            >
+              {userInitials}
+            </div>
           </div>
         </header>
 

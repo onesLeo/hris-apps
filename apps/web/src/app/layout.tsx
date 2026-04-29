@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import type { Metadata } from 'next';
 import { DM_Sans } from 'next/font/google';
+import { SessionProvider } from '../components/session-provider';
 import './globals.css';
 
 const dmSans = DM_Sans({
@@ -16,7 +17,9 @@ export const metadata: Metadata = {
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en">
-      <body className={dmSans.className}>{children}</body>
+      <body className={dmSans.className}>
+        <SessionProvider>{children}</SessionProvider>
+      </body>
     </html>
   );
 }

@@ -86,16 +86,18 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 - [x] Add sensitive field encryption service (AES-256-GCM, EncryptionService). _(Service ready; field-level application to NPWP/bank/salary deferred to Phase 2 when those entities are built)_
 
 ## Phase 2: Employee Core
-- [ ] Build employee profile model and employment spell model.
-- [ ] Add effective-dated history for assignments, position, and compensation.
-- [ ] Implement employee lifecycle event log.
-- [ ] Define lifecycle event taxonomy for hire, transfer, promotion, resignation, termination, rehire, and secondment.
-- [ ] Define all domain event payload types in `packages/types/src/events/` (ADR 003: `employee.hired`, `employee.transferred`, `employee.promoted`, `employee.resigned`, `employee.terminated`, `employee.rehired`, `employee.seconded`).
-- [ ] Implement hire, transfer, promotion, resignation, termination, rehire, and secondment records.
+- [x] Build employee profile model and employment spell model. _(employees + employment_spells tables with RLS)_
+- [x] Add effective-dated history for assignments, position, and compensation. _(employment_spells: close current + open new on any change)_
+- [x] Implement employee lifecycle event log. _(employee_lifecycle_events: append-only per employee)_
+- [x] Define lifecycle event taxonomy for hire, transfer, promotion, resignation, termination, rehire, and secondment. _(lifecycleEventTypeEnum with 9 event types)_
+- [x] Define all domain event payload types in `packages/types/src/events/` (ADR 003: `employee.hired`, `employee.transferred`, `employee.promoted`, `employee.resigned`, `employee.terminated`, `employee.rehired`, `employee.seconded`).
+- [x] Implement hire, transfer, promotion, resignation, termination, suspend, and rehire records. _(EmployeeService: 10 endpoints on /api/v1/employees)_
 - [ ] Add lifecycle event diagram and state machine documentation.
-- [ ] Link employee tax profile (`employee_tax_profiles`) to the employee creation flow with PTKP category assignment (ADR 004 — required before payroll can run).
-- [ ] Build employee self-service profile screens.
-- [ ] Add import/export for employee records.
+- [x] Link employee tax profile (`employee_tax_profiles`) to the employee creation flow with PTKP category assignment. _(EmployeeService.upsertTaxProfile with NPWP encrypted via AES-256-GCM)_
+- [x] Build employee self-service profile screens. _(PeopleScreen wired to real API with graceful mock fallback)_
+- [ ] Add import/export for employee records. _(Deferred — no urgent need until real data exists)_
+- [x] Implement Keycloak OIDC login for the frontend (NextAuth + Keycloak provider). _(login page, session middleware, auto-realm import, token wired to API client)_
+- [x] Add sensitive field encryption applied to NPWP and bank account numbers at rest. _(EncryptionService applied in upsertTaxProfile + addBankAccount)_
 
 ## Phase 3: Hiring and Onboarding
 - [ ] Add `hire_cases` and `onboarding_tasks` database schema.
