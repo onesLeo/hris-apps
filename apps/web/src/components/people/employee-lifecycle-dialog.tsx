@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState, type CSSProperties } from 'react';
 import { Avatar, Badge, Button, Icon, type Accent } from '../aurora-primitives';
+import type { PeopleCopy } from '../../i18n/people-copy';
 import type { Employee } from './people-data';
 import type {
   OrganizationCatalogDepartment,
@@ -36,6 +37,7 @@ type EmployeeLifecycleDialogProps = {
   open: boolean;
   mode: EmployeeLifecycleMode;
   employee: Employee | undefined;
+  copy: PeopleCopy;
   departmentOptions: readonly OrganizationCatalogDepartment[];
   locationOptions: readonly OrganizationCatalogLocation[];
   onClose: () => void;
@@ -68,6 +70,7 @@ export function EmployeeLifecycleDialog({
   open,
   mode,
   employee,
+  copy,
   departmentOptions,
   locationOptions,
   onClose,
@@ -107,9 +110,11 @@ export function EmployeeLifecycleDialog({
     lastWorkingDate: today,
     reason: '',
   });
+  const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) return;
+    setFeedback(null);
 
     const nextDepartment = departmentOptions.find((department) => department.name === employee?.dept) ?? departmentOptions[0];
     const nextLocation = locationOptions.find((location) => location.id === nextDepartment?.locationId) ?? locationOptions[0];
@@ -151,10 +156,14 @@ export function EmployeeLifecycleDialog({
   const modeBadge = getModeBadge(mode);
 
   const submit = () => {
+    setFeedback(null);
     if (mode === 'transfer') {
       const selectedDepartment = departmentOptions.find((department) => department.id === transferForm.departmentId);
       const selectedLocation = locationOptions.find((location) => location.id === transferForm.locationId);
-      if (!selectedDepartment || !selectedLocation) return;
+      if (!selectedDepartment || !selectedLocation || !transferForm.jobTitle.trim() || !transferForm.effectiveDate.trim()) {
+        setFeedback(copy.validation.transferRequired);
+        return;
+      }
       onSubmit({
         mode,
         departmentId: selectedDepartment.id,
@@ -168,12 +177,21 @@ export function EmployeeLifecycleDialog({
 
     if (mode === 'promote') {
       const selectedDepartment = departmentOptions.find((department) => department.id === promoteForm.departmentId);
+      if (!promoteForm.jobTitle.trim() || !promoteForm.effectiveDate.trim()) {
+        setFeedback(copy.validation.promoteRequired);
+        return;
+      }
       onSubmit({
         mode,
         departmentId: selectedDepartment?.id ?? undefined,
         jobTitle: promoteForm.jobTitle.trim() || employee.role,
         effectiveDate: promoteForm.effectiveDate,
       });
+      return;
+    }
+
+    if (!resignForm.resignationDate.trim() || !resignForm.lastWorkingDate.trim() || !resignForm.reason.trim()) {
+      setFeedback(copy.validation.resignRequired);
       return;
     }
 
@@ -191,8 +209,8 @@ export function EmployeeLifecycleDialog({
         className="aurora-card aurora-card-padding aurora-card-lift"
         style={cardStyle}
         onClick={(event) => event.stopPropagation()}
-      >
-        <div style={heroStyle}>
+        >
+          <div style={heroStyle}>
           <div style={heroBackdropStyle} />
           <div style={heroContentStyle}>
             <div style={heroTopRowStyle}>
@@ -231,6 +249,13 @@ export function EmployeeLifecycleDialog({
             </div>
           </div>
         </div>
+
+        {feedback && (
+          <div style={feedbackStyle} role="alert" aria-live="polite">
+            <Icon name="xMark" size={16} color="var(--danger)" strokeWidth={2} />
+            <div>{feedback}</div>
+          </div>
+        )}
 
         <div style={contentStyle}>
           {mode === 'transfer' && (
@@ -570,6 +595,20 @@ const inputStyle: CSSProperties = {
   color: 'var(--text-primary)',
   fontSize: 13,
   outline: 'none',
+};
+
+const feedbackStyle: CSSProperties = {
+  display: 'flex',
+  gap: 10,
+  alignItems: 'flex-start',
+  borderRadius: 16,
+  border: '1px solid rgba(239, 68, 68, 0.25)',
+  background: 'rgba(239, 68, 68, 0.08)',
+  color: 'var(--danger)',
+  padding: '12px 14px',
+  marginBottom: 16,
+  fontSize: 13,
+  lineHeight: 1.5,
 };
 
 function getModeAccent(mode: EmployeeLifecycleMode): Accent {

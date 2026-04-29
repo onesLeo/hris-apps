@@ -3,17 +3,20 @@ import test from 'node:test';
 import { filterPerformanceReviews, getPerformanceOverview } from '../src/components/performance/performance-data.ts';
 
 test('getPerformanceOverview returns the performance snapshot', () => {
-  const overview = getPerformanceOverview();
+  const overview = getPerformanceOverview('en');
+  const localized = getPerformanceOverview('id');
 
   assert.equal(overview.cycles, 4);
   assert.equal(overview.completedReviews, 126);
   assert.equal(overview.reviewCycles.length, 4);
   assert.equal(overview.teamReviews.length, 5);
   assert.equal(overview.goals[0]?.goal, 'Reduce hiring cycle time');
+  assert.equal(localized.reviewCycles[0]?.name, 'Ulasan Q2');
+  assert.equal(localized.goals[0]?.owner, 'Rekrutmen');
 });
 
 test('filterPerformanceReviews filters by status', () => {
-  const overview = getPerformanceOverview();
+  const overview = getPerformanceOverview('en');
   const filtered = filterPerformanceReviews(overview.teamReviews, 'Completed', '');
 
   assert.equal(filtered.length, 2);
@@ -21,7 +24,7 @@ test('filterPerformanceReviews filters by status', () => {
 });
 
 test('filterPerformanceReviews matches search terms across review fields', () => {
-  const overview = getPerformanceOverview();
+  const overview = getPerformanceOverview('en');
   const filtered = filterPerformanceReviews(overview.teamReviews, 'All', 'resilience');
 
   assert.equal(filtered.length, 1);

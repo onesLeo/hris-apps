@@ -28,6 +28,14 @@ export type PeopleCopy = {
     delete: string;
     deleteConfirm: string;
   };
+  validation: {
+    createRequired: string;
+    transferRequired: string;
+    promoteRequired: string;
+    resignRequired: string;
+    historyUnavailable: string;
+    historyFailed: string;
+  };
 };
 
 const PEOPLE_COPY: Record<Locale, PeopleCopy> = {
@@ -69,6 +77,14 @@ const PEOPLE_COPY: Record<Locale, PeopleCopy> = {
       delete: 'Delete',
       deleteConfirm: 'Delete this employee record?',
     },
+    validation: {
+      createRequired: 'Please complete the name, role, department, location, and joined date before saving.',
+      transferRequired: 'Please choose a department, location, job title, and effective date before saving.',
+      promoteRequired: 'Please choose a new job title and effective date before saving.',
+      resignRequired: 'Please enter the resignation date, last working date, and reason before saving.',
+      historyUnavailable: 'Lifecycle history is available when the API is connected.',
+      historyFailed: 'Could not load lifecycle history right now. Please try again.',
+    },
   },
   id: {
     searchPlaceholder: 'Cari karyawan...',
@@ -107,6 +123,14 @@ const PEOPLE_COPY: Record<Locale, PeopleCopy> = {
       reactivate: 'Aktifkan Kembali',
       delete: 'Hapus',
       deleteConfirm: 'Hapus data karyawan ini?',
+    },
+    validation: {
+      createRequired: 'Lengkapi nama, jabatan, departemen, lokasi, dan tanggal bergabung sebelum menyimpan.',
+      transferRequired: 'Pilih departemen, lokasi, jabatan, dan tanggal efektif sebelum menyimpan.',
+      promoteRequired: 'Pilih jabatan baru dan tanggal efektif sebelum menyimpan.',
+      resignRequired: 'Masukkan tanggal resign, tanggal hari kerja terakhir, dan alasan sebelum menyimpan.',
+      historyUnavailable: 'Riwayat lifecycle tersedia saat API terhubung.',
+      historyFailed: 'Riwayat lifecycle belum bisa dimuat. Coba lagi nanti.',
     },
   },
 };

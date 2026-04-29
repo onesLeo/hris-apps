@@ -1,3 +1,5 @@
+import type { Locale } from '../../i18n/types';
+
 export type OrganizationLocation = {
   name: string;
   city: string;
@@ -32,8 +34,8 @@ export type OrganizationOverview = {
   structure: OrganizationStructureNode[];
 };
 
-export function getOrganizationOverview(): OrganizationOverview {
-  return {
+const OVERVIEW: Record<Locale, OrganizationOverview> = {
+  en: {
     companyName: 'PeopleOS',
     legalName: 'PT People Operations System',
     headquarters: 'Jakarta HQ',
@@ -57,5 +59,34 @@ export function getOrganizationOverview(): OrganizationOverview {
       { title: 'Regional Offices', detail: 'Branch execution in two secondary hubs', accent: '#8b5cf6' },
       { title: 'Functional Teams', detail: 'Cross-site delivery across product and ops', accent: '#06b6d4' },
     ],
-  };
+  },
+  id: {
+    companyName: 'PeopleOS',
+    legalName: 'PT People Operations System',
+    headquarters: 'Kantor Pusat Jakarta',
+    totalEmployees: 1247,
+    activeLocations: 3,
+    departments: 6,
+    leaders: 8,
+    locations: [
+      { name: 'Kantor Pusat Jakarta', city: 'Jakarta', country: 'Indonesia', employeeCount: 642, accent: '#e8317a' },
+      { name: 'Kantor Surabaya', city: 'Surabaya', country: 'Indonesia', employeeCount: 218, accent: '#8b5cf6' },
+      { name: 'Hub Denpasar', city: 'Denpasar', country: 'Indonesia', employeeCount: 157, accent: '#06b6d4' },
+    ],
+    departmentMap: [
+      { name: 'Engineering', manager: 'Sarah Chen', employeeCount: 312, accent: '#e8317a' },
+      { name: 'Operasional', manager: 'Aisha Patel', employeeCount: 245, accent: '#8b5cf6' },
+      { name: 'Penjualan', manager: 'Tom Bradley', employeeCount: 198, accent: '#06b6d4' },
+      { name: 'SDM & Admin', manager: 'Nina Okafor', employeeCount: 156, accent: '#10b981' },
+    ],
+    structure: [
+      { title: 'Kantor Pusat', detail: 'Kepemimpinan pusat dan layanan bersama', accent: '#e8317a' },
+      { title: 'Kantor Regional', detail: 'Eksekusi cabang di dua hub sekunder', accent: '#8b5cf6' },
+      { title: 'Tim Fungsional', detail: 'Pelaksanaan lintas lokasi untuk produk dan operasi', accent: '#06b6d4' },
+    ],
+  },
+};
+
+export function getOrganizationOverview(locale: Locale): OrganizationOverview {
+  return OVERVIEW[locale];
 }

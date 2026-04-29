@@ -3,27 +3,53 @@
 import { Badge, Avatar, Icon, SectionHeading } from '../aurora-primitives';
 import { getDashboardCopy, useLocale } from '../../i18n';
 import type { DashboardCopy } from '../../i18n/dashboard-copy';
-import { APPROVALS } from '../approvals/approvals-data';
+import { getApprovalsData } from '../approvals/approvals-data';
 
-const HEADCOUNT = [1180, 1192, 1198, 1205, 1215, 1218, 1224, 1231, 1235, 1239, 1244, 1247];
-const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-
-const DEPARTMENTS = [
-  { name: 'Engineering', count: 312, pct: 0.75, color: '#e8317a' },
-  { name: 'Operations', count: 245, pct: 0.58, color: '#8b5cf6' },
-  { name: 'Sales', count: 198, pct: 0.47, color: '#06b6d4' },
-  { name: 'HR & Admin', count: 156, pct: 0.37, color: '#10b981' },
-  { name: 'Finance', count: 134, pct: 0.32, color: '#f59e0b' },
-  { name: 'Others', count: 202, pct: 0.48, color: '#94a3b8' },
-];
-
-const ONBOARDINGS = [
-  { name: 'Sarah Chen', role: 'Senior Engineer', dept: 'Engineering', date: 'Apr 25', initials: 'SC', color: '#f43f8e' },
-  { name: 'Marcus Johnson', role: 'Product Manager', dept: 'Product', date: 'Apr 24', initials: 'MJ', color: '#8b5cf6' },
-  { name: 'Aisha Patel', role: 'Data Analyst', dept: 'Operations', date: 'Apr 23', initials: 'AP', color: '#06b6d4' },
-  { name: 'Lucas Rivera', role: 'UX Designer', dept: 'Design', date: 'Apr 22', initials: 'LR', color: '#10b981' },
-  { name: 'Emma Williams', role: 'Finance Lead', dept: 'Finance', date: 'Apr 21', initials: 'EW', color: '#f59e0b' },
-];
+const DASHBOARD_DATA: Record<'en' | 'id', {
+  headcount: number[];
+  months: string[];
+  departments: Array<{ name: string; count: number; pct: number; color: string }>;
+  onboardings: Array<{ name: string; role: string; dept: string; date: string; initials: string; color: string }>;
+}> = {
+  en: {
+    headcount: [1180, 1192, 1198, 1205, 1215, 1218, 1224, 1231, 1235, 1239, 1244, 1247],
+    months: ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+    departments: [
+      { name: 'Engineering', count: 312, pct: 0.75, color: '#e8317a' },
+      { name: 'Operations', count: 245, pct: 0.58, color: '#8b5cf6' },
+      { name: 'Sales', count: 198, pct: 0.47, color: '#06b6d4' },
+      { name: 'HR & Admin', count: 156, pct: 0.37, color: '#10b981' },
+      { name: 'Finance', count: 134, pct: 0.32, color: '#f59e0b' },
+      { name: 'Others', count: 202, pct: 0.48, color: '#94a3b8' },
+    ],
+    onboardings: [
+      { name: 'Sarah Chen', role: 'Senior Engineer', dept: 'Engineering', date: 'Apr 25', initials: 'SC', color: '#f43f8e' },
+      { name: 'Marcus Johnson', role: 'Product Manager', dept: 'Product', date: 'Apr 24', initials: 'MJ', color: '#8b5cf6' },
+      { name: 'Aisha Patel', role: 'Data Analyst', dept: 'Operations', date: 'Apr 23', initials: 'AP', color: '#06b6d4' },
+      { name: 'Lucas Rivera', role: 'UX Designer', dept: 'Design', date: 'Apr 22', initials: 'LR', color: '#10b981' },
+      { name: 'Emma Williams', role: 'Finance Lead', dept: 'Finance', date: 'Apr 21', initials: 'EW', color: '#f59e0b' },
+    ],
+  },
+  id: {
+    headcount: [1180, 1192, 1198, 1205, 1215, 1218, 1224, 1231, 1235, 1239, 1244, 1247],
+    months: ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'],
+    departments: [
+      { name: 'Engineering', count: 312, pct: 0.75, color: '#e8317a' },
+      { name: 'Operasional', count: 245, pct: 0.58, color: '#8b5cf6' },
+      { name: 'Penjualan', count: 198, pct: 0.47, color: '#06b6d4' },
+      { name: 'SDM & Admin', count: 156, pct: 0.37, color: '#10b981' },
+      { name: 'Keuangan', count: 134, pct: 0.32, color: '#f59e0b' },
+      { name: 'Lainnya', count: 202, pct: 0.48, color: '#94a3b8' },
+    ],
+    onboardings: [
+      { name: 'Sarah Chen', role: 'Engineer Senior', dept: 'Engineering', date: '25 Apr', initials: 'SC', color: '#f43f8e' },
+      { name: 'Marcus Johnson', role: 'Manajer Produk', dept: 'Produk', date: '24 Apr', initials: 'MJ', color: '#8b5cf6' },
+      { name: 'Aisha Patel', role: 'Analis Data', dept: 'Operasional', date: '23 Apr', initials: 'AP', color: '#06b6d4' },
+      { name: 'Lucas Rivera', role: 'Desainer UX', dept: 'Desain', date: '22 Apr', initials: 'LR', color: '#10b981' },
+      { name: 'Emma Williams', role: 'Lead Keuangan', dept: 'Keuangan', date: '21 Apr', initials: 'EW', color: '#f59e0b' },
+    ],
+  },
+};
 
 function makePath(data: number[], width: number, height: number, pad = 12) {
   const min = Math.min(...data);
@@ -73,10 +99,10 @@ function KpiCard({
   );
 }
 
-function HeadcountChart({ copy }: { copy: DashboardCopy }) {
+function HeadcountChart({ copy, headcount, months }: { copy: DashboardCopy; headcount: number[]; months: string[] }) {
   const width = 560;
   const height = 170;
-  const { linePath, areaPath, points } = makePath(HEADCOUNT, width, height, 10);
+  const { linePath, areaPath, points } = makePath(headcount, width, height, 10);
 
   return (
     <div className="aurora-card aurora-card-padding aurora-card-lift">
@@ -106,7 +132,7 @@ function HeadcountChart({ copy }: { copy: DashboardCopy }) {
         <path d={areaPath} fill="url(#auroraHeadcount)" />
         <path d={linePath} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" className="aurora-animate-draw" />
         {points.map((point, index) => (index % 2 === 0 ? <circle key={index} cx={point.x} cy={point.y} r="3.5" fill="var(--card-bg)" stroke="var(--accent)" strokeWidth="2" /> : null))}
-        {MONTHS.map((month, index) => (
+        {months.map((month, index) => (
           <text key={month} x={10 + (index / 11) * (width - 20)} y={height + 18} textAnchor="middle" style={{ fontSize: 11, fill: 'var(--text-muted)' }}>
             {month}
           </text>
@@ -116,12 +142,12 @@ function HeadcountChart({ copy }: { copy: DashboardCopy }) {
   );
 }
 
-function DepartmentCard({ copy }: { copy: DashboardCopy }) {
+function DepartmentCard({ copy, departments }: { copy: DashboardCopy; departments: typeof DASHBOARD_DATA.en.departments }) {
   return (
     <div className="aurora-card aurora-card-padding aurora-card-lift">
       <SectionHeading title={copy.byDepartment} subtitle={copy.totalEmployeesSubtitle} />
       <div className="aurora-screen-stack" style={{ gap: 11 }}>
-        {DEPARTMENTS.map((department, index) => (
+        {departments.map((department, index) => (
           <div key={department.name}>
             <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 4 }}>
               <span style={{ fontSize: 12, color: 'var(--text-mid)', fontWeight: 500 }}>{department.name}</span>
@@ -145,12 +171,20 @@ function DepartmentCard({ copy }: { copy: DashboardCopy }) {
   );
 }
 
-function OnboardingCard({ copy }: { copy: DashboardCopy }) {
+function OnboardingCard({ copy, onboardings }: { copy: DashboardCopy; onboardings: typeof DASHBOARD_DATA.en.onboardings }) {
   return (
     <div className="aurora-card aurora-card-padding aurora-card-lift">
-      <SectionHeading title={copy.recentOnboardings} action={<span style={{ color: 'var(--accent)', fontSize: 12, fontWeight: 600 }}>{copy.viewAll}</span>} />
+      <SectionHeading
+        title={copy.recentOnboardings}
+        action={
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 6, color: 'var(--accent)', fontSize: 12, fontWeight: 600 }}>
+            <span>{copy.viewAll}</span>
+            <Icon name="chevronRight" size={13} color="currentColor" strokeWidth={2} />
+          </div>
+        }
+      />
       <div className="aurora-screen-stack" style={{ gap: 0 }}>
-        {ONBOARDINGS.map((employee, index) => (
+        {onboardings.map((employee, index) => (
           <div
             key={employee.name}
             style={{
@@ -158,14 +192,14 @@ function OnboardingCard({ copy }: { copy: DashboardCopy }) {
               alignItems: 'center',
               gap: 12,
               padding: '8px 0',
-              borderBottom: index < ONBOARDINGS.length - 1 ? '1px solid var(--border)' : 'none',
+              borderBottom: index < onboardings.length - 1 ? '1px solid var(--border)' : 'none',
             }}
           >
             <Avatar initials={employee.initials} color={employee.color} />
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{employee.name}</div>
               <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>
-                {employee.role} - {employee.dept}
+                {employee.role} {'·'} {employee.dept}
               </div>
             </div>
             <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{employee.date}</span>
@@ -177,12 +211,15 @@ function OnboardingCard({ copy }: { copy: DashboardCopy }) {
 }
 
 function PendingApprovalsCard({ copy }: { copy: DashboardCopy }) {
+  const { locale } = useLocale();
+  const approvals = getApprovalsData(locale);
+
   return (
     <div className="aurora-card aurora-card-padding aurora-card-lift">
-      <SectionHeading title={copy.pending} action={<Badge label="5" tone="accent" />} />
+      <SectionHeading title={copy.pending} action={<Badge label={`${approvals.length}`} tone="accent" />} />
       <div className="aurora-screen-stack" style={{ gap: 0 }}>
-        {APPROVALS.map((approval, index) => (
-          <div key={approval.name} style={{ padding: '9px 0', borderBottom: index < APPROVALS.length - 1 ? '1px solid var(--border)' : 'none' }}>
+        {approvals.map((approval, index) => (
+          <div key={approval.name} style={{ padding: '9px 0', borderBottom: index < approvals.length - 1 ? '1px solid var(--border)' : 'none' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
               <span style={{ fontSize: 12.5, fontWeight: 600, color: 'var(--text-primary)' }}>{approval.name}</span>
               {approval.urgent && <Badge label={copy.urgent} tone="danger" />}
@@ -206,23 +243,24 @@ function PendingApprovalsCard({ copy }: { copy: DashboardCopy }) {
 export function DashboardScreen() {
   const { locale } = useLocale();
   const copy = getDashboardCopy(locale);
+  const demo = DASHBOARD_DATA[locale];
 
   return (
     <div className="aurora-screen-stack" style={{ animation: 'auroraFadeUp 0.4s ease' }}>
       <div className="aurora-kpi-grid">
-        <KpiCard label={copy.kpis.totalEmployees} value="1,247" change="+12 this month" positive icon="users" accent="#e8317a" />
-        <KpiCard label={copy.kpis.activeToday} value="1,183" change="94.9% rate" positive icon="checkCircle" accent="#8b5cf6" />
-        <KpiCard label={copy.kpis.onLeave} value="23" change="1.8% workforce" positive={false} icon="calendar" accent="#f59e0b" />
-        <KpiCard label={copy.kpis.openPositions} value="8" change="+3 this week" positive={false} icon="briefcase" accent="#06b6d4" />
+        <KpiCard label={copy.kpis.totalEmployees} value="1,247" change={locale === 'id' ? '+12 bulan ini' : '+12 this month'} positive icon="users" accent="#e8317a" />
+        <KpiCard label={copy.kpis.activeToday} value="1,183" change={locale === 'id' ? 'Tingkat 94.9%' : '94.9% rate'} positive icon="checkCircle" accent="#8b5cf6" />
+        <KpiCard label={copy.kpis.onLeave} value="23" change={locale === 'id' ? '1.8% tenaga kerja' : '1.8% workforce'} positive={false} icon="calendar" accent="#f59e0b" />
+        <KpiCard label={copy.kpis.openPositions} value="8" change={locale === 'id' ? '+3 minggu ini' : '+3 this week'} positive={false} icon="briefcase" accent="#06b6d4" />
       </div>
 
       <div className="aurora-dual-grid">
-        <HeadcountChart copy={copy} />
-        <DepartmentCard copy={copy} />
+        <HeadcountChart copy={copy} headcount={demo.headcount} months={demo.months} />
+        <DepartmentCard copy={copy} departments={demo.departments} />
       </div>
 
       <div className="aurora-row-grid">
-        <OnboardingCard copy={copy} />
+        <OnboardingCard copy={copy} onboardings={demo.onboardings} />
         <PendingApprovalsCard copy={copy} />
       </div>
 

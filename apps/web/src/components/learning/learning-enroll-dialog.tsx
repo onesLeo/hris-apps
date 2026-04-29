@@ -32,10 +32,12 @@ const STATUSES: readonly LearningStatus[] = ['Mandatory', 'Optional', 'In Progre
 
 export function LearningEnrollDialog({ open, copy, onClose, onSubmit }: LearningEnrollDialogProps) {
   const [form, setForm] = useState<FormState>(INITIAL_FORM_STATE);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
       setForm(INITIAL_FORM_STATE);
+      setFeedback(null);
     }
   }, [open]);
 
@@ -44,7 +46,9 @@ export function LearningEnrollDialog({ open, copy, onClose, onSubmit }: Learning
   }
 
   const submit = () => {
+    setFeedback(null);
     if (!form.title.trim() || !form.owner.trim() || !form.due.trim()) {
+      setFeedback(copy.validation.required);
       return;
     }
 
@@ -106,6 +110,13 @@ export function LearningEnrollDialog({ open, copy, onClose, onSubmit }: Learning
           </button>
         </div>
 
+        {feedback && (
+          <div style={feedbackStyle} role="alert" aria-live="polite">
+            <Icon name="xMark" size={16} color="var(--danger)" strokeWidth={2} />
+            <div>{feedback}</div>
+          </div>
+        )}
+
         <div className="aurora-screen-stack" style={{ gap: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14 }}>
             <label style={{ display: 'grid', gap: 6 }}>
@@ -163,4 +174,18 @@ const inputStyle: CSSProperties = {
   color: 'var(--text-primary)',
   fontSize: 13,
   outline: 'none',
+};
+
+const feedbackStyle: CSSProperties = {
+  display: 'flex',
+  gap: 10,
+  alignItems: 'flex-start',
+  borderRadius: 16,
+  border: '1px solid rgba(239, 68, 68, 0.25)',
+  background: 'rgba(239, 68, 68, 0.08)',
+  color: 'var(--danger)',
+  padding: '12px 14px',
+  marginBottom: 16,
+  fontSize: 13,
+  lineHeight: 1.5,
 };

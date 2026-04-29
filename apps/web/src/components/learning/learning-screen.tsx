@@ -100,7 +100,7 @@ export function LearningScreen() {
                   <div>
                     <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{course.title}</div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 4 }}>
-                      {copy.labels.owner}: {course.owner} · {copy.labels.duration}: {course.duration}
+                      {copy.labels.owner}: {course.owner} {'·'} {copy.labels.duration}: {course.duration}
                     </div>
                   </div>
                   <Badge label={course.status} tone={STATUS_TONE[course.status]} />
@@ -111,8 +111,8 @@ export function LearningScreen() {
                 </div>
 
                 <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 12, color: 'var(--text-muted)' }}>
-                  <span>{course.enrolled} enrolled</span>
-                  <span>{course.completion}% complete</span>
+                  <span>{course.enrolled} {copy.labels.enrolled}</span>
+                  <span>{course.completion}% {copy.labels.complete}</span>
                 </div>
               </div>
             ))}
@@ -144,7 +144,7 @@ export function LearningScreen() {
       </div>
 
       <div className="aurora-card aurora-card-padding aurora-card-lift">
-        <SectionHeading title={copy.sections.assignments} subtitle={`${filteredCourses.length} active courses`} />
+        <SectionHeading title={copy.sections.assignments} subtitle={`${filteredCourses.length} ${copy.labels.activeCourses}`} />
         <div className="aurora-table">
           <div className="aurora-table-head" style={{ gridTemplateColumns: '1.7fr 1.2fr 1fr 1fr 1fr 1fr' }}>
             <span style={{ fontSize: 11.5, fontWeight: 600, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{copy.labels.title}</span>
@@ -161,7 +161,7 @@ export function LearningScreen() {
                 <Avatar initials={course.title.slice(0, 2).toUpperCase()} color={course.accent} />
                 <div>
                   <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>{course.title}</div>
-                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{course.enrolled} learners</div>
+                  <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{course.enrolled} {copy.labels.enrolled}</div>
                 </div>
               </div>
               <span style={{ fontSize: 13, color: 'var(--text-mid)' }}>{course.owner}</span>

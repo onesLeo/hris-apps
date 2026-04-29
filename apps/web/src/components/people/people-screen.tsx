@@ -71,7 +71,7 @@ export function PeopleScreen() {
   const [employees, setEmployees] = useState<Employee[]>(EMPLOYEES);
   const [employeesApiReady, setEmployeesApiReady] = useState(false);
   const [catalogReady, setCatalogReady] = useState(false);
-  const fallbackOrganization = getOrganizationOverview();
+  const fallbackOrganization = getOrganizationOverview(locale);
   const [departmentOptions, setDepartmentOptions] = useState<OrganizationCatalogDepartment[]>(
     fallbackOrganization.departmentMap.map((department, index) => ({
       id: `mock-dept-${index + 1}`,
@@ -170,7 +170,7 @@ export function PeopleScreen() {
     setEmployeeHistory(null);
 
     if (!employeesApiReady || !employee.id) {
-      setHistoryError('Lifecycle history is available when the API is connected.');
+      setHistoryError(localeCopy.validation.historyUnavailable);
       return;
     }
 
@@ -179,7 +179,7 @@ export function PeopleScreen() {
       const history = await apiHistory(employee.id);
       setEmployeeHistory(history);
     } catch {
-      setHistoryError('Could not load lifecycle history.');
+      setHistoryError(localeCopy.validation.historyFailed);
     } finally {
       setHistoryLoading(false);
     }
@@ -501,12 +501,13 @@ export function PeopleScreen() {
       />
 
       <EmployeeLifecycleDialog
-        open={lifecycleMode !== null}
-        mode={lifecycleMode ?? 'transfer'}
-        employee={lifecycleKey ? employees.find((entry) => getEmployeeKey(entry) === lifecycleKey) : undefined}
-        departmentOptions={departmentOptions}
-        locationOptions={locationOptions}
-        onClose={closeLifecycleDialog}
+      open={lifecycleMode !== null}
+      mode={lifecycleMode ?? 'transfer'}
+      employee={lifecycleKey ? employees.find((entry) => getEmployeeKey(entry) === lifecycleKey) : undefined}
+      copy={localeCopy}
+      departmentOptions={departmentOptions}
+      locationOptions={locationOptions}
+      onClose={closeLifecycleDialog}
         onSubmit={submitLifecycleDialog}
       />
 

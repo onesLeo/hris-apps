@@ -29,6 +29,10 @@ export type LeaveCopy = {
     cancel: string;
     submit: string;
   };
+  validation: {
+    required: string;
+    invalidDays: string;
+  };
   approve: string;
   decline: string;
   footer: string;
@@ -72,6 +76,10 @@ const LEAVE_COPY: Record<Locale, LeaveCopy> = {
       cancel: 'Cancel',
       submit: 'Submit Request',
     },
+    validation: {
+      required: 'Please complete the employee name, start date, end date, days, and reason before submitting.',
+      invalidDays: 'Please enter a valid number of days.',
+    },
     approve: 'Approve',
     decline: 'Decline',
     footer: 'Leave will later connect to live policy, balances, and approval data without changing the screen structure.',
@@ -112,6 +120,10 @@ const LEAVE_COPY: Record<Locale, LeaveCopy> = {
       reason: 'Alasan',
       cancel: 'Batal',
       submit: 'Kirim Permintaan',
+    },
+    validation: {
+      required: 'Lengkapi nama karyawan, tanggal mulai, tanggal selesai, jumlah hari, dan alasan sebelum mengirim.',
+      invalidDays: 'Masukkan jumlah hari yang valid.',
     },
     approve: 'Setujui',
     decline: 'Tolak',

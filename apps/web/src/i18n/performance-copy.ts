@@ -43,6 +43,10 @@ export type PerformanceCopy = {
     cancel: string;
     submit: string;
   };
+  validation: {
+    required: string;
+    invalidNumbers: string;
+  };
   searchPlaceholder: string;
   footer: string;
 };
@@ -91,6 +95,10 @@ const PERFORMANCE_COPY: Record<Locale, PerformanceCopy> = {
       cancel: 'Cancel',
       submit: 'Save Cycle',
     },
+    validation: {
+      required: 'Please complete the cycle name and period before saving.',
+      invalidNumbers: 'Please enter valid participant and completion values.',
+    },
     searchPlaceholder: 'Search employees or goals...',
     footer: 'Performance will later connect to live review data without changing the screen structure.',
   },
@@ -136,6 +144,10 @@ const PERFORMANCE_COPY: Record<Locale, PerformanceCopy> = {
       completion: 'Progres %',
       cancel: 'Batal',
       submit: 'Simpan Siklus',
+    },
+    validation: {
+      required: 'Lengkapi nama siklus dan periode sebelum menyimpan.',
+      invalidNumbers: 'Masukkan nilai peserta dan progres yang valid.',
     },
     searchPlaceholder: 'Cari karyawan atau target...',
     footer: 'Kinerja nantinya akan terhubung ke data review aktual tanpa mengubah struktur layar.',

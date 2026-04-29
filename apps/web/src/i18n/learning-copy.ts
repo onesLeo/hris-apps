@@ -28,6 +28,9 @@ export type LearningCopy = {
     progress: string;
     due: string;
     status: string;
+    enrolled: string;
+    complete: string;
+    activeCourses: string;
   };
   enrollCourse: string;
   enrollCourseTitle: string;
@@ -40,6 +43,9 @@ export type LearningCopy = {
     due: string;
     cancel: string;
     submit: string;
+  };
+  validation: {
+    required: string;
   };
   searchPlaceholder: string;
   footer: string;
@@ -74,6 +80,9 @@ const LEARNING_COPY: Record<Locale, LearningCopy> = {
       progress: 'Progress',
       due: 'Due',
       status: 'Status',
+      enrolled: 'enrolled',
+      complete: 'complete',
+      activeCourses: 'active courses',
     },
     enrollCourse: 'Enroll Course',
     enrollCourseTitle: 'Enroll in Course',
@@ -86,6 +95,9 @@ const LEARNING_COPY: Record<Locale, LearningCopy> = {
       due: 'Due date',
       cancel: 'Cancel',
       submit: 'Save Course',
+    },
+    validation: {
+      required: 'Please complete the course title, owner, and due date before saving.',
     },
     searchPlaceholder: 'Search courses or owners...',
     footer: 'Learning will later connect to live training data without changing the screen structure.',
@@ -118,6 +130,9 @@ const LEARNING_COPY: Record<Locale, LearningCopy> = {
       progress: 'Progres',
       due: 'Jatuh Tempo',
       status: 'Status',
+      enrolled: 'terdaftar',
+      complete: 'selesai',
+      activeCourses: 'kursus aktif',
     },
     enrollCourse: 'Daftar Kursus',
     enrollCourseTitle: 'Daftar ke Kursus',
@@ -130,6 +145,9 @@ const LEARNING_COPY: Record<Locale, LearningCopy> = {
       due: 'Tanggal jatuh tempo',
       cancel: 'Batal',
       submit: 'Simpan Kursus',
+    },
+    validation: {
+      required: 'Lengkapi judul kursus, pemilik, dan tanggal jatuh tempo sebelum menyimpan.',
     },
     searchPlaceholder: 'Cari kursus atau pemilik...',
     footer: 'Pembelajaran nantinya akan terhubung ke data pelatihan aktual tanpa mengubah struktur layar.',

@@ -16,7 +16,7 @@ const STATUS_TONE: Record<PerformanceStatus, 'accent' | 'violet' | 'warning' | '
 export function PerformanceScreen() {
   const { locale } = useLocale();
   const copy = getPerformanceCopy(locale);
-  const overview = getPerformanceOverview();
+  const overview = getPerformanceOverview(locale);
   const [filter, setFilter] = useState<PerformanceFilter>('All');
   const [search, setSearch] = useState('');
   const [isCreateOpen, setIsCreateOpen] = useState(false);

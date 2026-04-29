@@ -3,11 +3,12 @@
 import { useState } from 'react';
 import { getApprovalsCopy, useLocale } from '../../i18n';
 import { Badge, Avatar, Icon } from '../aurora-primitives';
-import { APPROVALS } from './approvals-data';
+import { getApprovalsData } from './approvals-data';
 
 export function ApprovalsScreen() {
   const { locale } = useLocale();
   const copy = getApprovalsCopy(locale);
+  const approvals = getApprovalsData(locale);
   const [approved, setApproved] = useState<number[]>([]);
   const [declined, setDeclined] = useState<number[]>([]);
 
@@ -15,7 +16,7 @@ export function ApprovalsScreen() {
     <div className="aurora-screen-stack" style={{ animation: 'auroraFadeUp 0.4s ease' }}>
       <div className="aurora-kpi-grid">
         {[
-          { label: copy.stats.pending, value: APPROVALS.length - approved.length - declined.length, color: '#f59e0b', icon: 'clock' as const },
+          { label: copy.stats.pending, value: approvals.length - approved.length - declined.length, color: '#f59e0b', icon: 'clock' as const },
           { label: copy.stats.approved, value: approved.length, color: '#10b981', icon: 'checkCircle' as const },
           { label: copy.stats.declined, value: declined.length, color: '#ef4444', icon: 'xMark' as const },
           { label: copy.stats.avgResponse, value: '2.4h', color: '#06b6d4', icon: 'trending' as const },
@@ -33,7 +34,7 @@ export function ApprovalsScreen() {
       <div>
         <div className="aurora-card-title" style={{ marginBottom: 14 }}>{copy.title}</div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
-          {APPROVALS.map((approval, index) => {
+          {approvals.map((approval, index) => {
             const isApproved = approved.includes(index);
             const isDeclined = declined.includes(index);
             const isDone = isApproved || isDeclined;

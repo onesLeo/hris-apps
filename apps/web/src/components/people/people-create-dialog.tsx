@@ -60,10 +60,12 @@ export function PeopleCreateDialog({
   onSubmit,
 }: PeopleCreateDialogProps) {
   const [form, setForm] = useState<FormState>(INITIAL_FORM_STATE);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
       setForm(INITIAL_FORM_STATE);
+      setFeedback(null);
       return;
     }
 
@@ -105,9 +107,11 @@ export function PeopleCreateDialog({
   }
 
   const submit = () => {
+    setFeedback(null);
     const selectedDepartment = departmentOptions.find((option) => option.id === form.departmentId);
     const selectedLocation = locationOptions.find((option) => option.id === form.locationId);
     if (!form.name.trim() || !form.role.trim() || !form.since.trim() || !selectedDepartment || !selectedLocation) {
+      setFeedback(copy.validation.createRequired);
       return;
     }
 
@@ -175,6 +179,13 @@ export function PeopleCreateDialog({
             <Icon name="xMark" size={16} color="var(--text-muted)" strokeWidth={2} />
           </button>
         </div>
+
+        {feedback && (
+          <div style={feedbackStyle} role="alert" aria-live="polite">
+            <Icon name="xMark" size={16} color="var(--danger)" strokeWidth={2} />
+            <div>{feedback}</div>
+          </div>
+        )}
 
         <div className="aurora-screen-stack" style={{ gap: 14 }}>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14 }}>
@@ -274,4 +285,18 @@ const inputStyle: CSSProperties = {
   color: 'var(--text-primary)',
   fontSize: 13,
   outline: 'none',
+};
+
+const feedbackStyle: CSSProperties = {
+  display: 'flex',
+  gap: 10,
+  alignItems: 'flex-start',
+  borderRadius: 16,
+  border: '1px solid rgba(239, 68, 68, 0.25)',
+  background: 'rgba(239, 68, 68, 0.08)',
+  color: 'var(--danger)',
+  padding: '12px 14px',
+  marginBottom: 16,
+  fontSize: 13,
+  lineHeight: 1.5,
 };

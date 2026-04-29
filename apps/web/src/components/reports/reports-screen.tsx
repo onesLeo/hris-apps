@@ -13,7 +13,7 @@ const STATUS_TONE = {
 export function ReportsScreen() {
   const { locale } = useLocale();
   const copy = getReportsCopy(locale);
-  const overview = getReportsOverview();
+  const overview = getReportsOverview(locale);
 
   return (
     <div className="aurora-screen-stack" style={{ animation: 'auroraFadeUp 0.4s ease' }}>
@@ -60,8 +60,12 @@ export function ReportsScreen() {
                 </div>
                 <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginBottom: 8 }}>{item.description}</div>
                 <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11.5, color: 'var(--text-muted)' }}>
-                  <span>{copy.labels.owner}: {item.owner}</span>
-                  <span>{copy.labels.cadence}: {item.cadence}</span>
+                  <span>
+                    {copy.labels.owner}: {item.owner}
+                  </span>
+                  <span>
+                    {copy.labels.cadence}: {item.cadence}
+                  </span>
                 </div>
                 {index < overview.catalog.length - 1 && <div style={{ marginTop: 11, borderTop: '1px solid var(--border)' }} />}
               </div>
@@ -80,7 +84,7 @@ export function ReportsScreen() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>{item.name}</div>
                   <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-                    {item.format} · {item.generatedAt}
+                    {item.format} {'·'} {item.generatedAt}
                   </div>
                 </div>
                 <Badge label={item.status} tone={STATUS_TONE[item.status]} />

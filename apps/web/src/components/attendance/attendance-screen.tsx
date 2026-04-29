@@ -13,7 +13,7 @@ const STATUS_TONE = {
 export function AttendanceScreen() {
   const { locale } = useLocale();
   const copy = getAttendanceCopy(locale);
-  const overview = getAttendanceOverview();
+  const overview = getAttendanceOverview(locale);
 
   return (
     <div className="aurora-screen-stack" style={{ animation: 'auroraFadeUp 0.4s ease' }}>
@@ -69,7 +69,9 @@ export function AttendanceScreen() {
                   <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{shift.role}</div>
                 </div>
                 <div style={{ textAlign: 'right' }}>
-                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)' }}>{shift.start} - {shift.end}</div>
+                  <div style={{ fontSize: 12.5, fontWeight: 700, color: 'var(--text-primary)' }}>
+                    {shift.start} {'–'} {shift.end}
+                  </div>
                   <div style={{ fontSize: 11.5, color: 'var(--text-muted)' }}>{shift.location}</div>
                 </div>
                 <Badge label={shift.status === 'On Time' ? copy.labels.onTime : shift.status === 'Late' ? copy.labels.late : copy.labels.remote} tone={STATUS_TONE[shift.status]} />
@@ -90,7 +92,7 @@ export function AttendanceScreen() {
                 <div style={{ flex: 1 }}>
                   <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>{event.name}</div>
                   <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
-                    {event.action} · {event.detail}
+                    {event.action} {'·'} {event.detail}
                   </div>
                 </div>
               </div>

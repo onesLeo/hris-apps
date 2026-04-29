@@ -47,6 +47,10 @@ export type RecruitmentCopy = {
     cancel: string;
     submit: string;
   };
+  validation: {
+    required: string;
+    invalidOpenings: string;
+  };
   searchPlaceholder: string;
   footer: string;
 };
@@ -99,6 +103,10 @@ const RECRUITMENT_COPY: Record<Locale, RecruitmentCopy> = {
       cancel: 'Cancel',
       submit: 'Save Requisition',
     },
+    validation: {
+      required: 'Please complete the role title, department, location, openings, and recruiter before saving.',
+      invalidOpenings: 'Please enter a valid number of openings.',
+    },
     searchPlaceholder: 'Search candidates or roles...',
     footer: 'Recruitment will later connect to ATS data without changing the screen layout.',
   },
@@ -148,6 +156,10 @@ const RECRUITMENT_COPY: Record<Locale, RecruitmentCopy> = {
       priority: 'Prioritas',
       cancel: 'Batal',
       submit: 'Simpan Requisition',
+    },
+    validation: {
+      required: 'Lengkapi judul posisi, departemen, lokasi, kebutuhan, dan recruiter sebelum menyimpan.',
+      invalidOpenings: 'Masukkan jumlah kebutuhan yang valid.',
     },
     searchPlaceholder: 'Cari kandidat atau posisi...',
     footer: 'Rekrutmen nantinya akan terhubung ke data ATS tanpa mengubah tata letak layar.',

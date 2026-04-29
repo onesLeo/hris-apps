@@ -32,10 +32,12 @@ const STATUSES: readonly PerformanceStatus[] = ['Scheduled', 'In Review', 'Compl
 
 export function PerformanceCreateDialog({ open, copy, onClose, onSubmit }: PerformanceCreateDialogProps) {
   const [form, setForm] = useState<FormState>(INITIAL_FORM_STATE);
+  const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
     if (!open) {
       setForm(INITIAL_FORM_STATE);
+      setFeedback(null);
     }
   }, [open]);
 
@@ -44,7 +46,17 @@ export function PerformanceCreateDialog({ open, copy, onClose, onSubmit }: Perfo
   }
 
   const submit = () => {
+    setFeedback(null);
+    const participants = Number(form.participants);
+    const completion = Number(form.completion);
+
     if (!form.name.trim() || !form.period.trim()) {
+      setFeedback(copy.validation.required);
+      return;
+    }
+
+    if (!Number.isFinite(participants) || participants < 0 || !Number.isFinite(completion) || completion < 0 || completion > 100) {
+      setFeedback(copy.validation.invalidNumbers);
       return;
     }
 
@@ -52,8 +64,8 @@ export function PerformanceCreateDialog({ open, copy, onClose, onSubmit }: Perfo
       name: form.name.trim(),
       period: form.period.trim(),
       status: form.status,
-      participants: Number(form.participants) || 0,
-      completion: Number(form.completion) || 0,
+      participants,
+      completion,
     });
 
     onClose();
@@ -103,6 +115,13 @@ export function PerformanceCreateDialog({ open, copy, onClose, onSubmit }: Perfo
             <Icon name="xMark" size={16} color="var(--text-muted)" strokeWidth={2} />
           </button>
         </div>
+
+        {feedback && (
+          <div style={feedbackStyle} role="alert" aria-live="polite">
+            <Icon name="xMark" size={16} color="var(--danger)" strokeWidth={2} />
+            <div>{feedback}</div>
+          </div>
+        )}
 
         <div className="aurora-screen-stack" style={{ gap: 14 }}>
           <label style={{ display: 'grid', gap: 6 }}>
@@ -190,4 +209,18 @@ const inputStyle: CSSProperties = {
   color: 'var(--text-primary)',
   fontSize: 13,
   outline: 'none',
+};
+
+const feedbackStyle: CSSProperties = {
+  display: 'flex',
+  gap: 10,
+  alignItems: 'flex-start',
+  borderRadius: 16,
+  border: '1px solid rgba(239, 68, 68, 0.25)',
+  background: 'rgba(239, 68, 68, 0.08)',
+  color: 'var(--danger)',
+  padding: '12px 14px',
+  marginBottom: 16,
+  fontSize: 13,
+  lineHeight: 1.5,
 };

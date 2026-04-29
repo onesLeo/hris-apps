@@ -3,7 +3,7 @@ import test from 'node:test';
 import { addPerformanceCycle, getPerformanceOverview } from '../src/components/performance/performance-data.ts';
 
 test('addPerformanceCycle prepends a new cycle', () => {
-  const overview = getPerformanceOverview();
+  const overview = getPerformanceOverview('en');
   const next = addPerformanceCycle(overview.reviewCycles, {
     name: 'Q4 Review',
     period: 'Oct - Dec 2026',

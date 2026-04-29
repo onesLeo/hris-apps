@@ -7,7 +7,7 @@ import { getOrganizationOverview } from './organization-data';
 export function OrganizationScreen() {
   const { locale } = useLocale();
   const copy = getOrganizationCopy(locale);
-  const overview = getOrganizationOverview();
+  const overview = getOrganizationOverview(locale);
 
   return (
     <div className="aurora-screen-stack" style={{ animation: 'auroraFadeUp 0.4s ease' }}>
