@@ -11,6 +11,7 @@ export type PeopleCopy = {
     name: string;
     role: string;
     department: string;
+    location: string;
     status: string;
     workType: string;
     joined: string;
@@ -41,6 +42,7 @@ const PEOPLE_COPY: Record<Locale, PeopleCopy> = {
       name: 'Full name',
       role: 'Role',
       department: 'Department',
+      location: 'Location',
       status: 'Status',
       workType: 'Work type',
       joined: 'Joined',
@@ -79,6 +81,7 @@ const PEOPLE_COPY: Record<Locale, PeopleCopy> = {
       name: 'Nama lengkap',
       role: 'Jabatan',
       department: 'Departemen',
+      location: 'Lokasi',
       status: 'Status',
       workType: 'Tipe kerja',
       joined: 'Bergabung',

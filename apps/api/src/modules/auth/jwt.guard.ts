@@ -46,7 +46,7 @@ export class JwtAuthGuard implements CanActivate {
       const roles = payload.roles ?? realmRoles;
 
       req.user = {
-        userId: '',
+        userId: payload.sub,
         keycloakId: payload.sub,
         tenantId: payload.tenant_id,
         email: payload.email,

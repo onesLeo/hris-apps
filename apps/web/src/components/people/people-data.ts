@@ -16,7 +16,10 @@ export type Employee = {
 export type CreateEmployeeInput = {
   name: string;
   role: string;
-  dept: string;
+  departmentId: string;
+  departmentName: string;
+  locationId: string;
+  locationName: string;
   status: EmployeeStatus;
   type: WorkType;
   since: string;
@@ -69,7 +72,12 @@ export function addEmployee(employees: readonly Employee[], input: CreateEmploye
 
   return [
     {
-      ...input,
+      name: input.name,
+      role: input.role,
+      dept: input.departmentName,
+      status: input.status,
+      type: input.type,
+      since: input.since,
       initials: initials || 'EN',
       color:
         input.status === 'On Leave'
@@ -97,7 +105,12 @@ export function updateEmployee(
     getEmployeeKey(employee) === key
       ? {
           ...employee,
-          ...input,
+          name: input.name,
+          role: input.role,
+          dept: input.departmentName,
+          status: input.status,
+          type: input.type,
+          since: input.since,
           initials: employee.initials,
           color: employee.color,
         }

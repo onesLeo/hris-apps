@@ -17,6 +17,32 @@ type ApiEmployee = {
 };
 
 type ApiListResponse = { data: ApiEmployee[]; nextCursor: string | null };
+type ApiLifecycleSpell = {
+  id: string;
+  employee_id: string;
+  department_id: string;
+  location_id: string;
+  job_title: string;
+  employment_type: string;
+  work_arrangement: string;
+  effective_from: string;
+  effective_to: string | null;
+};
+
+type ApiLifecycleEvent = {
+  id: string;
+  employee_id: string;
+  event_type: string;
+  payload_json: string;
+  effective_date: string;
+  created_by: string | null;
+  created_at: string;
+};
+
+export type EmployeeHistory = {
+  spells: ApiLifecycleSpell[];
+  events: ApiLifecycleEvent[];
+};
 
 // Map DB status → UI status label
 const STATUS_MAP: Record<ApiEmployee['status'], Employee['status']> = {
@@ -80,11 +106,7 @@ export async function fetchEmployees(): Promise<Employee[]> {
 }
 
 export async function createEmployee(input: CreateEmployeeInput): Promise<Employee> {
-  // Map UI input → API HireEmployeeDto
-  // We use minimal required fields; departmentId/locationId are unknown in UI
-  // so we send placeholder UUIDs that the backend will reject — until the UI
-  // has real department/location pickers this call will gracefully 400 and
-  // the caller falls back to local state.
+  // Map UI input → API HireEmployeeDto using real organization selections.
   const today = new Date().toISOString().slice(0, 10);
   const api = await apiPost<ApiEmployee>('/employees', {
     employeeNumber: `EMP-${Date.now()}`,
@@ -93,11 +115,14 @@ export async function createEmployee(input: CreateEmployeeInput): Promise<Employ
     email: `${input.name.toLowerCase().replace(/\s+/g, '.')}@company.com`,
     hireDate: today,
     jobTitle: input.role,
-    departmentId: '00000000-0000-0000-0000-000000000001',
-    locationId:   '00000000-0000-0000-0000-000000000001',
+    departmentId: input.departmentId,
+    locationId: input.locationId,
     workArrangement: input.type.toLowerCase() as 'office' | 'remote' | 'hybrid',
   });
-  return toUiEmployee(api);
+  return {
+    ...toUiEmployee(api),
+    dept: api.department_name ?? input.departmentName,
+  };
 }
 
 export async function updateEmployee(id: string, input: CreateEmployeeInput): Promise<Employee> {
@@ -112,6 +137,48 @@ export async function updateEmployee(id: string, input: CreateEmployeeInput): Pr
 export async function suspendEmployee(id: string): Promise<Employee> {
   const api = await apiPost<ApiEmployee>(`/employees/${id}/suspend`, {});
   return toUiEmployee(api);
+}
+
+export async function transferEmployee(
+  id: string,
+  input: {
+    departmentId: string;
+    locationId: string;
+    jobTitle?: string;
+    workArrangement?: 'office' | 'remote' | 'hybrid';
+    effectiveDate: string;
+  },
+): Promise<Employee> {
+  const api = await apiPost<ApiEmployee>(`/employees/${id}/transfer`, input);
+  return toUiEmployee(api);
+}
+
+export async function promoteEmployee(
+  id: string,
+  input: {
+    jobTitle: string;
+    departmentId?: string;
+    effectiveDate: string;
+  },
+): Promise<Employee> {
+  const api = await apiPost<ApiEmployee>(`/employees/${id}/promote`, input);
+  return toUiEmployee(api);
+}
+
+export async function resignEmployee(
+  id: string,
+  input: {
+    resignationDate: string;
+    lastWorkingDate: string;
+    reason?: string;
+  },
+): Promise<Employee> {
+  const api = await apiPost<ApiEmployee>(`/employees/${id}/resign`, input);
+  return toUiEmployee(api);
+}
+
+export async function fetchEmployeeHistory(id: string): Promise<EmployeeHistory> {
+  return apiGet<EmployeeHistory>(`/employees/${id}/history`);
 }
 
 export async function terminateEmployee(id: string): Promise<void> {

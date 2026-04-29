@@ -1,5 +1,7 @@
 import { Controller, Get } from '@nestjs/common';
-import type { OrganizationOverview } from './organization.contracts';
+import { CurrentUser } from '../auth/current-user.decorator';
+import type { AuthenticatedUser } from '../auth/auth.types';
+import type { OrganizationCatalog, OrganizationOverview } from './organization.contracts';
 import { OrganizationService } from './organization.service';
 
 @Controller('organization')
@@ -13,5 +15,11 @@ export class OrganizationController {
   @Get('overview')
   getOverview(): OrganizationOverview {
     return this.organizationService.getOverview();
+  }
+
+  @Get('catalog')
+  getCatalog(@CurrentUser() user?: AuthenticatedUser): Promise<OrganizationCatalog> {
+    const tenantId = user?.tenantId ?? '';
+    return this.organizationService.getCatalog(tenantId);
   }
 }

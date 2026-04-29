@@ -4,6 +4,10 @@ import { useEffect, useState, type CSSProperties } from 'react';
 import { Button, Icon } from '../aurora-primitives';
 import type { PeopleCopy } from '../../i18n/people-copy';
 import type { CreateEmployeeInput, Employee, EmployeeStatus, WorkType } from './people-data';
+import type {
+  OrganizationCatalogDepartment,
+  OrganizationCatalogLocation,
+} from '../../lib/organization-api';
 
 type PeopleDialogMode = 'create' | 'edit';
 
@@ -12,6 +16,10 @@ type PeopleCreateDialogProps = {
   mode: PeopleDialogMode;
   copy: PeopleCopy;
   initialEmployee: Employee | undefined;
+  initialDepartmentId: string | undefined;
+  initialLocationId: string | undefined;
+  departmentOptions: readonly OrganizationCatalogDepartment[];
+  locationOptions: readonly OrganizationCatalogLocation[];
   onClose: () => void;
   onSubmit: (employee: CreateEmployeeInput) => void;
 };
@@ -19,7 +27,8 @@ type PeopleCreateDialogProps = {
 type FormState = {
   name: string;
   role: string;
-  dept: string;
+  departmentId: string;
+  locationId: string;
   status: EmployeeStatus;
   type: WorkType;
   since: string;
@@ -28,7 +37,8 @@ type FormState = {
 const INITIAL_FORM_STATE: FormState = {
   name: '',
   role: '',
-  dept: '',
+  departmentId: '',
+  locationId: '',
   status: 'Active',
   type: 'Office',
   since: '',
@@ -37,7 +47,18 @@ const INITIAL_FORM_STATE: FormState = {
 const STATUSES: readonly EmployeeStatus[] = ['Active', 'Suspended', 'On Leave', 'Pending', 'Approved', 'Rejected'] as const;
 const WORK_TYPES: readonly WorkType[] = ['Remote', 'Office', 'Hybrid'] as const;
 
-export function PeopleCreateDialog({ open, mode, copy, initialEmployee, onClose, onSubmit }: PeopleCreateDialogProps) {
+export function PeopleCreateDialog({
+  open,
+  mode,
+  copy,
+  initialEmployee,
+  initialDepartmentId,
+  initialLocationId,
+  departmentOptions,
+  locationOptions,
+  onClose,
+  onSubmit,
+}: PeopleCreateDialogProps) {
   const [form, setForm] = useState<FormState>(INITIAL_FORM_STATE);
 
   useEffect(() => {
@@ -47,10 +68,19 @@ export function PeopleCreateDialog({ open, mode, copy, initialEmployee, onClose,
     }
 
     if (mode === 'edit' && initialEmployee) {
+      const initialDepartment = departmentOptions.find((department) => department.id === (initialDepartmentId ?? ''))
+        ?? departmentOptions[0];
+      const initialLocation =
+        locationOptions.find((location) => location.id === (initialLocationId ?? ''))
+        ?? (initialDepartment
+          ? locationOptions.find((location) => location.id === initialDepartment.locationId)
+          : undefined)
+        ?? locationOptions[0];
       setForm({
         name: initialEmployee.name,
         role: initialEmployee.role,
-        dept: initialEmployee.dept,
+        departmentId: initialDepartment?.id ?? '',
+        locationId: initialLocation?.id ?? '',
         status: initialEmployee.status,
         type: initialEmployee.type,
         since: initialEmployee.since,
@@ -58,22 +88,38 @@ export function PeopleCreateDialog({ open, mode, copy, initialEmployee, onClose,
       return;
     }
 
-    setForm(INITIAL_FORM_STATE);
-  }, [initialEmployee, mode, open]);
+    const defaultDepartment = departmentOptions[0];
+    const defaultLocation =
+      defaultDepartment
+        ? locationOptions.find((location) => location.id === defaultDepartment.locationId)
+        : undefined;
+    setForm({
+      ...INITIAL_FORM_STATE,
+      departmentId: defaultDepartment?.id ?? '',
+      locationId: defaultLocation?.id ?? locationOptions[0]?.id ?? '',
+    });
+  }, [departmentOptions, initialDepartmentId, initialEmployee, initialLocationId, locationOptions, mode, open]);
 
   if (!open) {
     return null;
   }
 
   const submit = () => {
-    if (!form.name.trim() || !form.role.trim() || !form.dept.trim() || !form.since.trim()) {
+    const selectedDepartment = departmentOptions.find((option) => option.id === form.departmentId);
+    const selectedLocation = locationOptions.find((option) => option.id === form.locationId);
+    if (!form.name.trim() || !form.role.trim() || !form.since.trim() || !selectedDepartment || !selectedLocation) {
       return;
     }
+
+    const derivedLocation = locationOptions.find((location) => location.id === selectedDepartment.locationId) ?? selectedLocation;
 
     onSubmit({
       name: form.name.trim(),
       role: form.role.trim(),
-      dept: form.dept.trim(),
+      departmentId: selectedDepartment.id,
+      departmentName: selectedDepartment.name,
+      locationId: derivedLocation.id,
+      locationName: derivedLocation.name,
       status: form.status,
       type: form.type,
       since: form.since.trim(),
@@ -145,11 +191,36 @@ export function PeopleCreateDialog({ open, mode, copy, initialEmployee, onClose,
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14 }}>
             <label style={{ display: 'grid', gap: 6 }}>
               <span className="aurora-card-subtitle">{copy.employeeForm.department}</span>
-              <input value={form.dept} onChange={(event) => setForm((current) => ({ ...current, dept: event.target.value }))} style={inputStyle} placeholder="People Ops" />
+              <select
+                value={form.departmentId}
+                onChange={(event) => {
+                  const nextDepartment = departmentOptions.find((department) => department.id === event.target.value);
+                  setForm((current) => ({
+                    ...current,
+                    departmentId: event.target.value,
+                    locationId: nextDepartment
+                      ? locationOptions.find((location) => location.id === nextDepartment.locationId)?.id ?? current.locationId
+                      : current.locationId,
+                  }));
+                }}
+                style={inputStyle}
+              >
+                {departmentOptions.map((department) => (
+                  <option key={department.id} value={department.id}>
+                    {department.name}
+                  </option>
+                ))}
+              </select>
             </label>
             <label style={{ display: 'grid', gap: 6 }}>
-              <span className="aurora-card-subtitle">{copy.employeeForm.joined}</span>
-              <input value={form.since} onChange={(event) => setForm((current) => ({ ...current, since: event.target.value }))} style={inputStyle} placeholder="Apr 2026" />
+              <span className="aurora-card-subtitle">{copy.employeeForm.location}</span>
+              <select value={form.locationId} onChange={(event) => setForm((current) => ({ ...current, locationId: event.target.value }))} style={inputStyle}>
+                {locationOptions.map((location) => (
+                  <option key={location.id} value={location.id}>
+                    {location.name}
+                  </option>
+                ))}
+              </select>
             </label>
           </div>
 
@@ -173,6 +244,10 @@ export function PeopleCreateDialog({ open, mode, copy, initialEmployee, onClose,
                   </option>
                 ))}
               </select>
+            </label>
+            <label style={{ display: 'grid', gap: 6 }}>
+              <span className="aurora-card-subtitle">{copy.employeeForm.joined}</span>
+              <input value={form.since} onChange={(event) => setForm((current) => ({ ...current, since: event.target.value }))} style={inputStyle} placeholder="Apr 2026" />
             </label>
           </div>
 

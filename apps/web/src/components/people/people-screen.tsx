@@ -3,7 +3,14 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Badge, Avatar, Button, Icon } from '../aurora-primitives';
 import { getPeopleCopy, useLocale } from '../../i18n';
+import { getOrganizationOverview } from '../organization/organization-data';
 import { PeopleCreateDialog } from './people-create-dialog';
+import {
+  EmployeeLifecycleDialog,
+  type EmployeeLifecycleMode,
+  type EmployeeLifecycleSubmit,
+} from './employee-lifecycle-dialog';
+import { EmployeeHistoryDialog } from './employee-history-dialog';
 import {
   addEmployee,
   EMPLOYEES,
@@ -23,8 +30,18 @@ import {
   createEmployee as apiCreate,
   updateEmployee as apiUpdate,
   suspendEmployee as apiSuspend,
+  transferEmployee as apiTransfer,
+  promoteEmployee as apiPromote,
+  resignEmployee as apiResign,
+  fetchEmployeeHistory as apiHistory,
   terminateEmployee as apiTerminate,
+  type EmployeeHistory,
 } from '../../lib/employee-api';
+import {
+  fetchOrganizationCatalog,
+  type OrganizationCatalogDepartment,
+  type OrganizationCatalogLocation,
+} from '../../lib/organization-api';
 
 const BADGE_TONE: Record<EmployeeStatus | WorkType, 'accent' | 'violet' | 'warning' | 'info' | 'success' | 'danger' | 'ghost'> = {
   Active: 'success',
@@ -45,21 +62,57 @@ export function PeopleScreen() {
   const [search, setSearch] = useState('');
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | null>(null);
   const [editingKey, setEditingKey] = useState<string | null>(null);
+  const [lifecycleMode, setLifecycleMode] = useState<EmployeeLifecycleMode | null>(null);
+  const [lifecycleKey, setLifecycleKey] = useState<string | null>(null);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [historyError, setHistoryError] = useState<string | null>(null);
+  const [employeeHistory, setEmployeeHistory] = useState<EmployeeHistory | null>(null);
   const [employees, setEmployees] = useState<Employee[]>(EMPLOYEES);
   const [usingApi, setUsingApi] = useState(false);
+  const fallbackOrganization = getOrganizationOverview();
+  const [departmentOptions, setDepartmentOptions] = useState<OrganizationCatalogDepartment[]>(
+    fallbackOrganization.departmentMap.map((department, index) => ({
+      id: `mock-dept-${index + 1}`,
+      name: department.name,
+      code: department.name.toLowerCase().replace(/\s+/g, '-'),
+      locationId: `mock-loc-${index + 1}`,
+      locationName: fallbackOrganization.locations[0]?.name ?? 'Headquarters',
+    })),
+  );
+  const [locationOptions, setLocationOptions] = useState<OrganizationCatalogLocation[]>(
+    fallbackOrganization.locations.map((location, index) => ({
+      id: `mock-loc-${index + 1}`,
+      name: location.name,
+      code: location.name.toLowerCase().replace(/\s+/g, '-'),
+    })),
+  );
 
   // Attempt to load real data from the API on mount.
   // Falls back silently to the mock EMPLOYEES array if the API is unavailable
   // (e.g. no token, dev without backend running).
   useEffect(() => {
-    fetchEmployees()
-      .then((data) => {
-        setEmployees(data);
+    let cancelled = false;
+
+    Promise.allSettled([fetchEmployees(), fetchOrganizationCatalog()]).then(([employeesResult, catalogResult]) => {
+      if (cancelled) return;
+
+      if (employeesResult.status === 'fulfilled') {
+        setEmployees(employeesResult.value);
         setUsingApi(true);
-      })
-      .catch(() => {
-        // keep mock data — no error shown to user
-      });
+      }
+
+      if (catalogResult.status === 'fulfilled' && catalogResult.value.locations.length > 0 && catalogResult.value.departments.length > 0) {
+        setDepartmentOptions(catalogResult.value.departments);
+        setLocationOptions(catalogResult.value.locations);
+      } else {
+        setUsingApi(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const statusLabel = (label: EmployeeStatus | WorkType) => localeCopy.status[label];
@@ -72,6 +125,13 @@ export function PeopleScreen() {
   const editingEmployee = editingKey
     ? employees.find((e) => getEmployeeKey(e) === editingKey)
     : undefined;
+
+  const editingDepartment = editingEmployee
+    ? departmentOptions.find((department) => department.name === editingEmployee.dept)
+    : undefined;
+  const editingLocation = editingDepartment
+    ? locationOptions.find((location) => location.id === editingDepartment.locationId)
+    : locationOptions[0];
 
   const closeDialog = () => {
     setDialogMode(null);
@@ -86,6 +146,45 @@ export function PeopleScreen() {
   const openEditDialog = (employee: Employee) => {
     setEditingKey(getEmployeeKey(employee));
     setDialogMode('edit');
+  };
+
+  const openLifecycleDialog = (employee: Employee, mode: EmployeeLifecycleMode) => {
+    setEditingKey(null);
+    setLifecycleKey(getEmployeeKey(employee));
+    setLifecycleMode(mode);
+  };
+
+  const closeLifecycleDialog = () => {
+    setLifecycleMode(null);
+    setLifecycleKey(null);
+  };
+
+  const openHistoryDialog = async (employee: Employee) => {
+    setHistoryOpen(true);
+    setHistoryError(null);
+    setEmployeeHistory(null);
+
+    if (!usingApi || !employee.id) {
+      setHistoryError('Lifecycle history is available when the API is connected.');
+      return;
+    }
+
+    setHistoryLoading(true);
+    try {
+      const history = await apiHistory(employee.id);
+      setEmployeeHistory(history);
+    } catch {
+      setHistoryError('Could not load lifecycle history.');
+    } finally {
+      setHistoryLoading(false);
+    }
+  };
+
+  const closeHistoryDialog = () => {
+    setHistoryOpen(false);
+    setHistoryLoading(false);
+    setHistoryError(null);
+    setEmployeeHistory(null);
   };
 
   const submitDialog = async (input: CreateEmployeeInput) => {
@@ -126,11 +225,18 @@ export function PeopleScreen() {
     const key = getEmployeeKey(employee);
     if (employee.status === 'Suspended') {
       // Reactivation — no API endpoint in Phase 2, local only
+      const department = departmentOptions.find((item) => item.name === employee.dept) ?? departmentOptions[0];
+      const location = department
+        ? locationOptions.find((item) => item.id === department.locationId) ?? locationOptions[0]
+        : locationOptions[0];
       setEmployees((curr) =>
         updateEmployee(curr, key, {
           name: employee.name,
           role: employee.role,
-          dept: employee.dept,
+          departmentId: department?.id ?? '',
+          departmentName: department?.name ?? employee.dept,
+          locationId: location?.id ?? '',
+          locationName: location?.name ?? '',
           status: 'Active',
           type: employee.type,
           since: employee.since,
@@ -240,6 +346,10 @@ export function PeopleScreen() {
         mode={dialogMode ?? 'create'}
         copy={localeCopy}
         initialEmployee={dialogMode === 'edit' ? editingEmployee : undefined}
+        initialDepartmentId={editingDepartment?.id}
+        initialLocationId={editingLocation?.id}
+        departmentOptions={departmentOptions}
+        locationOptions={locationOptions}
         onClose={closeDialog}
         onSubmit={submitDialog}
       />

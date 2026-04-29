@@ -94,7 +94,7 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 - [x] Implement hire, transfer, promotion, resignation, termination, suspend, and rehire records. _(EmployeeService: 10 endpoints on /api/v1/employees)_
 - [ ] Add lifecycle event diagram and state machine documentation.
 - [x] Link employee tax profile (`employee_tax_profiles`) to the employee creation flow with PTKP category assignment. _(EmployeeService.upsertTaxProfile with NPWP encrypted via AES-256-GCM)_
-- [x] Build employee self-service profile screens. _(PeopleScreen wired to real API with graceful mock fallback)_
+- [x] Build employee self-service profile screens. _(PeopleScreen wired to real API with graceful mock fallback; create flow now uses organization catalog data instead of placeholder org IDs)_
 - [ ] Add import/export for employee records. _(Deferred — no urgent need until real data exists)_
 - [x] Implement Keycloak OIDC login for the frontend (NextAuth + Keycloak provider). _(login page, session middleware, auto-realm import, token wired to API client)_
 - [x] Add sensitive field encryption applied to NPWP and bank account numbers at rest. _(EncryptionService applied in upsertTaxProfile + addBankAccount)_
@@ -129,16 +129,16 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 - [ ] Implement leave balances, accruals, and leave approvals.
 
 ## Phase 5: Workflow and Approvals
-- [ ] Build workflow template model.
-- [ ] Build workflow instance and step instance model.
-- [ ] Add approval resolution logic for manager, HR, plant, and payroll routes.
-- [ ] Add delegation and escalation handling.
-- [ ] Add conditional steps and skip-duplicate approver rules.
-- [ ] Emit domain events from approval step completion (ADR 003: `approval.step.completed` event consumed by the notification module).
+- [x] Build workflow template model. _(workflow_templates schema + approval module schema contracts)_
+- [x] Build workflow instance and step instance model. _(workflow_instances and workflow_step_instances schema + repository adapters)_
+- [x] Add approval resolution logic for manager, HR, plant, and payroll routes. _(approval workflow helper + decision use case)_
+- [ ] Add delegation and escalation handling. _(Delegation flow is implemented; escalation scheduler and timeout processing are still pending.)_
+- [ ] Add conditional steps and skip-duplicate approver rules. _(Duplicate-approver skipping is implemented; condition evaluation is still pending.)_
+- [x] Emit domain events from approval step completion (ADR 003: `approval.step.completed` event consumed by the notification module). _(approval decision use case returns domain events; event contract is published in `packages/types`.)_
 
 ## Phase 6: Payroll and Tax
-- [ ] Create payroll period and payroll run models.
-- [ ] Set up jurisdiction engine infrastructure: engine interface, engine registry, and pluggable calculation pipeline (ADR 004).
+- [x] Create payroll period and payroll run models. _(payroll_periods and payroll_runs schema + repository adapters)_
+- [ ] Set up jurisdiction engine infrastructure: engine interface, engine registry, and pluggable calculation pipeline (ADR 004). _(Calculation pipeline helpers and vertical slices are in place; engine registry/adapters still pending.)_
 - [ ] Build payroll component catalog: earnings, deductions, and employer contributions with formula types (`fixed`, `pct_of_basic`, `per_shift_day`, `table_lookup`) (ADR 004).
 - [ ] Implement component assignment scoping using the 5-level policy hierarchy (employee / department / location / company).
 - [ ] Seed and protect statutory components (PPh 21, BPJS) from deletion through the UI.
@@ -149,8 +149,8 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 - [ ] Implement employee PTKP category management linked to the `ptkp_categories` table (ADR 004).
 - [ ] Build admin UI for annual tax table updates — inserting new rows into `tax_brackets`, `ptkp_categories`, and `contribution_bands` so annual government changes are data operations, not code deployments.
 - [ ] Add payroll component and payroll policy configuration UI for HR admins.
-- [ ] Add payslip generation.
-- [ ] Add payroll approval and finalization (lock run items after final approval).
+- [ ] Add payslip generation. _(payslip table exists; generation worker / endpoint still pending.)_
+- [ ] Add payroll approval and finalization (lock run items after final approval). _(Run finalisation and item locking are implemented; dedicated payroll approval orchestration is still pending.)_
 
 ## Phase 7: Reporting, Compliance, and Integration
 - [ ] Build standard reports and dashboards.

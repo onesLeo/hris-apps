@@ -102,6 +102,23 @@ Provide standard and custom HR reports and dashboards.
 ### Phase 4: Scale and Ecosystem
 - Expanded integrations, additional jurisdictions, and enterprise readiness
 
+## Implementation Status
+This is a live status snapshot of the current branch so the plan and implementation checklist stay aligned.
+
+### Completed Foundations
+- Core auth, tenant scoping, RLS, RBAC, audit logging, structured logging, policy resolution, i18n, and base CI are in place.
+- The employee core is implemented: employee profile records, employment spells, lifecycle event logging, tax profile linkage, and encrypted sensitive fields.
+- The People screen is wired to the API with a graceful fallback to local mock data when the backend is unavailable, and its create flow now pulls organization catalog data instead of placeholder org IDs.
+
+### Completed Workflow and Payroll Slices
+- The approval workflow backend now has workflow schema tables, assignee resolution helpers, a decision use case, controller adapter, and unit tests.
+- Payroll now has period/run schema tables plus the start-run, per-employee calculation, and finalisation slices with repository adapters and tests.
+
+### Still Open
+- Employee lifecycle docs such as the state machine diagram and import/export support.
+- Workflow escalation, conditional routing, and any dedicated payroll approval orchestration beyond run finalisation.
+- Full statutory payroll engines, component catalog, payslip generation, and payroll admin UI.
+
 ## Test Strategy
 - Validate core HR workflows end to end.
 - Confirm payroll and attendance calculations are correct.

@@ -10,11 +10,13 @@ import { EncryptionModule } from './common/encryption/encryption.module';
 import { RolesGuard } from './common/guards/roles.guard';
 import { I18nService } from './common/i18n/i18n.service';
 import { AuditModule } from './modules/audit/audit.module';
+import { ApprovalModule } from './modules/approval/approval.module';
 import { AuthModule } from './modules/auth/auth.module';
 import { EmployeeModule } from './modules/employee/employee.module';
 import { HealthModule } from './modules/health/health.module';
 import { OrganizationModule } from './modules/organization/organization.module';
 import { PolicyModule } from './modules/policy/policy.module';
+import { PayrollModule } from './modules/payroll/payroll.module';
 import { TenantMiddleware } from './modules/tenant/tenant.middleware';
 import { TenantModule } from './modules/tenant/tenant.module';
 
@@ -41,10 +43,12 @@ import { TenantModule } from './modules/tenant/tenant.module';
     AuthModule,
     TenantModule,
     AuditModule,
+    ApprovalModule,
     PolicyModule,
     HealthModule,
     OrganizationModule,
     EmployeeModule,
+    PayrollModule,
   ],
   providers: [
     I18nService,

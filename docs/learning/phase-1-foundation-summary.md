@@ -1,6 +1,6 @@
 # Phase 1 Foundation — What We Built and Why
 
-This document explains every piece of infrastructure built in Phase 1, what it does, and why it matters for the HRIS application. The buttons you see in the UI will be wired to these backend foundations in Phase 2 onwards.
+This document explains every piece of infrastructure built in Phase 1, what it does, and why it matters for the HRIS application. The branch now has a few Phase 2 slices wired up as well, so this summary notes where the UI is still mock-driven versus where it already talks to the real backend.
 
 ---
 
@@ -242,12 +242,12 @@ Integration tests in `tests/integration/` test the running API:
 
 ## What the Frontend Buttons Need (Phase 2)
 
-The buttons visible in the UI are wired to mock data. Connecting them to real backend endpoints requires Phase 2:
+The UI is now mixed: some actions still use mock data, while employee creation, suspend, terminate, approvals, and payroll vertical slices are already using real backend code. The remaining button and workflow gaps still need Phase 2 work:
 
 | UI Action | What Phase 2 will build |
 |---|---|
-| Add / Edit Employee | `POST /api/v1/employees`, `PATCH /api/v1/employees/:id` |
-| Suspend / Delete Employee | Employee lifecycle events + status transitions |
+| Add / Edit Employee | `POST /api/v1/employees`, `PATCH /api/v1/employees/:id` with real API fallback and org catalog-backed create flow already in place |
+| Suspend / Delete Employee | Employee lifecycle events + status transitions, with suspend / terminate already wired |
 | Leave Apply | Leave balance model + approval workflow |
 | Create Requisition | Recruitment module |
 | Org chart | Real data from `departments` + `locations` tables |
