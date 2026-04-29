@@ -1,7 +1,6 @@
 {
   "name": "@hris/api",
   "private": true,
-  "type": "module",
   "scripts": {
     "dev": "nest start --watch",
     "build": "nest build",
