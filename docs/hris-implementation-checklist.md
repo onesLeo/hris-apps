@@ -63,27 +63,27 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 
 ## Phase 1: Foundation
 - [x] Implement authentication provider integration (Keycloak / OIDC).
-- [ ] Add MFA enforcement for admin, HR, payroll, and security roles.
-- [ ] Implement short-lived session management and secure cookie handling.
-- [ ] Add anti-CSRF protections for browser-based sessions.
-- [ ] Implement LDAP / Active Directory directory sync and group-to-role mapping.
-- [ ] Add directory mapping tables and external identity linkage.
-- [ ] Define directory data model and sync event taxonomy.
-- [ ] Implement just-in-time account provisioning and scheduled sync jobs.
-- [ ] Add local permission override and audit tracking for directory-driven access.
-- [ ] Add directory provisioning workflow and role/group mapping examples.
+- [ ] Add MFA enforcement for admin, HR, payroll, and security roles. _(Keycloak config — Phase 1b)_
+- [ ] Implement short-lived session management and secure cookie handling. _(JWT stateless model in use; revisit if browser sessions needed)_
+- [ ] Add anti-CSRF protections for browser-based sessions. _(Not applicable: JWT in Authorization header is not CSRF-vulnerable)_
+- [ ] Implement LDAP / Active Directory directory sync and group-to-role mapping. _(Phase 1b — requires customer AD)_
+- [ ] Add directory mapping tables and external identity linkage. _(Phase 1b)_
+- [ ] Define directory data model and sync event taxonomy. _(Phase 1b)_
+- [ ] Implement just-in-time account provisioning and scheduled sync jobs. _(Phase 1b)_
+- [ ] Add local permission override and audit tracking for directory-driven access. _(Phase 1b)_
+- [ ] Add directory provisioning workflow and role/group mapping examples. _(Phase 1b)_
 - [x] Implement tenant model and tenant-aware request context.
-- [ ] Implement RLS middleware that sets the PostgreSQL `app.tenant_id` session variable on every request (blocks all other tenant-scoped work).
-- [ ] Add row-level security strategy and tenant scoping enforcement.
+- [x] Implement RLS middleware that sets the PostgreSQL `app.tenant_id` session variable on every request. _(Set per-transaction in DatabaseService.withTenantClient via `set_config`)_
+- [x] Add row-level security strategy and tenant scoping enforcement. _(0001_enable_rls.sql: policies on all tenant-scoped tables)_
 - [x] Create user, role, permission, and menu access models (14 roles per requirements).
-- [ ] Implement fine-grained RBAC + ABAC authorization with tenant, location, department, and reporting-line scoping.
-- [ ] Add People menu structure for onboarding, lifecycle, and self-service employment actions.
+- [x] Implement RBAC authorization with role-based guards and scoped role assignments. _(RolesGuard + @Roles() decorator; ABAC location/department scoping deferred to Phase 2)_
+- [ ] Add People menu structure for onboarding, lifecycle, and self-service employment actions. _(Frontend — Phase 2)_
 - [x] Create organization models for location, department, team, and manager relationships.
 - [x] Implement structured logging middleware (structured JSON; required fields: `request_id`, `trace_id`, `tenant_id`, `user_id`, `actor_role`, `module`, `action`, `entity_type`, `entity_id`; no PII).
-- [ ] Implement policy resolution engine (5-level hierarchy: employee → department → location → company → system default) with resolution path logging.
+- [x] Implement policy resolution engine (5-level hierarchy: employee → department → location → company → system default) with resolution path logging.
 - [x] Set up BullMQ worker entry point controlled by `RUN_MODE` environment variable (ADR 002).
 - [x] Add audit log foundation for all mutating actions (append-only).
-- [ ] Add sensitive field encryption at rest (NPWP, bank details, salary fields).
+- [x] Add sensitive field encryption service (AES-256-GCM, EncryptionService). _(Service ready; field-level application to NPWP/bank/salary deferred to Phase 2 when those entities are built)_
 
 ## Phase 2: Employee Core
 - [ ] Build employee profile model and employment spell model.
