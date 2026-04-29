@@ -9,7 +9,7 @@ import type {
   OrganizationCatalogLocation,
 } from '../../lib/organization-api';
 
-export type EmployeeLifecycleMode = 'transfer' | 'promote' | 'resign';
+export type EmployeeLifecycleMode = 'transfer' | 'promote' | 'resign' | 'rehire' | 'secondment';
 
 export type EmployeeLifecycleSubmit =
   | {
@@ -31,6 +31,22 @@ export type EmployeeLifecycleSubmit =
       resignationDate: string;
       lastWorkingDate: string;
       reason: string;
+    }
+  | {
+      mode: 'rehire';
+      newHireDate: string;
+      jobTitle: string;
+      departmentId: string;
+      locationId: string;
+      workArrangement: 'office' | 'remote' | 'hybrid';
+    }
+  | {
+      mode: 'secondment';
+      hostDepartmentId: string;
+      hostLocationId: string;
+      jobTitleAtHost: string;
+      startDate: string;
+      expectedReturnDate: string;
     };
 
 type EmployeeLifecycleDialogProps = {
@@ -62,6 +78,22 @@ type ResignForm = {
   resignationDate: string;
   lastWorkingDate: string;
   reason: string;
+};
+
+type RehireForm = {
+  newHireDate: string;
+  jobTitle: string;
+  departmentId: string;
+  locationId: string;
+  workArrangement: 'office' | 'remote' | 'hybrid';
+};
+
+type SecondmentForm = {
+  hostDepartmentId: string;
+  hostLocationId: string;
+  jobTitleAtHost: string;
+  startDate: string;
+  expectedReturnDate: string;
 };
 
 const today = new Date().toISOString().slice(0, 10);
@@ -110,6 +142,23 @@ export function EmployeeLifecycleDialog({
     lastWorkingDate: today,
     reason: '',
   });
+
+  const [rehireForm, setRehireForm] = useState<RehireForm>({
+    newHireDate: today,
+    jobTitle: employee?.role ?? '',
+    departmentId: initialDepartment?.id ?? '',
+    locationId: initialLocation?.id ?? '',
+    workArrangement: 'office',
+  });
+
+  const [secondmentForm, setSecondmentForm] = useState<SecondmentForm>({
+    hostDepartmentId: initialDepartment?.id ?? '',
+    hostLocationId: initialLocation?.id ?? '',
+    jobTitleAtHost: employee?.role ?? '',
+    startDate: today,
+    expectedReturnDate: today,
+  });
+
   const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
@@ -139,19 +188,42 @@ export function EmployeeLifecycleDialog({
       lastWorkingDate: today,
       reason: '',
     });
+    setRehireForm({
+      newHireDate: today,
+      jobTitle: employee?.role ?? '',
+      departmentId: nextDepartment?.id ?? '',
+      locationId: nextLocation?.id ?? '',
+      workArrangement: employee?.type?.toLowerCase() === 'remote'
+        ? 'remote'
+        : employee?.type?.toLowerCase() === 'hybrid'
+          ? 'hybrid'
+          : 'office',
+    });
+    setSecondmentForm({
+      hostDepartmentId: nextDepartment?.id ?? '',
+      hostLocationId: nextLocation?.id ?? '',
+      jobTitleAtHost: employee?.role ?? '',
+      startDate: today,
+      expectedReturnDate: today,
+    });
   }, [departmentOptions, employee?.dept, employee?.role, employee?.type, locationOptions, open]);
 
   if (!open || !employee) {
     return null;
   }
 
-  const title = mode === 'transfer' ? 'Transfer Employee' : mode === 'promote' ? 'Promote Employee' : 'Resign Employee';
+  const title =
+    mode === 'transfer' ? 'Transfer Employee' :
+    mode === 'promote' ? 'Promote Employee' :
+    mode === 'resign' ? 'Resign Employee' :
+    mode === 'rehire' ? 'Rehire Employee' :
+    'Secondment';
   const subtitle =
-    mode === 'transfer'
-      ? 'Move the employee to a different department or location.'
-      : mode === 'promote'
-        ? 'Update the employee title and effective date.'
-        : 'Record the resignation dates and optional reason.';
+    mode === 'transfer' ? 'Move the employee to a different department or location.' :
+    mode === 'promote' ? 'Update the employee title and effective date.' :
+    mode === 'resign' ? 'Record the resignation dates and optional reason.' :
+    mode === 'rehire' ? 'Reactivate a former employee with a new hire date and assignment.' :
+    'Assign the employee to a host department for a defined period.';
   const accent = getModeAccent(mode);
   const modeBadge = getModeBadge(mode);
 
@@ -190,16 +262,52 @@ export function EmployeeLifecycleDialog({
       return;
     }
 
-    if (!resignForm.resignationDate.trim() || !resignForm.lastWorkingDate.trim() || !resignForm.reason.trim()) {
-      setFeedback(copy.validation.resignRequired);
+    if (mode === 'resign') {
+      if (!resignForm.resignationDate.trim() || !resignForm.lastWorkingDate.trim() || !resignForm.reason.trim()) {
+        setFeedback(copy.validation.resignRequired);
+        return;
+      }
+      onSubmit({
+        mode,
+        resignationDate: resignForm.resignationDate,
+        lastWorkingDate: resignForm.lastWorkingDate,
+        reason: resignForm.reason.trim(),
+      });
       return;
     }
 
+    if (mode === 'rehire') {
+      const selectedDepartment = departmentOptions.find((d) => d.id === rehireForm.departmentId);
+      const selectedLocation = locationOptions.find((l) => l.id === rehireForm.locationId);
+      if (!rehireForm.newHireDate.trim() || !rehireForm.jobTitle.trim() || !selectedDepartment || !selectedLocation) {
+        setFeedback(copy.validation.rehireRequired);
+        return;
+      }
+      onSubmit({
+        mode,
+        newHireDate: rehireForm.newHireDate,
+        jobTitle: rehireForm.jobTitle.trim(),
+        departmentId: selectedDepartment.id,
+        locationId: selectedLocation.id,
+        workArrangement: rehireForm.workArrangement,
+      });
+      return;
+    }
+
+    // secondment
+    const hostDepartment = departmentOptions.find((d) => d.id === secondmentForm.hostDepartmentId);
+    const hostLocation = locationOptions.find((l) => l.id === secondmentForm.hostLocationId);
+    if (!hostDepartment || !hostLocation || !secondmentForm.startDate.trim() || !secondmentForm.expectedReturnDate.trim()) {
+      setFeedback(copy.validation.secondmentRequired);
+      return;
+    }
     onSubmit({
       mode,
-      resignationDate: resignForm.resignationDate,
-      lastWorkingDate: resignForm.lastWorkingDate,
-      reason: resignForm.reason.trim(),
+      hostDepartmentId: hostDepartment.id,
+      hostLocationId: hostLocation.id,
+      jobTitleAtHost: secondmentForm.jobTitleAtHost.trim(),
+      startDate: secondmentForm.startDate,
+      expectedReturnDate: secondmentForm.expectedReturnDate,
     });
   };
 
@@ -434,6 +542,170 @@ export function EmployeeLifecycleDialog({
             </div>
           )}
 
+          {mode === 'rehire' && (
+            <div style={panelStyle}>
+              <div style={panelHeaderStyle}>
+                <div>
+                  <div className="aurora-card-title" style={{ fontSize: 16 }}>Rehire details</div>
+                  <div className="aurora-card-subtitle" style={{ marginTop: 2 }}>
+                    Reactivate the employee with a new hire date and assignment.
+                  </div>
+                </div>
+                <Badge label="Re-onboarding" tone="info" />
+              </div>
+
+              <div className="aurora-screen-stack" style={{ gap: 14 }}>
+                <div className="aurora-dual-grid">
+                  <label className="field">
+                    <span className="aurora-card-subtitle">New hire date</span>
+                    <input
+                      type="date"
+                      value={rehireForm.newHireDate}
+                      onChange={(event) => setRehireForm((current) => ({ ...current, newHireDate: event.target.value }))}
+                      style={inputStyle}
+                    />
+                  </label>
+                  <label className="field">
+                    <span className="aurora-card-subtitle">Job title</span>
+                    <input
+                      value={rehireForm.jobTitle}
+                      onChange={(event) => setRehireForm((current) => ({ ...current, jobTitle: event.target.value }))}
+                      style={inputStyle}
+                    />
+                  </label>
+                </div>
+                <div className="aurora-dual-grid">
+                  <label className="field">
+                    <span className="aurora-card-subtitle">Department</span>
+                    <select
+                      value={rehireForm.departmentId}
+                      onChange={(event) => {
+                        const nextDept = departmentOptions.find((d) => d.id === event.target.value);
+                        setRehireForm((current) => ({
+                          ...current,
+                          departmentId: event.target.value,
+                          locationId: nextDept
+                            ? locationOptions.find((l) => l.id === nextDept.locationId)?.id ?? current.locationId
+                            : current.locationId,
+                        }));
+                      }}
+                      style={inputStyle}
+                    >
+                      {departmentOptions.map((d) => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span className="aurora-card-subtitle">Location</span>
+                    <select
+                      value={rehireForm.locationId}
+                      onChange={(event) => setRehireForm((current) => ({ ...current, locationId: event.target.value }))}
+                      style={inputStyle}
+                    >
+                      {locationOptions.map((l) => (
+                        <option key={l.id} value={l.id}>{l.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <label className="field">
+                  <span className="aurora-card-subtitle">Work arrangement</span>
+                  <select
+                    value={rehireForm.workArrangement}
+                    onChange={(event) => setRehireForm((current) => ({ ...current, workArrangement: event.target.value as RehireForm['workArrangement'] }))}
+                    style={inputStyle}
+                  >
+                    <option value="office">Office</option>
+                    <option value="remote">Remote</option>
+                    <option value="hybrid">Hybrid</option>
+                  </select>
+                </label>
+              </div>
+            </div>
+          )}
+
+          {mode === 'secondment' && (
+            <div style={panelStyle}>
+              <div style={panelHeaderStyle}>
+                <div>
+                  <div className="aurora-card-title" style={{ fontSize: 16 }}>Secondment details</div>
+                  <div className="aurora-card-subtitle" style={{ marginTop: 2 }}>
+                    Assign the employee to a host department for a fixed period.
+                  </div>
+                </div>
+                <Badge label="Temporary assignment" tone="violet" />
+              </div>
+
+              <div className="aurora-screen-stack" style={{ gap: 14 }}>
+                <div className="aurora-dual-grid">
+                  <label className="field">
+                    <span className="aurora-card-subtitle">Host department</span>
+                    <select
+                      value={secondmentForm.hostDepartmentId}
+                      onChange={(event) => {
+                        const nextDept = departmentOptions.find((d) => d.id === event.target.value);
+                        setSecondmentForm((current) => ({
+                          ...current,
+                          hostDepartmentId: event.target.value,
+                          hostLocationId: nextDept
+                            ? locationOptions.find((l) => l.id === nextDept.locationId)?.id ?? current.hostLocationId
+                            : current.hostLocationId,
+                        }));
+                      }}
+                      style={inputStyle}
+                    >
+                      {departmentOptions.map((d) => (
+                        <option key={d.id} value={d.id}>{d.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                  <label className="field">
+                    <span className="aurora-card-subtitle">Host location</span>
+                    <select
+                      value={secondmentForm.hostLocationId}
+                      onChange={(event) => setSecondmentForm((current) => ({ ...current, hostLocationId: event.target.value }))}
+                      style={inputStyle}
+                    >
+                      {locationOptions.map((l) => (
+                        <option key={l.id} value={l.id}>{l.name}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <label className="field">
+                  <span className="aurora-card-subtitle">Job title at host (optional)</span>
+                  <input
+                    value={secondmentForm.jobTitleAtHost}
+                    onChange={(event) => setSecondmentForm((current) => ({ ...current, jobTitleAtHost: event.target.value }))}
+                    style={inputStyle}
+                    placeholder={employee?.role}
+                  />
+                </label>
+                <div className="aurora-dual-grid">
+                  <label className="field">
+                    <span className="aurora-card-subtitle">Start date</span>
+                    <input
+                      type="date"
+                      value={secondmentForm.startDate}
+                      onChange={(event) => setSecondmentForm((current) => ({ ...current, startDate: event.target.value }))}
+                      style={inputStyle}
+                    />
+                  </label>
+                  <label className="field">
+                    <span className="aurora-card-subtitle">Expected return date</span>
+                    <input
+                      type="date"
+                      value={secondmentForm.expectedReturnDate}
+                      onChange={(event) => setSecondmentForm((current) => ({ ...current, expectedReturnDate: event.target.value }))}
+                      style={inputStyle}
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div style={footerStyle}>
             <div className="aurora-card-subtitle">
               This action updates the employee lifecycle and keeps the audit trail in sync.
@@ -613,27 +885,23 @@ const feedbackStyle: CSSProperties = {
 
 function getModeAccent(mode: EmployeeLifecycleMode): Accent {
   switch (mode) {
-    case 'transfer':
-      return 'accent';
-    case 'promote':
-      return 'success';
-    case 'resign':
-      return 'warning';
-    default:
-      return 'ghost';
+    case 'transfer': return 'accent';
+    case 'promote':  return 'success';
+    case 'resign':   return 'warning';
+    case 'rehire':   return 'info';
+    case 'secondment': return 'violet';
+    default:         return 'ghost';
   }
 }
 
 function getModeBadge(mode: EmployeeLifecycleMode): string {
   switch (mode) {
-    case 'transfer':
-      return 'Assignment update';
-    case 'promote':
-      return 'Role progression';
-    case 'resign':
-      return 'Offboarding record';
-    default:
-      return 'Employee action';
+    case 'transfer':   return 'Assignment update';
+    case 'promote':    return 'Role progression';
+    case 'resign':     return 'Offboarding record';
+    case 'rehire':     return 'Re-onboarding';
+    case 'secondment': return 'Temporary assignment';
+    default:           return 'Employee action';
   }
 }
 
@@ -642,7 +910,13 @@ function getModeHint(mode: EmployeeLifecycleMode, employee: Employee): string {
     return `Current assignment: ${employee.dept} / ${employee.type}. Choose the next department and location.`;
   }
   if (mode === 'promote') {
-    return `The promotion can update the title while keeping the employee in the same or another department.`;
+    return 'The promotion can update the title while keeping the employee in the same or another department.';
   }
-  return 'Use the dates below to record the exit flow and keep the HR audit trail complete.';
+  if (mode === 'resign') {
+    return 'Use the dates below to record the exit flow and keep the HR audit trail complete.';
+  }
+  if (mode === 'rehire') {
+    return `${employee.name} is currently Terminated. Set the new hire date and assignment to reactivate.`;
+  }
+  return `${employee.name} will be temporarily assigned to a host department. The original role is preserved on return.`;
 }

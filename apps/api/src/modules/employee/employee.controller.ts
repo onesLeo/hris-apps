@@ -14,7 +14,9 @@ import type {
   EmployeeListQuery,
   HireEmployeeDto,
   PromoteEmployeeDto,
+  RehireEmployeeDto,
   ResignEmployeeDto,
+  SecondmentDto,
   TerminateEmployeeDto,
   TransferEmployeeDto,
   UpdateEmployeeDto,
@@ -83,6 +85,18 @@ export class EmployeeController {
   @Roles('hris_admin', 'hr_manager')
   suspend(@Param('id') id: string) {
     return this.service.suspend(this.tenantId(), id);
+  }
+
+  @Post(':id/rehire')
+  @Roles('hris_admin', 'hr_manager')
+  rehire(@Param('id') id: string, @Body() dto: RehireEmployeeDto) {
+    return this.service.rehire(this.tenantId(), id, dto);
+  }
+
+  @Post(':id/secondment')
+  @Roles('hris_admin', 'hr_manager')
+  secondment(@Param('id') id: string, @Body() dto: SecondmentDto) {
+    return this.service.secondment(this.tenantId(), id, dto);
   }
 
   @Get(':id/history')
