@@ -11,6 +11,7 @@ import { RolesGuard } from './common/guards/roles.guard';
 import { I18nService } from './common/i18n/i18n.service';
 import { AuditModule } from './modules/audit/audit.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { EmployeeModule } from './modules/employee/employee.module';
 import { HealthModule } from './modules/health/health.module';
 import { OrganizationModule } from './modules/organization/organization.module';
 import { PolicyModule } from './modules/policy/policy.module';
@@ -43,6 +44,7 @@ import { TenantModule } from './modules/tenant/tenant.module';
     PolicyModule,
     HealthModule,
     OrganizationModule,
+    EmployeeModule,
   ],
   providers: [
     I18nService,

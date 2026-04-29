@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Badge, Avatar, Button, Icon } from '../aurora-primitives';
 import { getPeopleCopy, useLocale } from '../../i18n';
 import { PeopleCreateDialog } from './people-create-dialog';
@@ -18,6 +18,13 @@ import {
   type EmployeeStatus,
   type WorkType,
 } from './people-data';
+import {
+  fetchEmployees,
+  createEmployee as apiCreate,
+  updateEmployee as apiUpdate,
+  suspendEmployee as apiSuspend,
+  terminateEmployee as apiTerminate,
+} from '../../lib/employee-api';
 
 const BADGE_TONE: Record<EmployeeStatus | WorkType, 'accent' | 'violet' | 'warning' | 'info' | 'success' | 'danger' | 'ghost'> = {
   Active: 'success',
@@ -38,7 +45,22 @@ export function PeopleScreen() {
   const [search, setSearch] = useState('');
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | null>(null);
   const [editingKey, setEditingKey] = useState<string | null>(null);
-  const [employees, setEmployees] = useState(EMPLOYEES);
+  const [employees, setEmployees] = useState<Employee[]>(EMPLOYEES);
+  const [usingApi, setUsingApi] = useState(false);
+
+  // Attempt to load real data from the API on mount.
+  // Falls back silently to the mock EMPLOYEES array if the API is unavailable
+  // (e.g. no token, dev without backend running).
+  useEffect(() => {
+    fetchEmployees()
+      .then((data) => {
+        setEmployees(data);
+        setUsingApi(true);
+      })
+      .catch(() => {
+        // keep mock data — no error shown to user
+      });
+  }, []);
 
   const statusLabel = (label: EmployeeStatus | WorkType) => localeCopy.status[label];
 
@@ -47,19 +69,9 @@ export function PeopleScreen() {
     [employees, filter, search],
   );
 
-  const editingEmployee = editingKey ? employees.find((employee) => getEmployeeKey(employee) === editingKey) : undefined;
-
-  const createEmployee = (input: CreateEmployeeInput) => {
-    setEmployees((current) => addEmployee(current, input));
-  };
-
-  const updateCurrentEmployee = (input: CreateEmployeeInput) => {
-    if (!editingKey) {
-      return;
-    }
-
-    setEmployees((current) => updateEmployee(current, editingKey, input));
-  };
+  const editingEmployee = editingKey
+    ? employees.find((e) => getEmployeeKey(e) === editingKey)
+    : undefined;
 
   const closeDialog = () => {
     setDialogMode(null);
@@ -76,22 +88,46 @@ export function PeopleScreen() {
     setDialogMode('edit');
   };
 
-  const submitDialog = (employee: CreateEmployeeInput) => {
-    if (dialogMode === 'edit') {
-      updateCurrentEmployee(employee);
+  const submitDialog = async (input: CreateEmployeeInput) => {
+    if (dialogMode === 'edit' && editingKey) {
+      const target = employees.find((e) => getEmployeeKey(e) === editingKey);
+      if (usingApi && target?.id) {
+        try {
+          const updated = await apiUpdate(target.id, input);
+          setEmployees((curr) =>
+            curr.map((e) => (e.id === updated.id ? updated : e)),
+          );
+          closeDialog();
+          return;
+        } catch {
+          // fall through to local state update
+        }
+      }
+      setEmployees((curr) => updateEmployee(curr, editingKey, input));
       closeDialog();
       return;
     }
 
-    createEmployee(employee);
+    if (usingApi) {
+      try {
+        const created = await apiCreate(input);
+        setEmployees((curr) => [created, ...curr]);
+        closeDialog();
+        return;
+      } catch {
+        // fall through to local state
+      }
+    }
+    setEmployees((curr) => addEmployee(curr, input));
     closeDialog();
   };
 
-  const toggleSuspendEmployee = (employee: Employee) => {
+  const toggleSuspendEmployee = async (employee: Employee) => {
     const key = getEmployeeKey(employee);
     if (employee.status === 'Suspended') {
-      setEmployees((current) =>
-        updateEmployee(current, key, {
+      // Reactivation — no API endpoint in Phase 2, local only
+      setEmployees((curr) =>
+        updateEmployee(curr, key, {
           name: employee.name,
           role: employee.role,
           dept: employee.dept,
@@ -103,16 +139,34 @@ export function PeopleScreen() {
       return;
     }
 
-    setEmployees((current) => suspendEmployee(current, key));
+    if (usingApi && employee.id) {
+      try {
+        const updated = await apiSuspend(employee.id);
+        setEmployees((curr) =>
+          curr.map((e) => (e.id === updated.id ? updated : e)),
+        );
+        return;
+      } catch {
+        // fall through
+      }
+    }
+    setEmployees((curr) => suspendEmployee(curr, key));
   };
 
-  const deleteCurrentEmployee = (employee: Employee) => {
+  const deleteCurrentEmployee = async (employee: Employee) => {
     const confirmed = window.confirm(localeCopy.actionMenu.deleteConfirm);
-    if (!confirmed) {
-      return;
-    }
+    if (!confirmed) return;
 
-    setEmployees((current) => removeEmployee(current, getEmployeeKey(employee)));
+    if (usingApi && employee.id) {
+      try {
+        await apiTerminate(employee.id);
+        setEmployees((curr) => removeEmployee(curr, getEmployeeKey(employee)));
+        return;
+      } catch {
+        // fall through to local remove
+      }
+    }
+    setEmployees((curr) => removeEmployee(curr, getEmployeeKey(employee)));
   };
 
   return (
@@ -154,7 +208,7 @@ export function PeopleScreen() {
         </div>
 
         {filtered.map((employee, index) => (
-          <div key={`${employee.name}-${index}`} className="aurora-table-row" style={{ gridTemplateColumns: '2fr 1.4fr 1fr 1fr 1fr 120px' }}>
+          <div key={employee.id ?? `${employee.name}-${index}`} className="aurora-table-row" style={{ gridTemplateColumns: '2fr 1.4fr 1fr 1fr 1fr 120px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
               <Avatar initials={employee.initials} color={employee.color} />
               <div>

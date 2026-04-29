@@ -2,6 +2,7 @@ export type EmployeeStatus = 'Active' | 'Suspended' | 'On Leave' | 'Pending' | '
 export type WorkType = 'Remote' | 'Office' | 'Hybrid';
 
 export type Employee = {
+  id?: string;           // API UUID — present when loaded from the backend
   name: string;
   role: string;
   dept: string;
