@@ -2,7 +2,6 @@ import { Injectable, OnModuleDestroy, OnModuleInit, Logger } from '@nestjs/commo
 import { ConfigService } from '@nestjs/config';
 import { drizzle } from 'drizzle-orm/node-postgres';
 import { Pool, type PoolClient } from 'pg';
-import * as schema from '@hris/db';
 
 import type { DrizzleDB, IDatabaseService } from './database.types';
 
@@ -19,7 +18,7 @@ export class DatabaseService implements IDatabaseService, OnModuleInit, OnModule
   onModuleInit(): void {
     const connectionString = this.config.getOrThrow<string>('DATABASE_URL');
     this.pool = new Pool({ connectionString, max: 20 });
-    this._system = drizzle(this.pool, { schema });
+    this._system = drizzle(this.pool);
     this.logger.log('Database pool initialised');
   }
 
@@ -33,7 +32,7 @@ export class DatabaseService implements IDatabaseService, OnModuleInit, OnModule
   }
 
   async withTenant<T>(tenantId: string, fn: (db: DrizzleDB) => Promise<T>): Promise<T> {
-    return this.withTenantClient(tenantId, (client) => fn(drizzle(client, { schema })));
+    return this.withTenantClient(tenantId, (client) => fn(drizzle(client)));
   }
 
   async queryWithTenant<T extends Record<string, unknown>>(
@@ -47,8 +46,6 @@ export class DatabaseService implements IDatabaseService, OnModuleInit, OnModule
     });
   }
 
-  // ── Private ────────────────────────────────────────────────────────────────
-
   private async withTenantClient<T>(
     tenantId: string,
     fn: (client: PoolClient) => Promise<T>,
@@ -60,8 +57,7 @@ export class DatabaseService implements IDatabaseService, OnModuleInit, OnModule
     const client = await this.pool.connect();
     try {
       // SET LOCAL (via set_config third arg = true) is transaction-scoped:
-      // the config is automatically reset on COMMIT or ROLLBACK, making
-      // connection pool reuse safe against tenant bleed.
+      // the config resets on COMMIT/ROLLBACK, making connection reuse safe.
       await client.query('BEGIN');
       await client.query(`SELECT set_config('app.tenant_id', $1, true)`, [tenantId]);
       const result = await fn(client);

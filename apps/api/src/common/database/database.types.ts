@@ -1,7 +1,10 @@
 import type { NodePgDatabase } from 'drizzle-orm/node-postgres';
-import type * as schema from '@hris/db';
 
-export type DrizzleDB = NodePgDatabase<typeof schema>;
+// Untyped drizzle instance — schema is not imported here to avoid the
+// @hris/db path alias being rewritten to a .ts relative path in the
+// compiled output. When typed query builder usage is needed in a specific
+// module, that module should inject its own schema-typed connection.
+export type DrizzleDB = NodePgDatabase<Record<string, never>>;
 
 export const DATABASE_SERVICE = Symbol('DATABASE_SERVICE');
 
