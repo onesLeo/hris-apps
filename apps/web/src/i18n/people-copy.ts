@@ -22,6 +22,10 @@ export type PeopleCopy = {
   footer: (shown: number, total: number) => string;
   status: Record<'Active' | 'Suspended' | 'On Leave' | 'Pending' | 'Approved' | 'Rejected' | 'Remote' | 'Office' | 'Hybrid', string>;
   actionMenu: {
+    history: string;
+    transfer: string;
+    promote: string;
+    resign: string;
     edit: string;
     suspend: string;
     reactivate: string;
@@ -71,6 +75,10 @@ const PEOPLE_COPY: Record<Locale, PeopleCopy> = {
       Hybrid: 'Hybrid',
     },
     actionMenu: {
+      history: 'View history',
+      transfer: 'Transfer',
+      promote: 'Promote',
+      resign: 'Resign',
       edit: 'Edit',
       suspend: 'Suspend',
       reactivate: 'Reactivate',
@@ -82,7 +90,7 @@ const PEOPLE_COPY: Record<Locale, PeopleCopy> = {
       transferRequired: 'Please choose a department, location, job title, and effective date before saving.',
       promoteRequired: 'Please choose a new job title and effective date before saving.',
       resignRequired: 'Please enter the resignation date, last working date, and reason before saving.',
-      historyUnavailable: 'Lifecycle history is available when the API is connected.',
+      historyUnavailable: 'Lifecycle history will load from the backend when the API is connected.',
       historyFailed: 'Could not load lifecycle history right now. Please try again.',
     },
   },
@@ -118,6 +126,10 @@ const PEOPLE_COPY: Record<Locale, PeopleCopy> = {
       Hybrid: 'Hybrid',
     },
     actionMenu: {
+      history: 'Lihat riwayat',
+      transfer: 'Pindahkan',
+      promote: 'Promosikan',
+      resign: 'Resign',
       edit: 'Ubah',
       suspend: 'Nonaktifkan',
       reactivate: 'Aktifkan Kembali',
@@ -129,7 +141,7 @@ const PEOPLE_COPY: Record<Locale, PeopleCopy> = {
       transferRequired: 'Pilih departemen, lokasi, jabatan, dan tanggal efektif sebelum menyimpan.',
       promoteRequired: 'Pilih jabatan baru dan tanggal efektif sebelum menyimpan.',
       resignRequired: 'Masukkan tanggal resign, tanggal hari kerja terakhir, dan alasan sebelum menyimpan.',
-      historyUnavailable: 'Riwayat lifecycle tersedia saat API terhubung.',
+      historyUnavailable: 'Riwayat lifecycle akan dimuat dari backend saat API terhubung.',
       historyFailed: 'Riwayat lifecycle belum bisa dimuat. Coba lagi nanti.',
     },
   },

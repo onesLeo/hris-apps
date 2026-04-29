@@ -461,25 +461,25 @@ export function PeopleScreen() {
             <Badge label={statusLabel(employee.type)} tone={BADGE_TONE[employee.type]} />
             <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{employee.since}</span>
             <div className="aurora-row-actions" style={{ justifyContent: 'flex-end', flexWrap: 'wrap' }}>
-              <button type="button" className="aurora-icon-swatch is-accent" onClick={() => openHistoryDialog(employee)} aria-label="History">
+              <button type="button" className="aurora-icon-swatch is-accent" onClick={() => openHistoryDialog(employee)} aria-label={localeCopy.actionMenu.history} title={localeCopy.actionMenu.history}>
                 <Icon name="clipboard" size={14} color="currentColor" strokeWidth={1.8} />
               </button>
-              <button type="button" className="aurora-icon-swatch is-accent" onClick={() => openLifecycleDialog(employee, 'transfer')} aria-label="Transfer">
+              <button type="button" className="aurora-icon-swatch is-accent" onClick={() => openLifecycleDialog(employee, 'transfer')} aria-label={localeCopy.actionMenu.transfer} title={localeCopy.actionMenu.transfer}>
                 <Icon name="building" size={14} color="currentColor" strokeWidth={1.8} />
               </button>
-              <button type="button" className="aurora-icon-swatch is-success" onClick={() => openLifecycleDialog(employee, 'promote')} aria-label="Promote">
+              <button type="button" className="aurora-icon-swatch is-success" onClick={() => openLifecycleDialog(employee, 'promote')} aria-label={localeCopy.actionMenu.promote} title={localeCopy.actionMenu.promote}>
                 <Icon name="trending" size={14} color="currentColor" strokeWidth={1.8} />
               </button>
-              <button type="button" className="aurora-icon-swatch is-warning" onClick={() => openLifecycleDialog(employee, 'resign')} aria-label="Resign">
+              <button type="button" className="aurora-icon-swatch is-warning" onClick={() => openLifecycleDialog(employee, 'resign')} aria-label={localeCopy.actionMenu.resign} title={localeCopy.actionMenu.resign}>
                 <Icon name="send" size={14} color="currentColor" strokeWidth={1.8} />
               </button>
-              <button type="button" className="aurora-icon-swatch is-accent" onClick={() => openEditDialog(employee)} aria-label={localeCopy.actionMenu.edit}>
+              <button type="button" className="aurora-icon-swatch is-accent" onClick={() => openEditDialog(employee)} aria-label={localeCopy.actionMenu.edit} title={localeCopy.actionMenu.edit}>
                 <Icon name="edit" size={14} color="currentColor" strokeWidth={1.8} />
               </button>
-              <button type="button" className={`aurora-icon-swatch ${employee.status === 'Suspended' ? 'is-success' : 'is-warning'}`} onClick={() => toggleSuspendEmployee(employee)} aria-label={employee.status === 'Suspended' ? localeCopy.actionMenu.reactivate : localeCopy.actionMenu.suspend}>
+              <button type="button" className={`aurora-icon-swatch ${employee.status === 'Suspended' ? 'is-success' : 'is-warning'}`} onClick={() => toggleSuspendEmployee(employee)} aria-label={employee.status === 'Suspended' ? localeCopy.actionMenu.reactivate : localeCopy.actionMenu.suspend} title={employee.status === 'Suspended' ? localeCopy.actionMenu.reactivate : localeCopy.actionMenu.suspend}>
                 <Icon name="logout" size={14} color="currentColor" strokeWidth={1.8} />
               </button>
-              <button type="button" className="aurora-icon-swatch is-danger" onClick={() => deleteCurrentEmployee(employee)} aria-label={localeCopy.actionMenu.delete}>
+              <button type="button" className="aurora-icon-swatch is-danger" onClick={() => deleteCurrentEmployee(employee)} aria-label={localeCopy.actionMenu.delete} title={localeCopy.actionMenu.delete}>
                 <Icon name="trash" size={14} color="currentColor" strokeWidth={1.8} />
               </button>
             </div>
