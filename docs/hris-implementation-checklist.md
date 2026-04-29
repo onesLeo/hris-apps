@@ -59,6 +59,7 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 - [x] Define API conventions: URL versioning, cursor-based pagination, consistent JSON error format, and OpenAPI generation from backend definitions.
 - [x] Create base CI pipeline for lint, typecheck, unit tests, and build.
 - [x] Add missing ADRs: policy resolution strategy, workflow engine design, biometric adapter contract, payroll calculation order, identity provider choice, and reporting storage strategy.
+- [x] Add ADR 016: ATS and Recruitment data model — full hiring lifecycle from headcount request to onboarding handoff. _(Candidate entity, application join model, interview scorecards, offer approval workflow, and `recruitment.offer.accepted` → employee creation event)_
 - [x] Seed Indonesia tax data: initial TER brackets, PTKP categories, and BPJS rates (ADR 004 — required before payroll can run).
 
 ## Phase 1: Foundation
@@ -195,10 +196,25 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 - [ ] Confirm production rollback and migration strategy.
 
 ## Phase 9: Talent, Performance, and Learning
-- [ ] Implement Recruitment / ATS: job requisitions, candidate pipeline, interviews, and offer management.
-- [ ] Implement recruitment-to-onboarding handoff (candidate accepted → hire case created automatically).
+
+### 9a — Recruitment / ATS (ADR 016)
+- [ ] Add ADR 016 ATS database schema migration: `job_requisitions`, `candidates`, `job_applications`, `application_stage_log`, `interviews`, `interview_interviewers`, `interview_scorecards`, `scorecard_templates`, `scorecard_criteria`, `interview_scorecard_ratings`, `job_offers`. _(Enable RLS on all tables; add tenant_id FK to every table)_
+- [ ] Implement RequisitionService: create/update/submit-for-approval requisition; emit `recruitment.requisition.opened` on status → `open`. _(Approval chain reuses workflow engine from Phase 5; ADR 016)_
+- [ ] Implement CandidateService: create candidate with duplicate detection on email per tenant; support anonymisation on privacy request (`anonymised_at` + null PII fields). _(ADR 016)_
+- [ ] Implement ApplicationService: link candidate to requisition; advance stage with `application_stage_log` entry on each transition; emit `recruitment.application.stage_changed`. _(ADR 016)_
+- [ ] Implement InterviewService: schedule rounds, assign interviewers, submit and read scorecards per interviewer; compute `overall_recommendation` when all scorecards submitted. _(ADR 016)_
+- [ ] Implement OfferService: create offer draft, submit for approval via workflow engine, mark sent/accepted/declined; emit `recruitment.offer.accepted` on acceptance. _(ADR 016)_
+- [ ] Implement OnboardingHandlerService: subscribe to `recruitment.offer.accepted`; create `employees` row (`status = pre_boarding`) pre-populated from candidate + offer; create `onboarding_cases` row; increment `job_requisitions.filled_count`. _(ADR 016 onboarding handoff)_
+- [ ] Wire recruitment frontend to real API: replace mock `recruitment-data.ts` with API calls; add requisition detail view, application kanban, candidate profile drawer, interview scheduling modal, scorecard form, and offer form. _(ADR 016 frontend screens)_
+- [ ] Embed `<WorkflowTimeline />` (ADR 015) in the offer approval view and requisition approval view.
+
+### 9b — Performance Management
 - [ ] Implement Performance Management: review cycles, goal tracking, and rating capture.
+
+### 9c — Learning and Development
 - [ ] Implement Learning and Development: course catalog, enrollments, and certification tracking.
+
+### 9d — Reporting
 - [ ] Add performance and learning reporting.
 
 ## Phase 10: AI and Intelligence Layer (ADR 014)
