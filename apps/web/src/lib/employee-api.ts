@@ -1,5 +1,5 @@
 import { apiGet, apiPatch, apiPost } from './api-client';
-import type { Employee, CreateEmployeeInput } from '../components/people/people-data';
+import type { ContractType, Employee, CreateEmployeeInput } from '../components/people/people-data';
 
 // Shape returned by GET /employees (API snake_case with joined spell fields)
 type ApiEmployee = {
@@ -13,9 +13,13 @@ type ApiEmployee = {
   hire_date: string;
   job_title: string | null;
   department_name: string | null;
+  employment_type: 'full_time' | 'part_time' | 'contract' | 'intern' | null;
   work_arrangement: 'office' | 'remote' | 'hybrid' | null;
   manager_id: string | null;
   manager_display_name: string | null;
+  probation_end_date: string | null;
+  notice_period_days: number | null;
+  job_grade: string | null;
 };
 
 type ApiListResponse = { data: ApiEmployee[]; nextCursor: string | null };
@@ -63,6 +67,7 @@ const ARRANGEMENT_MAP: Record<string, Employee['type']> = {
   hybrid: 'Hybrid',
 };
 
+
 const COLORS = [
   '#f43f8e', '#8b5cf6', '#06b6d4', '#10b981',
   '#f59e0b', '#6366f1', '#ec4899', '#14b8a6',
@@ -102,6 +107,10 @@ function toUiEmployee(api: ApiEmployee): Employee {
     color: colorForName(api.display_name),
     ...(api.manager_id ? { managerId: api.manager_id } : {}),
     ...(api.manager_display_name ? { managerName: api.manager_display_name } : {}),
+    ...(api.employment_type ? { contractType: api.employment_type as ContractType } : {}),
+    ...(api.probation_end_date ? { probationEndDate: api.probation_end_date } : {}),
+    ...(api.notice_period_days != null ? { noticePeriodDays: api.notice_period_days } : {}),
+    ...(api.job_grade ? { jobGrade: api.job_grade } : {}),
   };
 }
 
@@ -124,6 +133,10 @@ export async function createEmployee(input: CreateEmployeeInput): Promise<Employ
     locationId: input.locationId,
     workArrangement: input.type.toLowerCase() as 'office' | 'remote' | 'hybrid',
     managerId: input.managerId ?? null,
+    ...(input.contractType ? { employmentType: input.contractType } : {}),
+    ...(input.probationEndDate ? { probationEndDate: input.probationEndDate } : {}),
+    ...(input.noticePeriodDays != null ? { noticePeriodDays: input.noticePeriodDays } : {}),
+    ...(input.jobGrade ? { jobGrade: input.jobGrade } : {}),
   });
   return {
     ...toUiEmployee(api),

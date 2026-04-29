@@ -1,5 +1,6 @@
 export type EmployeeStatus = 'Active' | 'Suspended' | 'On Leave' | 'Terminated' | 'Pre_Boarding';
 export type WorkType = 'Remote' | 'Office' | 'Hybrid';
+export type ContractType = 'full_time' | 'part_time' | 'contract' | 'intern';
 
 export type Employee = {
   id?: string;           // API UUID — present when loaded from the backend
@@ -13,6 +14,10 @@ export type Employee = {
   color: string;
   managerId?: string;
   managerName?: string;
+  contractType?: ContractType;
+  probationEndDate?: string;
+  noticePeriodDays?: number;
+  jobGrade?: string;
 };
 
 export type CreateEmployeeInput = {
@@ -26,6 +31,10 @@ export type CreateEmployeeInput = {
   type: WorkType;
   since: string;
   managerId?: string;
+  contractType?: ContractType;
+  probationEndDate?: string;
+  noticePeriodDays?: number;
+  jobGrade?: string;
 };
 
 export type EmployeeKey = string;

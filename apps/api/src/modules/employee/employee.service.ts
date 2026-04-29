@@ -53,12 +53,14 @@ export class EmployeeService {
     await this.db.queryWithTenant(tenantId, `
       INSERT INTO employment_spells (
         tenant_id, employee_id, department_id, location_id,
-        job_title, employment_type, work_arrangement, effective_from
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+        job_title, employment_type, work_arrangement, effective_from,
+        probation_end_date, notice_period_days, job_grade
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
     `, [
       tenantId, employee.id, dto.departmentId, dto.locationId,
       dto.jobTitle, dto.employmentType ?? 'full_time',
       dto.workArrangement ?? 'office', dto.hireDate,
+      dto.probationEndDate ?? null, dto.noticePeriodDays ?? null, dto.jobGrade ?? null,
     ]);
 
     await this.db.queryWithTenant(tenantId, `
@@ -101,7 +103,7 @@ export class EmployeeService {
     const rows = await this.db.queryWithTenant<EmployeeRow>(tenantId, `
       SELECT e.*,
         s.job_title, s.department_id, s.employment_type, s.work_arrangement,
-        s.location_id,
+        s.location_id, s.probation_end_date, s.notice_period_days, s.job_grade,
         d.name AS department_name,
         l.name AS location_name,
         m.display_name AS manager_display_name
@@ -125,7 +127,7 @@ export class EmployeeService {
     const [row] = await this.db.queryWithTenant<EmployeeRow>(tenantId, `
       SELECT e.*,
         s.job_title, s.department_id, s.employment_type, s.work_arrangement,
-        s.location_id,
+        s.location_id, s.probation_end_date, s.notice_period_days, s.job_grade,
         d.name AS department_name,
         l.name AS location_name,
         m.display_name AS manager_display_name
@@ -188,18 +190,22 @@ export class EmployeeService {
       WHERE employee_id = $2 AND effective_to IS NULL
     `, [dto.effectiveDate, id]);
 
-    // Open new spell
+    // Open new spell — carry forward contract fields from previous spell
     await this.db.queryWithTenant(tenantId, `
       INSERT INTO employment_spells (
         tenant_id, employee_id, department_id, location_id,
-        job_title, employment_type, work_arrangement, effective_from
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+        job_title, employment_type, work_arrangement, effective_from,
+        probation_end_date, notice_period_days, job_grade
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
     `, [
       tenantId, id, dto.departmentId, dto.locationId,
       dto.jobTitle ?? current.job_title ?? '',
       current.employment_type ?? 'full_time',
       dto.workArrangement ?? current.work_arrangement ?? 'office',
       dto.effectiveDate,
+      current.probation_end_date ?? null,
+      current.notice_period_days ?? null,
+      current.job_grade ?? null,
     ]);
 
     await this.db.queryWithTenant(tenantId, `
@@ -238,8 +244,9 @@ export class EmployeeService {
     await this.db.queryWithTenant(tenantId, `
       INSERT INTO employment_spells (
         tenant_id, employee_id, department_id, location_id,
-        job_title, employment_type, work_arrangement, effective_from
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+        job_title, employment_type, work_arrangement, effective_from,
+        probation_end_date, notice_period_days, job_grade
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
     `, [
       tenantId, id,
       dto.departmentId ?? current.department_id,
@@ -248,6 +255,9 @@ export class EmployeeService {
       current.employment_type ?? 'full_time',
       current.work_arrangement ?? 'office',
       dto.effectiveDate,
+      current.probation_end_date ?? null,
+      current.notice_period_days ?? null,
+      current.job_grade ?? null,
     ]);
 
     await this.db.queryWithTenant(tenantId, `
@@ -442,14 +452,16 @@ export class EmployeeService {
     await this.db.queryWithTenant(tenantId, `
       INSERT INTO employment_spells (
         tenant_id, employee_id, department_id, location_id,
-        job_title, employment_type, work_arrangement, effective_from
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+        job_title, employment_type, work_arrangement, effective_from,
+        probation_end_date, notice_period_days, job_grade
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
     `, [
       tenantId, id, dto.departmentId, dto.locationId,
       dto.jobTitle,
       current.employment_type ?? 'full_time',
       dto.workArrangement ?? 'office',
       dto.newHireDate,
+      null, null, null,
     ]);
 
     await this.db.queryWithTenant(tenantId, `

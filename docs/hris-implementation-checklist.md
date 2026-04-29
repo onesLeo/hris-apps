@@ -103,7 +103,7 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 
 ### People module gaps — tracked for future sprints
 - [ ] Add full employee profile screen: personal details (home address, date of birth, gender, nationality), emergency contact, identity documents (NIK, KTP, passport), NPWP editable in UI, BPJS registration numbers. _(Currently only name/role/dept/location are editable)_
-- [ ] Add employment contract details to create/edit form: contract type (permanent / fixed-term / probation), probation end date, notice period days, job grade/band. _(Required before payroll component scoping can work correctly)_
+- [x] Add employment contract details to create/edit form: contract type (PKWTT/PKWT/Magang/Part-time), probation end date, notice period days, job grade/band. _(Migration 0005 adds columns to employment_spells; fields surfaced in create/edit dialog)_
 - [ ] Add employee self-service view: employee logs in and sees only their own profile, payslips, and leave balance; can update personal info and bank account. _(Currently the People screen is HR-admin only with no role-based data scoping)_
 - [x] Add Rehire action to the People screen UI. _(POST /employees/:id/rehire backend + lifecycle dialog form + row button — shown only for Terminated employees)_
 - [x] Add Secondment action to the People screen UI. _(POST /employees/:id/secondment backend + lifecycle dialog form + row button — shown for active employees)_

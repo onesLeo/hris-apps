@@ -3,7 +3,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Button, Icon } from '../aurora-primitives';
 import type { PeopleCopy } from '../../i18n/people-copy';
-import type { CreateEmployeeInput, Employee, EmployeeStatus, WorkType } from './people-data';
+import type { ContractType, CreateEmployeeInput, Employee, EmployeeStatus, WorkType } from './people-data';
 import type {
   OrganizationCatalogDepartment,
   OrganizationCatalogLocation,
@@ -36,6 +36,10 @@ type FormState = {
   status: EmployeeStatus;
   type: WorkType;
   since: string;
+  contractType: ContractType;
+  jobGrade: string;
+  probationEndDate: string;
+  noticePeriodDays: string;
 };
 
 const INITIAL_FORM_STATE: FormState = {
@@ -47,11 +51,16 @@ const INITIAL_FORM_STATE: FormState = {
   status: 'Active',
   type: 'Office',
   since: '',
+  contractType: 'full_time',
+  jobGrade: '',
+  probationEndDate: '',
+  noticePeriodDays: '',
 };
 
 // Terminated and Pre_Boarding are set by system actions, not manually via this form.
 const STATUSES: readonly EmployeeStatus[] = ['Active', 'Suspended', 'On Leave'] as const;
 const WORK_TYPES: readonly WorkType[] = ['Remote', 'Office', 'Hybrid'] as const;
+const CONTRACT_TYPES: readonly ContractType[] = ['full_time', 'part_time', 'contract', 'intern'] as const;
 
 export function PeopleCreateDialog({
   open,
@@ -96,6 +105,10 @@ export function PeopleCreateDialog({
           : 'Active',
         type: initialEmployee.type,
         since: initialEmployee.since,
+        contractType: initialEmployee.contractType ?? 'full_time',
+        jobGrade: initialEmployee.jobGrade ?? '',
+        probationEndDate: initialEmployee.probationEndDate ?? '',
+        noticePeriodDays: initialEmployee.noticePeriodDays != null ? String(initialEmployee.noticePeriodDays) : '',
       });
       return;
     }
@@ -128,6 +141,8 @@ export function PeopleCreateDialog({
 
     const derivedLocation = locationOptions.find((location) => location.id === selectedDepartment.locationId) ?? selectedLocation;
 
+    const noticeDays = form.noticePeriodDays.trim() ? Number(form.noticePeriodDays.trim()) : undefined;
+
     onSubmit({
       name: form.name.trim(),
       role: form.role.trim(),
@@ -139,6 +154,10 @@ export function PeopleCreateDialog({
       type: form.type,
       since: form.since.trim(),
       ...(form.managerId ? { managerId: form.managerId } : {}),
+      contractType: form.contractType,
+      ...(form.jobGrade.trim() ? { jobGrade: form.jobGrade.trim() } : {}),
+      ...(form.probationEndDate.trim() ? { probationEndDate: form.probationEndDate.trim() } : {}),
+      ...(noticeDays != null && !isNaN(noticeDays) ? { noticePeriodDays: noticeDays } : {}),
     });
 
     onClose();
@@ -284,6 +303,33 @@ export function PeopleCreateDialog({
             </label>
           </div>
 
+          <div style={sectionDividerStyle}>
+            <span style={sectionLabelStyle}>Contract details</span>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14 }}>
+            <label style={{ display: 'grid', gap: 6 }}>
+              <span className="aurora-card-subtitle">{copy.employeeForm.contractType}</span>
+              <select value={form.contractType} onChange={(event) => setForm((current) => ({ ...current, contractType: event.target.value as ContractType }))} style={inputStyle}>
+                {CONTRACT_TYPES.map((ct) => (
+                  <option key={ct} value={ct}>{copy.employeeForm.contractTypeOptions[ct]}</option>
+                ))}
+              </select>
+            </label>
+            <label style={{ display: 'grid', gap: 6 }}>
+              <span className="aurora-card-subtitle">{copy.employeeForm.jobGrade}</span>
+              <input value={form.jobGrade} onChange={(event) => setForm((current) => ({ ...current, jobGrade: event.target.value }))} style={inputStyle} placeholder="e.g. IC3, Grade 7" />
+            </label>
+            <label style={{ display: 'grid', gap: 6 }}>
+              <span className="aurora-card-subtitle">{copy.employeeForm.probationEndDate}</span>
+              <input type="date" value={form.probationEndDate} onChange={(event) => setForm((current) => ({ ...current, probationEndDate: event.target.value }))} style={inputStyle} />
+            </label>
+            <label style={{ display: 'grid', gap: 6 }}>
+              <span className="aurora-card-subtitle">{copy.employeeForm.noticePeriodDays}</span>
+              <input type="number" min={0} value={form.noticePeriodDays} onChange={(event) => setForm((current) => ({ ...current, noticePeriodDays: event.target.value }))} style={inputStyle} placeholder="30" />
+            </label>
+          </div>
+
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 4 }}>
             <Button variant="ghost" onClick={onClose}>
               {copy.employeeForm.cancel}
@@ -307,6 +353,22 @@ const inputStyle: CSSProperties = {
   color: 'var(--text-primary)',
   fontSize: 13,
   outline: 'none',
+};
+
+const sectionDividerStyle: CSSProperties = {
+  display: 'flex',
+  alignItems: 'center',
+  gap: 10,
+  marginTop: 4,
+};
+
+const sectionLabelStyle: CSSProperties = {
+  fontSize: 11,
+  fontWeight: 600,
+  textTransform: 'uppercase',
+  letterSpacing: '0.06em',
+  color: 'var(--text-muted)',
+  whiteSpace: 'nowrap',
 };
 
 const feedbackStyle: CSSProperties = {

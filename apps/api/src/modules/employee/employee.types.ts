@@ -16,6 +16,9 @@ export type HireEmployeeDto = {
   employmentType?: 'full_time' | 'part_time' | 'contract' | 'intern';
   workArrangement?: 'office' | 'remote' | 'hybrid';
   managerId?: string;          // direct manager employee UUID (optional)
+  probationEndDate?: string;   // ISO date
+  noticePeriodDays?: number;
+  jobGrade?: string;
 };
 
 export type UpdateEmployeeDto = {
@@ -108,6 +111,9 @@ export type EmployeeRow = {
   location_name: string | null;
   employment_type: string | null;
   work_arrangement: string | null;
+  probation_end_date: string | null;
+  notice_period_days: number | null;
+  job_grade: string | null;
 };
 
 export type LifecycleEventRow = {
@@ -130,4 +136,7 @@ export type SpellRow = {
   work_arrangement: string;
   effective_from: string;
   effective_to: string | null;
+  probation_end_date: string | null;
+  notice_period_days: number | null;
+  job_grade: string | null;
 };

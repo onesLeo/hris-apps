@@ -18,6 +18,11 @@ export type PeopleCopy = {
     joined: string;
     cancel: string;
     submit: string;
+    contractType: string;
+    jobGrade: string;
+    probationEndDate: string;
+    noticePeriodDays: string;
+    contractTypeOptions: Record<'full_time' | 'part_time' | 'contract' | 'intern', string>;
   };
   columns: readonly [string, string, string, string, string, string];
   footer: (shown: number, total: number) => string;
@@ -66,6 +71,16 @@ const PEOPLE_COPY: Record<Locale, PeopleCopy> = {
       joined: 'Joined',
       cancel: 'Cancel',
       submit: 'Save Employee',
+      contractType: 'Contract type',
+      jobGrade: 'Job grade / band',
+      probationEndDate: 'Probation end date',
+      noticePeriodDays: 'Notice period (days)',
+      contractTypeOptions: {
+        full_time: 'Permanent',
+        part_time: 'Part-time',
+        contract: 'Fixed-term Contract',
+        intern: 'Internship',
+      },
     },
     columns: ['Employee', 'Department', 'Status', 'Work Type', 'Joined', ''],
     footer: (shown, total) => `Showing ${shown} of ${total} employees`,
@@ -121,6 +136,16 @@ const PEOPLE_COPY: Record<Locale, PeopleCopy> = {
       joined: 'Bergabung',
       cancel: 'Batal',
       submit: 'Simpan Karyawan',
+      contractType: 'Jenis kontrak',
+      jobGrade: 'Grade / golongan',
+      probationEndDate: 'Tanggal akhir probasi',
+      noticePeriodDays: 'Periode pemberitahuan (hari)',
+      contractTypeOptions: {
+        full_time: 'PKWTT (Permanen)',
+        part_time: 'Paruh Waktu',
+        contract: 'PKWT (Kontrak)',
+        intern: 'Magang',
+      },
     },
     columns: ['Karyawan', 'Departemen', 'Status', 'Tipe Kerja', 'Bergabung', ''],
     footer: (shown, total) => `Menampilkan ${shown} dari ${total} karyawan`,
