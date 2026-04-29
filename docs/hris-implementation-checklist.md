@@ -226,7 +226,41 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 - [ ] Surface flight-risk scores in the People screen: show a risk indicator on employee cards visible to HR Manager and above roles only. _(ADR 014 — Phase 10d)_
 - [ ] Implement smart shift roster generation: given approved leaves, legal hour constraints, and historical production-demand patterns, auto-generate a draft weekly roster for a shift supervisor to review and publish. _(ADR 014 — Phase 10d)_
 
-## Definition of Done
+## Phase 11: Product Enhancements and Market Differentiators
+
+Implementation priority is marked on each item: **[First]** = do next (zero cost, high ROI), **[Next]** = second wave, **[Later]** = has dependency or ongoing cost.
+
+### 11a — Zero-Cost Quick Wins (First Wave)
+
+- [ ] **[First]** Implement interactive Org Chart screen: render the department/team/manager hierarchy from existing org data using a free tree-layout library; support click-to-drill-down, search by name, and filter by location or department. _(No third-party cost; data already in DB)_
+- [ ] **[First]** Implement White-Labeling / custom branding per tenant: store `logo_url`, `primary_color`, `app_name`, and `custom_domain` in the tenants table; apply via CSS custom properties at shell boot so each tenant sees their own brand. _(No ongoing cost; opens reseller channel)_
+- [ ] **[First]** Implement GPS Geofencing clock-in: use the browser `navigator.geolocation` API to capture the employee's coordinates at clock-in and reject the request if outside the configured radius for the location; store `lat`, `lng`, and `accuracy_meters` on the clock event for audit. _(No map API cost — radius check is pure Haversine math on the backend)_
+- [ ] **[First]** Implement Indonesian Government Report auto-generation — SPT Masa PPh 21: generate the DJP e-Filing CSV (format per PER-14/PJ/2013 and eSPT PPh 21 schema) from payroll run data; allow HR to download and upload directly to djponline.pajak.go.id. _(No third-party cost; format is publicly documented by DJP)_
+- [ ] **[First]** Implement Indonesian Government Report — BPJS Ketenagakerjaan monthly report: generate the SIPP Online Excel upload template (JHT + JP + JKK + JKM contribution columns) from payroll run data. _(Format is the downloadable BPJS template from sipp.bpjsketenagakerjaan.go.id)_
+- [ ] **[First]** Implement Indonesian Government Report — BPJS Kesehatan monthly report: generate the EDABU Excel upload template (employee + employer health contribution columns) from payroll run data. _(Format from edabu.bpjs-kesehatan.go.id)_
+- [ ] **[First]** Implement Indonesian Government Report — Wajib Lapor Ketenagakerjaan Online (WLKP): generate the annual manpower report (employee count by gender, age, education, job type) in the format required by wajiblapor.kemnaker.go.id. _(Required annually under UU No. 7 Tahun 1981)_
+- [ ] **[First]** Add a Government Reports screen in the HR admin UI: period picker → preview → download button for each report type; show last-generated timestamp and a direct link to the relevant government portal. _(No cost; pure frontend on top of the generation endpoints)_
+
+### 11b — Zero-Cost Second Wave
+
+- [ ] **[Next]** Build Visual Workflow Designer: drag-drop UI for HR admins to create and edit `workflow_templates` — add step, pick approver type (manager / HR / payroll / plant), set skip condition, set SLA. Use an open-source drag-drop library (dnd-kit or React Flow MIT tier). _(No license cost for MIT-tier; builds on existing workflow schema)_
+- [ ] **[Next]** Implement Custom Employee Fields: `employee_custom_fields` definition table (field_name, field_type, required, display_order) + `employee_custom_values` EAV table; expose field management in HR admin settings and render custom fields on the employee create/edit forms. _(No third-party cost; reduces implementation consulting for every enterprise client)_
+- [ ] **[Next]** Implement Pulse Surveys / eNPS: `survey_templates`, `survey_questions`, and `survey_responses` tables; allow HR to send a recurring survey to all or filtered employees; render results as NPS score + distribution chart in the Dashboard. _(No third-party cost; response data feeds ADR 014 Phase 10d flight-risk scoring)_
+- [ ] **[Next]** Implement Expense Management module: employee submits a claim (category, amount, receipt upload, project code) → approval workflow → approved amount added to next payroll run as a reimbursement line item. Reuses approval engine, payroll component system, and Phase 3 document upload. _(No third-party cost)_
+
+### 11c — Low-Cost / Free-Tier External Services
+
+- [ ] **[Next]** Implement WhatsApp Bot integration via Meta Cloud API (free tier: 1,000 service conversations/month): employees can check leave balance, submit leave requests, view payslip summary, and receive approval status updates via WhatsApp. _(Requires a verified Meta Business account — free to register. Cost beyond free tier ~$0.05–0.08/conversation, passable to client)_
+
+### 11d — Has Third-Party Cost or Partnership Dependency
+
+- [ ] **[Later]** Implement E-Signature integration for HR documents (employment contracts, policy acknowledgements, payslips): integrate with Privy.id (most widely adopted in Indonesia) as the primary provider and PeruriSign (government-backed) as an alternative; store signed document hash and timestamp for audit compliance under UU ITE. _(Per-signature fee ~Rp 2,000–5,000; pass-through to client per document)_
+- [ ] **[Later]** Implement Earned Wage Access (EWA / On-Demand Pay): expose a daily-accrued-earnings endpoint; integrate with an EWA financial partner (GajiGesa or Wagely) who fronts the cash and recovers it at payroll cutoff; the employer pays zero; the employee pays a small transaction fee to the EWA provider. _(Your cost = integration dev time only; requires a signed partnership agreement with the EWA provider)_
+- [ ] **[Later]** Implement ASEAN multi-jurisdiction payroll — Malaysia: add EPF (11% employee / 13% employer), SOCSO, and EIS contribution engines following the same jurisdiction-pluggable pattern as ADR 004; add MY tax bracket table seeding. _(No API cost; pure dev time — start this when you have a Malaysian client prospect)_
+- [ ] **[Later]** Implement ASEAN multi-jurisdiction payroll — Philippines: add SSS, PhilHealth, and Pag-IBIG contribution engines; add PH income tax table seeding (TRAIN Law brackets). _(Same pattern as Malaysia above)_
+- [ ] **[Later]** Implement ASEAN multi-jurisdiction payroll — Singapore: add CPF contribution engine (employee + employer bands by age group); add SG progressive income tax table seeding. _(Same pattern; CPF rate table is publicly published by CPF Board)_
+
+
 - [ ] Core modules are usable end to end.
 - [ ] Payroll can run for at least one jurisdiction with correct tax calculations.
 - [ ] Attendance events can be ingested from at least one device or middleware adapter.
