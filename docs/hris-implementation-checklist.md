@@ -135,6 +135,10 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 - [ ] Add delegation and escalation handling. _(Delegation flow is implemented; escalation scheduler and timeout processing are still pending.)_
 - [ ] Add conditional steps and skip-duplicate approver rules. _(Duplicate-approver skipping is implemented; condition evaluation is still pending.)_
 - [x] Emit domain events from approval step completion (ADR 003: `approval.step.completed` event consumed by the notification module). _(approval decision use case returns domain events; event contract is published in `packages/types`.)_
+- [ ] Implement `GET /api/v1/workflow-instances/:id/timeline` endpoint — merge template steps + executed step instances into a single chronological DTO (ADR 015). _(status values: approved, skipped, pending, escalated, rejected, upcoming; include slaBreached flag)_
+- [ ] Build `<WorkflowTimeline instanceId={instanceId} />` reusable frontend component — vertical stepper with per-status visual coding: green approved, grey skipped, blue pulsating pending, orange escalated, red rejected, grey upcoming (ADR 015).
+- [ ] Embed WorkflowTimeline in the Leave Request Details modal (ADR 015).
+- [ ] Embed WorkflowTimeline in Employee Lifecycle Change pages: Transfers, Promotions, Terminations (ADR 015).
 
 ## Phase 6: Payroll and Tax
 - [x] Create payroll period and payroll run models. _(payroll_periods and payroll_runs schema + repository adapters)_
@@ -196,6 +200,31 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 - [ ] Implement Performance Management: review cycles, goal tracking, and rating capture.
 - [ ] Implement Learning and Development: course catalog, enrollments, and certification tracking.
 - [ ] Add performance and learning reporting.
+
+## Phase 10: AI and Intelligence Layer (ADR 014)
+
+### Phase 10a — LLM APIs for Text and NLP (Low Risk, High Visibility)
+- [ ] Create `ai-service` NestJS module with a pluggable LLM provider wrapper (prompt construction, API rate limiting, PII sanitization before any data leaves the system). _(Support OpenAI, Anthropic, and Google Gemini as swappable providers via a single interface)_
+- [ ] Implement resume parser endpoint: accept a document upload, extract structured candidate data (name, skills, experience, education) via LLM, and return a structured JSON payload for the ATS module. _(ADR 014 — Phase 10a)_
+- [ ] Implement candidate scoring: given a job description and a parsed resume, return a match score and a list of gap reasons. _(ADR 014 — Phase 10a)_
+- [ ] Implement Performance Review draft generation: synthesize attendance data, goal completion, and 360-degree feedback inputs into a draft review narrative for the manager to edit. _(ADR 014 — Phase 10a)_
+- [ ] Add AI provider configuration to tenant settings: allow per-tenant selection of provider (OpenAI / Anthropic / Gemini / self-hosted) and API key storage (encrypted at rest). _(ADR 014 — Phase 10a)_
+
+### Phase 10b — RAG Policy Chatbot (Medium Complexity)
+- [ ] Enable `pgvector` extension in PostgreSQL and add an `ai_policy_embeddings` table for storing document chunk embeddings. _(ADR 014 — Phase 10b)_
+- [ ] Build an embedding ingestion pipeline: when a policy document is saved, chunk the text, generate embeddings via the configured LLM provider, and store them in `ai_policy_embeddings` scoped by tenant + location + department. _(ADR 014 — Phase 10b)_
+- [ ] Implement the policy chatbot orchestration endpoint: resolve the user's context (location, department, role) → vector search for relevant policy chunks → construct a grounded prompt → return LLM answer with source citations. _(ADR 014 — Phase 10b; integrates with ADR 008 policy resolution hierarchy)_
+- [ ] Add a chat UI widget to the Aurora shell: floating chat button opens a slide-over panel, supports multi-turn conversation history per session. _(ADR 014 — Phase 10b)_
+
+### Phase 10c — Payroll Anomaly Detection (High Value, Internal)
+- [ ] Implement a payroll anomaly detection engine: after each payroll calculation batch, run Z-score analysis per employee against their last 6 months of run items; flag items where `|z| > 3` as anomalies. _(ADR 014 — Phase 10c; hooks into PayrollFinalizationEvent)_
+- [ ] Surface anomaly flags in the Payroll Review UI: show a warning badge per flagged run item with the deviation reason before HR confirms finalization. _(ADR 014 — Phase 10c)_
+- [ ] Add an ML upgrade path for anomaly detection: export anonymized payroll telemetry to a separate `analytics_snapshots` table for future Isolation Forest model training. _(ADR 014 — Phase 10c; data preparation only, no ML model in this step)_
+
+### Phase 10d — Predictive Analytics (High Complexity)
+- [ ] Implement employee flight-risk scoring: BullMQ weekly job reads anonymized behavioral signals (salary stagnation months, partial-absence frequency, performance trend) and writes a `flight_risk_score` (0–100) back to the employee record. _(ADR 014 — Phase 10d)_
+- [ ] Surface flight-risk scores in the People screen: show a risk indicator on employee cards visible to HR Manager and above roles only. _(ADR 014 — Phase 10d)_
+- [ ] Implement smart shift roster generation: given approved leaves, legal hour constraints, and historical production-demand patterns, auto-generate a draft weekly roster for a shift supervisor to review and publish. _(ADR 014 — Phase 10d)_
 
 ## Definition of Done
 - [ ] Core modules are usable end to end.
