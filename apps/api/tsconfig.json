@@ -2,7 +2,7 @@
   "extends": "../../tsconfig.base.json",
   "compilerOptions": {
     "outDir": "dist",
-    // NestJS compiles to CommonJS — override the root NodeNext settings
+    "rootDir": "../../",
     "module": "CommonJS",
     "moduleResolution": "Node",
     "experimentalDecorators": true,
@@ -11,4 +11,3 @@
   "include": ["src/**/*.ts"],
   "exclude": ["dist", "node_modules"]
 }
-
