@@ -35,6 +35,8 @@ import {
   resignEmployee as apiResign,
   fetchEmployeeHistory as apiHistory,
   terminateEmployee as apiTerminate,
+  rehireEmployee as apiRehire,
+  secondEmployee as apiSecond,
   type EmployeeHistory,
 } from '../../lib/employee-api';
 import {
@@ -284,6 +286,78 @@ export function PeopleScreen() {
       return;
     }
 
+    if (payload.mode === 'rehire') {
+      if (employeesApiReady && target.id) {
+        try {
+          const updated = await apiRehire(target.id, {
+            newHireDate: payload.newHireDate,
+            jobTitle: payload.jobTitle,
+            departmentId: payload.departmentId,
+            locationId: payload.locationId,
+            workArrangement: payload.workArrangement,
+          });
+          setEmployees((curr) => curr.map((employee) => (employee.id === updated.id ? updated : employee)));
+          closeLifecycleDialog();
+          return;
+        } catch {
+          // fall through to local update
+        }
+      }
+      const rehireDept = departmentOptions.find((d) => d.id === payload.departmentId);
+      const rehireLoc = locationOptions.find((l) => l.id === payload.locationId);
+      setEmployees((curr) =>
+        updateEmployee(curr, employeeKey, {
+          name: target.name,
+          role: payload.jobTitle,
+          departmentId: payload.departmentId,
+          departmentName: rehireDept?.name ?? target.dept,
+          locationId: payload.locationId,
+          locationName: rehireLoc?.name ?? '',
+          status: 'Active',
+          type: payload.workArrangement === 'remote' ? 'Remote' : payload.workArrangement === 'hybrid' ? 'Hybrid' : 'Office',
+          since: payload.newHireDate,
+        }),
+      );
+      closeLifecycleDialog();
+      return;
+    }
+
+    if (payload.mode === 'secondment') {
+      if (employeesApiReady && target.id) {
+        try {
+          const updated = await apiSecond(target.id, {
+            hostDepartmentId: payload.hostDepartmentId,
+            hostLocationId: payload.hostLocationId,
+            ...(payload.jobTitleAtHost ? { jobTitleAtHost: payload.jobTitleAtHost } : {}),
+            startDate: payload.startDate,
+            expectedReturnDate: payload.expectedReturnDate,
+          });
+          setEmployees((curr) => curr.map((employee) => (employee.id === updated.id ? updated : employee)));
+          closeLifecycleDialog();
+          return;
+        } catch {
+          // fall through to local update
+        }
+      }
+      const hostDept = departmentOptions.find((d) => d.id === payload.hostDepartmentId);
+      const hostLoc = locationOptions.find((l) => l.id === payload.hostLocationId);
+      setEmployees((curr) =>
+        updateEmployee(curr, employeeKey, {
+          name: target.name,
+          role: payload.jobTitleAtHost || target.role,
+          departmentId: payload.hostDepartmentId,
+          departmentName: hostDept?.name ?? target.dept,
+          locationId: payload.hostLocationId,
+          locationName: hostLoc?.name ?? '',
+          status: target.status,
+          type: target.type,
+          since: target.since,
+        }),
+      );
+      closeLifecycleDialog();
+      return;
+    }
+
     if (employeesApiReady && target.id) {
       try {
         const updated = await apiResign(target.id, {
@@ -469,6 +543,9 @@ export function PeopleScreen() {
               <button type="button" className="aurora-icon-swatch is-success" onClick={() => openLifecycleDialog(employee, 'promote')} aria-label={localeCopy.actionMenu.promote} title={localeCopy.actionMenu.promote}>
                 <Icon name="trending" size={14} color="currentColor" strokeWidth={1.8} />
               </button>
+              <button type="button" className="aurora-icon-swatch is-violet" onClick={() => openLifecycleDialog(employee, 'secondment')} aria-label={localeCopy.actionMenu.secondment} title={localeCopy.actionMenu.secondment}>
+                <Icon name="briefcase" size={14} color="currentColor" strokeWidth={1.8} />
+              </button>
               <button type="button" className="aurora-icon-swatch is-warning" onClick={() => openLifecycleDialog(employee, 'resign')} aria-label={localeCopy.actionMenu.resign} title={localeCopy.actionMenu.resign}>
                 <Icon name="send" size={14} color="currentColor" strokeWidth={1.8} />
               </button>
@@ -479,6 +556,11 @@ export function PeopleScreen() {
                 <Icon name="logout" size={14} color="currentColor" strokeWidth={1.8} />
               </button>
               </>)}
+              {employee.status === 'Terminated' && (
+              <button type="button" className="aurora-icon-swatch is-info" onClick={() => openLifecycleDialog(employee, 'rehire')} aria-label={localeCopy.actionMenu.rehire} title={localeCopy.actionMenu.rehire}>
+                <Icon name="user" size={14} color="currentColor" strokeWidth={1.8} />
+              </button>
+              )}
               <button type="button" className="aurora-icon-swatch is-danger" onClick={() => terminateCurrentEmployee(employee)} aria-label={localeCopy.actionMenu.terminate} title={localeCopy.actionMenu.terminate} disabled={employee.status === 'Terminated'}>
                 <Icon name="trash" size={14} color="currentColor" strokeWidth={1.8} />
               </button>

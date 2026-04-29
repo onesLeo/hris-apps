@@ -53,6 +53,22 @@ export type TerminateEmployeeDto = {
   reason?: string;
 };
 
+export type RehireEmployeeDto = {
+  newHireDate: string;
+  jobTitle: string;
+  departmentId: string;
+  locationId: string;
+  workArrangement?: 'office' | 'remote' | 'hybrid';
+};
+
+export type SecondmentDto = {
+  hostDepartmentId: string;
+  hostLocationId: string;
+  jobTitleAtHost?: string;
+  startDate: string;
+  expectedReturnDate: string;
+};
+
 export type EmployeeListQuery = {
   status?: string;
   departmentId?: string;

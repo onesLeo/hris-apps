@@ -10,7 +10,9 @@ import type {
   HireEmployeeDto,
   LifecycleEventRow,
   PromoteEmployeeDto,
+  RehireEmployeeDto,
   ResignEmployeeDto,
+  SecondmentDto,
   SpellRow,
   TerminateEmployeeDto,
   TransferEmployeeDto,
@@ -424,5 +426,101 @@ export class EmployeeService {
         account_holder_name, is_primary
       ) VALUES ($1,$2,$3,$4,$5,$6)
     `, [tenantId, employeeId, bankName, accountNumberEncrypted, accountHolderName, isPrimary]);
+  }
+
+  async rehire(tenantId: string, id: string, dto: RehireEmployeeDto): Promise<EmployeeRow> {
+    const ctx = RequestContext.get();
+    const actorId = ctx?.userId ?? 'system';
+    const current = await this.getById(tenantId, id);
+
+    await this.db.queryWithTenant(tenantId, `
+      UPDATE employees
+      SET status = 'active', hire_date = $1, termination_date = NULL, updated_at = NOW()
+      WHERE id = $2 AND tenant_id = $3
+    `, [dto.newHireDate, id, tenantId]);
+
+    await this.db.queryWithTenant(tenantId, `
+      INSERT INTO employment_spells (
+        tenant_id, employee_id, department_id, location_id,
+        job_title, employment_type, work_arrangement, effective_from
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)
+    `, [
+      tenantId, id, dto.departmentId, dto.locationId,
+      dto.jobTitle,
+      current.employment_type ?? 'full_time',
+      dto.workArrangement ?? 'office',
+      dto.newHireDate,
+    ]);
+
+    await this.db.queryWithTenant(tenantId, `
+      INSERT INTO employee_lifecycle_events (
+        tenant_id, employee_id, event_type, payload_json, effective_date, created_by
+      ) VALUES ($1,$2,'rehired',$3,$4,$5)
+    `, [tenantId, id, JSON.stringify({
+      jobTitle: dto.jobTitle,
+      departmentId: dto.departmentId,
+      locationId: dto.locationId,
+    }), dto.newHireDate, actorId]);
+
+    this.events.emit('employee.rehired', {
+      tenantId, employeeId: id,
+      newHireDate: dto.newHireDate,
+      jobTitle: dto.jobTitle,
+      departmentId: dto.departmentId,
+      locationId: dto.locationId,
+      actorId,
+    });
+
+    this.logger.log('employee rehired', { employeeId: id });
+    return this.getById(tenantId, id);
+  }
+
+  async secondment(tenantId: string, id: string, dto: SecondmentDto): Promise<EmployeeRow> {
+    const ctx = RequestContext.get();
+    const actorId = ctx?.userId ?? 'system';
+    const current = await this.getById(tenantId, id);
+
+    await this.db.queryWithTenant(tenantId, `
+      UPDATE employment_spells
+      SET effective_to = $1
+      WHERE employee_id = $2 AND effective_to IS NULL
+    `, [dto.startDate, id]);
+
+    await this.db.queryWithTenant(tenantId, `
+      INSERT INTO employment_spells (
+        tenant_id, employee_id, department_id, location_id,
+        job_title, employment_type, work_arrangement, effective_from, effective_to
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+    `, [
+      tenantId, id, dto.hostDepartmentId, dto.hostLocationId,
+      dto.jobTitleAtHost ?? current.job_title ?? '',
+      current.employment_type ?? 'full_time',
+      current.work_arrangement ?? 'office',
+      dto.startDate,
+      dto.expectedReturnDate,
+    ]);
+
+    await this.db.queryWithTenant(tenantId, `
+      INSERT INTO employee_lifecycle_events (
+        tenant_id, employee_id, event_type, payload_json, effective_date, created_by
+      ) VALUES ($1,$2,'seconded',$3,$4,$5)
+    `, [tenantId, id, JSON.stringify({
+      fromDepartmentId: current.department_id,
+      hostDepartmentId: dto.hostDepartmentId,
+      hostLocationId: dto.hostLocationId,
+      expectedReturnDate: dto.expectedReturnDate,
+    }), dto.startDate, actorId]);
+
+    this.events.emit('employee.seconded', {
+      tenantId, employeeId: id,
+      hostDepartmentId: dto.hostDepartmentId,
+      hostLocationId: dto.hostLocationId,
+      startDate: dto.startDate,
+      expectedReturnDate: dto.expectedReturnDate,
+      actorId,
+    });
+
+    this.logger.log('employee seconded', { employeeId: id });
+    return this.getById(tenantId, id);
   }
 }

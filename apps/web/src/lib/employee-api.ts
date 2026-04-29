@@ -191,3 +191,31 @@ export async function terminateEmployee(id: string): Promise<void> {
   const today = new Date().toISOString().slice(0, 10);
   await apiPost(`/employees/${id}/terminate`, { terminationDate: today });
 }
+
+export async function rehireEmployee(
+  id: string,
+  input: {
+    newHireDate: string;
+    jobTitle: string;
+    departmentId: string;
+    locationId: string;
+    workArrangement?: 'office' | 'remote' | 'hybrid';
+  },
+): Promise<Employee> {
+  const api = await apiPost<ApiEmployee>(`/employees/${id}/rehire`, input);
+  return toUiEmployee(api);
+}
+
+export async function secondEmployee(
+  id: string,
+  input: {
+    hostDepartmentId: string;
+    hostLocationId: string;
+    jobTitleAtHost?: string;
+    startDate: string;
+    expectedReturnDate: string;
+  },
+): Promise<Employee> {
+  const api = await apiPost<ApiEmployee>(`/employees/${id}/secondment`, input);
+  return toUiEmployee(api);
+}
