@@ -18,6 +18,7 @@ import { users } from './user.schema';
 // ─── Enums ───────────────────────────────────────────────────────────────────
 
 export const employeeStatusEnum = pgEnum('employee_status', [
+  'pre_boarding',
   'active',
   'inactive',
   'suspended',

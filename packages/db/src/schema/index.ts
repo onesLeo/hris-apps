@@ -7,3 +7,4 @@ export * from './policy.schema';
 export * from './approval.schema';
 export * from './payroll.schema';
 export * from './employee.schema';
+export * from './onboarding.schema';

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Badge, Avatar, Button, Icon } from '../aurora-primitives';
-import { getPeopleCopy, useLocale } from '../../i18n';
+import { getOnboardingCopy, getPeopleCopy, useLocale } from '../../i18n';
 import { getOrganizationOverview } from '../organization/organization-data';
 import { PeopleCreateDialog } from './people-create-dialog';
 import {
@@ -10,6 +10,7 @@ import {
   type EmployeeLifecycleMode,
   type EmployeeLifecycleSubmit,
 } from './employee-lifecycle-dialog';
+import { EmployeeOnboardingDialog } from './employee-onboarding-dialog';
 import { EmployeeHistoryDialog } from './employee-history-dialog';
 import {
   addEmployee,
@@ -63,6 +64,7 @@ export function PeopleScreen() {
   const [editingKey, setEditingKey] = useState<string | null>(null);
   const [lifecycleMode, setLifecycleMode] = useState<EmployeeLifecycleMode | null>(null);
   const [lifecycleKey, setLifecycleKey] = useState<string | null>(null);
+  const [onboardingKey, setOnboardingKey] = useState<string | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
@@ -162,6 +164,14 @@ export function PeopleScreen() {
     setLifecycleKey(null);
   };
 
+  const openOnboardingDialog = (employee: Employee) => {
+    setOnboardingKey(getEmployeeKey(employee));
+  };
+
+  const closeOnboardingDialog = () => {
+    setOnboardingKey(null);
+  };
+
   const openHistoryDialog = async (employee: Employee) => {
     setLifecycleKey(getEmployeeKey(employee));
     setHistoryOpen(true);
@@ -189,6 +199,16 @@ export function PeopleScreen() {
     setHistoryLoading(false);
     setHistoryError(null);
     setEmployeeHistory(null);
+  };
+
+  const refreshEmployees = async () => {
+    try {
+      const freshEmployees = await fetchEmployees();
+      setEmployees(freshEmployees);
+      setEmployeesApiReady(true);
+    } catch {
+      setEmployeesApiReady(false);
+    }
   };
 
   const submitLifecycleDialog = async (payload: EmployeeLifecycleSubmit) => {
@@ -451,7 +471,7 @@ export function PeopleScreen() {
               <Avatar initials={employee.initials} color={employee.color} />
               <div>
                 <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>{employee.name}</div>
-                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{employee.role}{employee.managerName ? ` · ${employee.managerName}` : ''}</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{employee.role}{employee.managerName ? ` / ${employee.managerName}` : ''}</div>
               </div>
             </div>
             <span style={{ fontSize: 13, color: 'var(--text-mid)' }}>{employee.dept}</span>
@@ -462,6 +482,11 @@ export function PeopleScreen() {
               <button type="button" className="aurora-icon-swatch is-accent" onClick={() => openHistoryDialog(employee)} aria-label={localeCopy.actionMenu.history} title={localeCopy.actionMenu.history}>
                 <Icon name="clipboard" size={14} color="currentColor" strokeWidth={1.8} />
               </button>
+              {employee.status === 'Pre_Boarding' && employee.id && employeesApiReady && (
+                <button type="button" className="aurora-icon-swatch is-violet" onClick={() => openOnboardingDialog(employee)} aria-label={localeCopy.actionMenu.onboarding} title={localeCopy.actionMenu.onboarding}>
+                  <Icon name="book" size={14} color="currentColor" strokeWidth={1.8} />
+                </button>
+              )}
               {employee.status !== 'Terminated' && (<>
               <button type="button" className="aurora-icon-swatch is-accent" onClick={() => openLifecycleDialog(employee, 'transfer')} aria-label={localeCopy.actionMenu.transfer} title={localeCopy.actionMenu.transfer}>
                 <Icon name="building" size={14} color="currentColor" strokeWidth={1.8} />
@@ -521,6 +546,14 @@ export function PeopleScreen() {
         loading={historyLoading}
         error={historyError}
         onClose={closeHistoryDialog}
+      />
+
+      <EmployeeOnboardingDialog
+        open={onboardingKey !== null}
+        employee={onboardingKey ? employees.find((entry) => getEmployeeKey(entry) === onboardingKey) : undefined}
+        copy={getOnboardingCopy(locale)}
+        onClose={closeOnboardingDialog}
+        onActivated={refreshEmployees}
       />
 
       <div className="aurora-footer-note">

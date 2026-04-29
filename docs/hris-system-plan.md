@@ -113,9 +113,11 @@ This is a live status snapshot of the current branch so the plan and implementat
 ### Completed Workflow and Payroll Slices
 - The approval workflow backend now has workflow schema tables, assignee resolution helpers, a decision use case, controller adapter, and unit tests.
 - Payroll now has period/run schema tables plus the start-run, per-employee calculation, and finalisation slices with repository adapters and tests.
+- The first Phase 3 onboarding backbone is in place: hire case and onboarding case tables, onboarding tasks, task completion, onboarding state transitions, and the People onboarding modal / employee lookup bridge are implemented.
 
 ### Still Open
 - Employee lifecycle docs such as the state machine diagram and import/export support.
+- Recruitment offer-accepted handoff into onboarding, onboarding workflow approvals, and document / policy capture. The listener and employee-level onboarding lookup are in place; the ATS-side payload expansion and shell provisioning are still pending.
 - Workflow escalation, conditional routing, and any dedicated payroll approval orchestration beyond run finalisation.
 - Full statutory payroll engines, component catalog, payslip generation, and payroll admin UI.
 

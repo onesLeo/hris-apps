@@ -120,11 +120,13 @@ export function Button({
   variant = 'default',
   size = 'md',
   onClick,
+  disabled = false,
 }: {
   children: ReactNode;
   variant?: 'default' | 'primary' | 'ghost';
   size?: 'md' | 'sm';
   onClick?: () => void;
+  disabled?: boolean;
 }) {
   const classes = [
     'aurora-button',
@@ -136,7 +138,7 @@ export function Button({
     .join(' ');
 
   return (
-    <button type="button" className={classes} onClick={onClick}>
+    <button type="button" className={classes} onClick={onClick} disabled={disabled}>
       {children}
     </button>
   );

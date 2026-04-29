@@ -102,6 +102,29 @@ test('hire inserts employee, spell, lifecycle event and emits domain event', asy
   assert.equal(emitted[0]?.event, 'employee.hired');
 });
 
+test('hire can create a pre_boarding shell for onboarding handoff', async () => {
+  const { svc, calls } = makeService([{
+    ...BASE_ROW,
+    status: 'pre_boarding',
+  }]);
+
+  await svc.hire(TENANT, {
+    employeeNumber: 'EMP-002',
+    firstName: 'Budi',
+    lastName: 'Santoso',
+    email: 'budi@example.com',
+    hireDate: TODAY,
+    jobTitle: 'Analyst',
+    departmentId: DEPT_ID,
+    locationId: LOC_ID,
+    status: 'pre_boarding',
+  });
+
+  const insertCall = calls.find((c) => c.sql.includes('INSERT INTO employees'));
+  assert.ok(insertCall, 'expected INSERT INTO employees call');
+  assert.equal(insertCall?.params?.[10], 'pre_boarding');
+});
+
 // ─── list ─────────────────────────────────────────────────────────────────────
 
 test('list returns data array with nextCursor null when results fit within limit', async () => {

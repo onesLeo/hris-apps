@@ -37,12 +37,13 @@ export class EmployeeService {
       INSERT INTO employees (
         tenant_id, employee_number, first_name, last_name, display_name,
         email, phone, date_of_birth, gender, nationality, status, hire_date, manager_id
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,'active',$11,$12)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13)
       RETURNING *
     `, [
       tenantId, dto.employeeNumber, dto.firstName, dto.lastName, displayName,
       dto.email, dto.phone ?? null, dto.dateOfBirth ?? null,
-      dto.gender ?? null, dto.nationality ?? null, dto.hireDate,
+      dto.gender ?? null, dto.nationality ?? null, dto.status ?? 'active',
+      dto.hireDate,
       dto.managerId ?? null,
     ]);
 

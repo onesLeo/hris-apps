@@ -30,8 +30,7 @@ export async function apiGet<T>(path: string): Promise<T> {
     },
   });
   if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new ApiError(res.status, text);
+    throw await readError(res);
   }
   return res.json() as Promise<T>;
 }
@@ -48,8 +47,7 @@ export async function apiPost<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new ApiError(res.status, text);
+    throw await readError(res);
   }
   return res.json() as Promise<T>;
 }
@@ -66,15 +64,29 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
     body: JSON.stringify(body),
   });
   if (!res.ok) {
-    const text = await res.text().catch(() => '');
-    throw new ApiError(res.status, text);
+    throw await readError(res);
   }
   return res.json() as Promise<T>;
 }
 
 export class ApiError extends Error {
-  constructor(public readonly status: number, message: string) {
+  constructor(
+    public readonly status: number,
+    message: string,
+    public readonly body: unknown = null,
+  ) {
     super(message);
     this.name = 'ApiError';
+  }
+}
+
+async function readError(res: Response): Promise<ApiError> {
+  const text = await res.text().catch(() => '');
+  try {
+    const body = text ? JSON.parse(text) as { error?: { code?: string; message?: string } } : null;
+    const message = body?.error?.message ?? text ?? 'Request failed';
+    return new ApiError(res.status, message, body);
+  } catch {
+    return new ApiError(res.status, text || 'Request failed', null);
   }
 }

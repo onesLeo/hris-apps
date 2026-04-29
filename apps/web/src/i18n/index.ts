@@ -9,6 +9,7 @@ export { getLearningCopy } from './learning-copy';
 export { getLeaveCopy } from './leave-copy';
 export { getDashboardCopy } from './dashboard-copy';
 export { getApprovalsCopy } from './approvals-copy';
+export { getOnboardingCopy } from './onboarding-copy';
 export { LocaleProvider, useLocale } from './locale-provider';
 export { LocaleToggle } from './locale-toggle';
 export type { Locale, Screen } from './types';

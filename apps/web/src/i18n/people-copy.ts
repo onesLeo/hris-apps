@@ -24,6 +24,7 @@ export type PeopleCopy = {
   status: Record<'Active' | 'Suspended' | 'On Leave' | 'Terminated' | 'Pre_Boarding' | 'Remote' | 'Office' | 'Hybrid', string>;
   actionMenu: {
     history: string;
+    onboarding: string;
     transfer: string;
     promote: string;
     resign: string;
@@ -77,6 +78,7 @@ const PEOPLE_COPY: Record<Locale, PeopleCopy> = {
     },
     actionMenu: {
       history: 'View history',
+      onboarding: 'Open onboarding',
       transfer: 'Transfer',
       promote: 'Promote',
       resign: 'Resign',
@@ -128,6 +130,7 @@ const PEOPLE_COPY: Record<Locale, PeopleCopy> = {
     },
     actionMenu: {
       history: 'Lihat riwayat',
+      onboarding: 'Buka onboarding',
       transfer: 'Pindahkan',
       promote: 'Promosikan',
       resign: 'Resign',

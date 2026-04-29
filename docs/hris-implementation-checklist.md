@@ -111,16 +111,17 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 - [ ] Add profile photo upload to the employee profile. _(Stored in object storage; displayed as avatar replacing the initials placeholder)_
 
 ## Phase 3: Hiring and Onboarding
-- [ ] Add `hire_cases` and `onboarding_tasks` database schema.
-- [ ] Implement recruitment handoff into onboarding.
-- [ ] Add hire case and onboarding case tables.
-- [ ] Implement onboarding task engine.
-- [ ] Add onboarding workflow approvals.
+- [x] Add `hire_cases` and `onboarding_tasks` database schema.
+- [ ] Implement recruitment handoff into onboarding. _(Onboarding listener now subscribes to `recruitment.offer.accepted`, can create onboarding cases, and exposes employee-level lookup for the People onboarding modal; the recruitment-side payload and employee-shell creation flow still need the full ATS module.)_
+- [x] Add hire case and onboarding case tables.
+- [x] Implement onboarding task engine.
+- [ ] Add onboarding workflow approvals. _(Task completion and activation transitions are in place; approval routing still pending.)_
 - [ ] Add document upload and policy acknowledgement capture.
-- [ ] Add payroll and access provisioning hooks on activation.
-- [ ] Add onboarding state machine and status transitions.
+- [ ] Add payroll and access provisioning hooks on activation. _(Activation currently flips employee status to active; provisioning hooks still pending.)_
+- [x] Add onboarding state machine and status transitions.
 - [ ] Add onboarding workflow diagram and approval path documentation.
-- [ ] Add support for onboarding cancellation, hold, and reactivation scenarios.
+- [x] Add support for onboarding cancellation, hold, and reactivation scenarios.
+- [x] Add People onboarding modal and row action for pre-boarding employees. _(Create, load, task completion, hold/reactivate/cancel, and activation are wired through the backend onboarding API.)_
 
 ## Phase 4: Attendance and Leave
 - [ ] Implement location-specific attendance policies.
