@@ -230,16 +230,18 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 
 Implementation priority is marked on each item: **[First]** = do next (zero cost, high ROI), **[Next]** = second wave, **[Later]** = has dependency or ongoing cost.
 
-### 11a — Zero-Cost Quick Wins (First Wave)
+### 11a — Zero-Cost Quick Wins (Next Branch: `feature-phase-11a-quick-wins`)
 
-- [ ] **[First]** Implement interactive Org Chart screen: render the department/team/manager hierarchy from existing org data using a free tree-layout library; support click-to-drill-down, search by name, and filter by location or department. _(No third-party cost; data already in DB)_
-- [ ] **[First]** Implement White-Labeling / custom branding per tenant: store `logo_url`, `primary_color`, `app_name`, and `custom_domain` in the tenants table; apply via CSS custom properties at shell boot so each tenant sees their own brand. _(No ongoing cost; opens reseller channel)_
-- [ ] **[First]** Implement GPS Geofencing clock-in: use the browser `navigator.geolocation` API to capture the employee's coordinates at clock-in and reject the request if outside the configured radius for the location; store `lat`, `lng`, and `accuracy_meters` on the clock event for audit. _(No map API cost — radius check is pure Haversine math on the backend)_
-- [ ] **[First]** Implement Indonesian Government Report auto-generation — SPT Masa PPh 21: generate the DJP e-Filing CSV (format per PER-14/PJ/2013 and eSPT PPh 21 schema) from payroll run data; allow HR to download and upload directly to djponline.pajak.go.id. _(No third-party cost; format is publicly documented by DJP)_
-- [ ] **[First]** Implement Indonesian Government Report — BPJS Ketenagakerjaan monthly report: generate the SIPP Online Excel upload template (JHT + JP + JKK + JKM contribution columns) from payroll run data. _(Format is the downloadable BPJS template from sipp.bpjsketenagakerjaan.go.id)_
-- [ ] **[First]** Implement Indonesian Government Report — BPJS Kesehatan monthly report: generate the EDABU Excel upload template (employee + employer health contribution columns) from payroll run data. _(Format from edabu.bpjs-kesehatan.go.id)_
-- [ ] **[First]** Implement Indonesian Government Report — Wajib Lapor Ketenagakerjaan Online (WLKP): generate the annual manpower report (employee count by gender, age, education, job type) in the format required by wajiblapor.kemnaker.go.id. _(Required annually under UU No. 7 Tahun 1981)_
-- [ ] **[First]** Add a Government Reports screen in the HR admin UI: period picker → preview → download button for each report type; show last-generated timestamp and a direct link to the relevant government portal. _(No cost; pure frontend on top of the generation endpoints)_
+> **Planned as the next development sprint.** All four items below are zero ongoing cost, build on existing DB data, and are the strongest demo/sales features available at this stage.
+
+- [ ] **[First — Point 1]** Implement interactive Org Chart screen: render the department/team/manager hierarchy from existing org data using a free tree-layout library; support click-to-drill-down, search by name, and filter by location or department. _(No third-party cost; data already in DB)_
+- [ ] **[First — Point 2]** Implement White-Labeling / custom branding per tenant: store `logo_url`, `primary_color`, `app_name`, and `custom_domain` in the tenants table; apply via CSS custom properties at shell boot so each tenant sees their own brand. _(No ongoing cost; opens reseller channel)_
+- [ ] **[First — Point 3]** Implement GPS Geofencing clock-in: use the browser `navigator.geolocation` API to capture the employee's coordinates at clock-in and reject the request if outside the configured radius for the location; store `lat`, `lng`, and `accuracy_meters` on the clock event for audit. _(No map API cost — radius check is pure Haversine math on the backend)_
+- [ ] **[First — Point 4]** Implement Indonesian Government Report auto-generation — SPT Masa PPh 21: generate the DJP e-Filing CSV (format per PER-14/PJ/2013 and eSPT PPh 21 schema) from payroll run data; allow HR to download and upload directly to djponline.pajak.go.id. _(No third-party cost; format is publicly documented by DJP)_
+- [ ] **[First — Point 4]** Implement Indonesian Government Report — BPJS Ketenagakerjaan monthly report: generate the SIPP Online Excel upload template (JHT + JP + JKK + JKM contribution columns) from payroll run data. _(Format is the downloadable BPJS template from sipp.bpjsketenagakerjaan.go.id)_
+- [ ] **[First — Point 4]** Implement Indonesian Government Report — BPJS Kesehatan monthly report: generate the EDABU Excel upload template (employee + employer health contribution columns) from payroll run data. _(Format from edabu.bpjs-kesehatan.go.id)_
+- [ ] **[First — Point 4]** Implement Indonesian Government Report — Wajib Lapor Ketenagakerjaan Online (WLKP): generate the annual manpower report (employee count by gender, age, education, job type) in the format required by wajiblapor.kemnaker.go.id. _(Required annually under UU No. 7 Tahun 1981)_
+- [ ] **[First — Point 4]** Add a Government Reports screen in the HR admin UI: period picker → preview → download button for each report type; show last-generated timestamp and a direct link to the relevant government portal. _(No cost; pure frontend on top of the generation endpoints)_
 
 ### 11b — Zero-Cost Second Wave
 
