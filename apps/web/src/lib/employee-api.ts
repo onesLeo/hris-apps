@@ -157,7 +157,7 @@ export async function promoteEmployee(
   id: string,
   input: {
     jobTitle: string;
-    departmentId?: string;
+    departmentId: string | undefined;
     effectiveDate: string;
   },
 ): Promise<Employee> {

@@ -21,7 +21,7 @@ export type EmployeeLifecycleSubmit =
     }
   | {
       mode: 'promote';
-      departmentId?: string;
+      departmentId: string | undefined;
       jobTitle: string;
       effectiveDate: string;
     }
@@ -173,7 +173,7 @@ export function EmployeeLifecycleDialog({
       const selectedDepartment = departmentOptions.find((department) => department.id === promoteForm.departmentId);
       onSubmit({
         mode,
-        departmentId: selectedDepartment?.id,
+        departmentId: selectedDepartment?.id ?? undefined,
         jobTitle: promoteForm.jobTitle.trim() || employee.role,
         effectiveDate: promoteForm.effectiveDate,
       });

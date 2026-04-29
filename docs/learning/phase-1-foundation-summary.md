@@ -248,6 +248,7 @@ The UI is now mixed: some actions still use mock data, while employee creation, 
 |---|---|
 | Add / Edit Employee | `POST /api/v1/employees`, `PATCH /api/v1/employees/:id` with real API fallback and org catalog-backed create flow already in place |
 | Suspend / Delete Employee | Employee lifecycle events + status transitions, with suspend / terminate already wired |
+| Transfer / Promote / Resign / History | Employee lifecycle UI with real backend endpoints and history viewer |
 | Leave Apply | Leave balance model + approval workflow |
 | Create Requisition | Recruitment module |
 | Org chart | Real data from `departments` + `locations` tables |

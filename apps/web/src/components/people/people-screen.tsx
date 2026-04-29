@@ -160,6 +160,7 @@ export function PeopleScreen() {
   };
 
   const openHistoryDialog = async (employee: Employee) => {
+    setLifecycleKey(getEmployeeKey(employee));
     setHistoryOpen(true);
     setHistoryError(null);
     setEmployeeHistory(null);
@@ -185,6 +186,135 @@ export function PeopleScreen() {
     setHistoryLoading(false);
     setHistoryError(null);
     setEmployeeHistory(null);
+  };
+
+  const submitLifecycleDialog = async (payload: EmployeeLifecycleSubmit) => {
+    const target = lifecycleKey ? employees.find((employee) => getEmployeeKey(employee) === lifecycleKey) : undefined;
+    if (!target) {
+      closeLifecycleDialog();
+      return;
+    }
+    const employeeKey = lifecycleKey ?? getEmployeeKey(target);
+
+    if (payload.mode === 'transfer') {
+      if (usingApi && target.id) {
+        try {
+          const updated = await apiTransfer(target.id, {
+            departmentId: payload.departmentId,
+            locationId: payload.locationId,
+            jobTitle: payload.jobTitle,
+            workArrangement: payload.workArrangement,
+            effectiveDate: payload.effectiveDate,
+          });
+          setEmployees((curr) => curr.map((employee) => (employee.id === updated.id ? updated : employee)));
+          closeLifecycleDialog();
+          return;
+        } catch {
+          // fall back to local update
+        }
+      }
+
+      const selectedDepartment = departmentOptions.find((department) => department.id === payload.departmentId);
+      const selectedLocation = locationOptions.find((location) => location.id === payload.locationId);
+      const currentDepartment = departmentOptions.find((department) => department.name === target.dept) ?? selectedDepartment;
+      const currentLocation = currentDepartment
+        ? locationOptions.find((location) => location.id === currentDepartment.locationId) ?? selectedLocation
+        : selectedLocation;
+      setEmployees((curr) =>
+        updateEmployee(curr, employeeKey, {
+          name: target.name,
+          role: payload.jobTitle,
+          departmentId: selectedDepartment?.id ?? currentDepartment?.id ?? payload.departmentId,
+          departmentName: selectedDepartment?.name ?? currentDepartment?.name ?? target.dept,
+          locationId: currentLocation?.id ?? payload.locationId,
+          locationName: currentLocation?.name ?? '',
+          status: target.status,
+          type: payload.workArrangement === 'remote'
+            ? 'Remote'
+            : payload.workArrangement === 'hybrid'
+              ? 'Hybrid'
+              : 'Office',
+          since: target.since,
+        }),
+      );
+      closeLifecycleDialog();
+      return;
+    }
+
+    if (payload.mode === 'promote') {
+      if (usingApi && target.id) {
+        try {
+          const updated = await apiPromote(target.id, {
+            jobTitle: payload.jobTitle,
+            departmentId: payload.departmentId,
+            effectiveDate: payload.effectiveDate,
+          });
+          setEmployees((curr) => curr.map((employee) => (employee.id === updated.id ? updated : employee)));
+          closeLifecycleDialog();
+          return;
+        } catch {
+          // fall back to local update
+        }
+      }
+
+      const selectedDepartment = payload.departmentId
+        ? departmentOptions.find((department) => department.id === payload.departmentId)
+        : undefined;
+      const currentDepartment = departmentOptions.find((department) => department.name === target.dept);
+      const currentLocation = currentDepartment
+        ? locationOptions.find((location) => location.id === currentDepartment.locationId)
+        : locationOptions[0];
+      setEmployees((curr) =>
+        updateEmployee(curr, employeeKey, {
+          name: target.name,
+          role: payload.jobTitle,
+          departmentId: selectedDepartment?.id ?? currentDepartment?.id ?? '',
+          departmentName: selectedDepartment?.name ?? currentDepartment?.name ?? target.dept,
+          locationId: currentLocation?.id ?? '',
+          locationName: currentLocation?.name ?? '',
+          status: target.status,
+          type: target.type,
+          since: target.since,
+        }),
+      );
+      closeLifecycleDialog();
+      return;
+    }
+
+    if (usingApi && target.id) {
+      try {
+        const updated = await apiResign(target.id, {
+          resignationDate: payload.resignationDate,
+          lastWorkingDate: payload.lastWorkingDate,
+          reason: payload.reason,
+        });
+        setEmployees((curr) => curr.map((employee) => (employee.id === updated.id ? updated : employee)));
+        closeLifecycleDialog();
+        return;
+      } catch {
+        // fall through
+      }
+    }
+
+    const currentDepartment = departmentOptions.find((department) => department.name === target.dept) ?? departmentOptions[0];
+    const currentLocation = currentDepartment
+      ? locationOptions.find((location) => location.id === currentDepartment.locationId) ?? locationOptions[0]
+      : locationOptions[0];
+
+    setEmployees((curr) =>
+      updateEmployee(curr, employeeKey, {
+        name: target.name,
+        role: target.role,
+        departmentId: currentDepartment?.id ?? '',
+        departmentName: currentDepartment?.name ?? target.dept,
+        locationId: currentLocation?.id ?? '',
+        locationName: currentLocation?.name ?? '',
+        status: 'Pending',
+        type: target.type,
+        since: target.since,
+      }),
+    );
+    closeLifecycleDialog();
   };
 
   const submitDialog = async (input: CreateEmployeeInput) => {
@@ -326,7 +456,19 @@ export function PeopleScreen() {
             <Badge label={statusLabel(employee.status)} tone={BADGE_TONE[employee.status]} />
             <Badge label={statusLabel(employee.type)} tone={BADGE_TONE[employee.type]} />
             <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{employee.since}</span>
-            <div className="aurora-row-actions" style={{ justifyContent: 'flex-end' }}>
+            <div className="aurora-row-actions" style={{ justifyContent: 'flex-end', flexWrap: 'wrap', gap: 6 }}>
+              <button type="button" className="aurora-icon-swatch" onClick={() => openHistoryDialog(employee)} aria-label="History">
+                <Icon name="clipboard" size={14} color="var(--text-muted)" strokeWidth={1.8} />
+              </button>
+              <button type="button" className="aurora-icon-swatch" onClick={() => openLifecycleDialog(employee, 'transfer')} aria-label="Transfer">
+                <Icon name="building" size={14} color="var(--text-muted)" strokeWidth={1.8} />
+              </button>
+              <button type="button" className="aurora-icon-swatch" onClick={() => openLifecycleDialog(employee, 'promote')} aria-label="Promote">
+                <Icon name="trending" size={14} color="var(--text-muted)" strokeWidth={1.8} />
+              </button>
+              <button type="button" className="aurora-icon-swatch" onClick={() => openLifecycleDialog(employee, 'resign')} aria-label="Resign">
+                <Icon name="send" size={14} color="var(--text-muted)" strokeWidth={1.8} />
+              </button>
               <button type="button" className="aurora-icon-swatch" onClick={() => openEditDialog(employee)} aria-label={localeCopy.actionMenu.edit}>
                 <Icon name="edit" size={14} color="var(--text-muted)" strokeWidth={1.8} />
               </button>
@@ -352,6 +494,25 @@ export function PeopleScreen() {
         locationOptions={locationOptions}
         onClose={closeDialog}
         onSubmit={submitDialog}
+      />
+
+      <EmployeeLifecycleDialog
+        open={lifecycleMode !== null}
+        mode={lifecycleMode ?? 'transfer'}
+        employee={lifecycleKey ? employees.find((entry) => getEmployeeKey(entry) === lifecycleKey) : undefined}
+        departmentOptions={departmentOptions}
+        locationOptions={locationOptions}
+        onClose={closeLifecycleDialog}
+        onSubmit={submitLifecycleDialog}
+      />
+
+      <EmployeeHistoryDialog
+        open={historyOpen}
+        employee={lifecycleKey ? employees.find((entry) => getEmployeeKey(entry) === lifecycleKey) : undefined}
+        history={employeeHistory}
+        loading={historyLoading}
+        error={historyError}
+        onClose={closeHistoryDialog}
       />
 
       <div className="aurora-footer-note">
