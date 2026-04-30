@@ -112,7 +112,7 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 
 ## Phase 3: Hiring and Onboarding
 - [x] Add `hire_cases` and `onboarding_tasks` database schema.
-- [ ] Implement recruitment handoff into onboarding. _(Onboarding listener now subscribes to `recruitment.offer.accepted`, can create onboarding cases, and exposes employee-level lookup for the People onboarding modal; the recruitment-side payload and employee-shell creation flow still need the full ATS module.)_
+- [ ] Implement recruitment handoff into onboarding. _(Onboarding listener now subscribes to `recruitment.offer.accepted`, can create onboarding cases, and exposes employee-level lookup for the People onboarding modal/row action; the recruitment-side payload expansion and employee-shell creation flow still need the full ATS module.)_
 - [x] Add hire case and onboarding case tables.
 - [x] Implement onboarding task engine.
 - [ ] Add onboarding workflow approvals. _(Task completion and activation transitions are in place; approval routing still pending.)_
@@ -121,7 +121,7 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 - [x] Add onboarding state machine and status transitions.
 - [ ] Add onboarding workflow diagram and approval path documentation.
 - [x] Add support for onboarding cancellation, hold, and reactivation scenarios.
-- [x] Add People onboarding modal and row action for pre-boarding employees. _(Create, load, task completion, hold/reactivate/cancel, and activation are wired through the backend onboarding API.)_
+- [x] Add People onboarding modal and row action for pre-boarding employees. _(Create, load, task completion, structured task capture, hold/reactivate/cancel, and activation are wired through the backend onboarding API.)_
 
 ## Phase 4: Attendance and Leave
 - [ ] Implement location-specific attendance policies.
