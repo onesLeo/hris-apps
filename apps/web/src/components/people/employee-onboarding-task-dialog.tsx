@@ -2,17 +2,20 @@
 
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Avatar, Badge, Button, Icon, type Accent } from '../aurora-primitives';
+import { useLocale } from '../../i18n';
 import type { OnboardingCopy } from '../../i18n/onboarding-copy';
 import type { Employee } from './people-data';
-import type { OnboardingTask } from '../../lib/onboarding-api';
+import { downloadOnboardingAttachment, type OnboardingAttachment, type OnboardingTask } from '../../lib/onboarding-api';
 
 type EmployeeOnboardingTaskDialogProps = {
   open: boolean;
   employee: Employee;
   task: OnboardingTask | null;
+  attachments: OnboardingAttachment[];
   copy: OnboardingCopy;
   onClose: () => void;
   onSubmit: (comment: string) => Promise<boolean>;
+  onUploadAttachment: (file: File) => Promise<boolean>;
 };
 
 type CaptureState = {
@@ -31,19 +34,26 @@ export function EmployeeOnboardingTaskDialog({
   open,
   employee,
   task,
+  attachments,
   copy,
   onClose,
   onSubmit,
+  onUploadAttachment,
 }: EmployeeOnboardingTaskDialogProps) {
+  const { locale } = useLocale();
   const [form, setForm] = useState<CaptureState>(INITIAL_STATE);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [uploading, setUploading] = useState(false);
 
   useEffect(() => {
     if (!open || !task) {
       setForm(INITIAL_STATE);
+      setSelectedFile(null);
       setFeedback(null);
       setBusy(false);
+      setUploading(false);
       return;
     }
 
@@ -52,8 +62,10 @@ export function EmployeeOnboardingTaskDialog({
       policyAcknowledged: task.code === 'policy_acknowledgement',
       notes: '',
     });
+    setSelectedFile(null);
     setFeedback(null);
     setBusy(false);
+    setUploading(false);
   }, [open, task]);
 
   if (!open || !task) {
@@ -81,6 +93,44 @@ export function EmployeeOnboardingTaskDialog({
       }
     } finally {
       setBusy(false);
+    }
+  };
+
+  const upload = async () => {
+    setFeedback(null);
+
+    if (!selectedFile) {
+      setFeedback(copy.attachmentRequired);
+      return;
+    }
+
+    setUploading(true);
+    try {
+      const success = await onUploadAttachment(selectedFile);
+      if (success) {
+        setSelectedFile(null);
+        setFeedback(copy.attachmentUploadSuccess);
+      }
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const download = async (attachment: OnboardingAttachment) => {
+    setFeedback(null);
+    try {
+      const result = await downloadOnboardingAttachment(attachment.id);
+      const url = URL.createObjectURL(result.blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = result.fileName;
+      anchor.rel = 'noreferrer';
+      document.body.appendChild(anchor);
+      anchor.click();
+      anchor.remove();
+      URL.revokeObjectURL(url);
+    } catch {
+      setFeedback(copy.attachmentDownloadFailed);
     }
   };
 
@@ -137,6 +187,55 @@ export function EmployeeOnboardingTaskDialog({
             </div>
 
             <div className="aurora-screen-stack" style={{ gap: 14 }}>
+              {(task.code === 'employee_documents' || task.code === 'access_provisioning') && (
+                <section style={attachmentCardStyle}>
+                  <div style={attachmentHeaderStyle}>
+                    <div>
+                      <div style={sectionSubtitleStyle}>{copy.attachmentSectionTitle}</div>
+                      <div style={copyTextStyle}>{copy.attachmentSectionHelp}</div>
+                    </div>
+                    <Badge label={`${attachments.length} ${attachments.length === 1 ? copy.attachmentLabelSingular : copy.attachmentLabelPlural}`} tone="accent" />
+                  </div>
+
+                  <div style={{ display: 'grid', gap: 10 }}>
+                    <input
+                      type="file"
+                      accept=".pdf,.png,.jpg,.jpeg,.doc,.docx,application/pdf,image/png,image/jpeg,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                      onChange={(event) => setSelectedFile(event.target.files?.[0] ?? null)}
+                      style={fileInputStyle}
+                    />
+                    <div style={attachmentActionsStyle}>
+                      <div style={copyTextStyle}>
+                        {selectedFile ? `${copy.attachmentSelected}: ${selectedFile.name}` : copy.attachmentChooseFile}
+                      </div>
+                      <Button variant="ghost" onClick={upload} disabled={uploading || !selectedFile}>
+                        <Icon name="clipboard" size={14} color="currentColor" strokeWidth={2} />
+                        {uploading ? copy.working : copy.attachmentUpload}
+                      </Button>
+                    </div>
+                  </div>
+
+                  {attachments.length > 0 && (
+                    <div style={attachmentListStyle}>
+                      {attachments.map((attachment) => (
+                        <div key={attachment.id} style={attachmentItemStyle}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={attachmentNameStyle}>{attachment.originalFileName}</div>
+                            <div style={attachmentMetaStyle}>
+                              {formatFileSize(attachment.fileSize)} · {formatDateTime(attachment.uploadedAt, locale)} · {attachment.mimeType}
+                            </div>
+                          </div>
+                          <Button variant="ghost" onClick={() => download(attachment)}>
+                            <Icon name="download" size={14} color="currentColor" strokeWidth={2} />
+                            {copy.attachmentDownload}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </section>
+              )}
+
               {(task.code === 'employee_documents' || task.code === 'access_provisioning') && (
                 <label className="field">
                   <span className="aurora-card-subtitle">{copy.taskCaptureDocuments}</span>
@@ -232,6 +331,20 @@ function taskTone(taskCode: string): Accent {
     default:
       return 'ghost';
   }
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function formatDateTime(iso: string, locale: string): string {
+  const date = new Date(iso);
+  return new Intl.DateTimeFormat(locale === 'id' ? 'id-ID' : 'en-US', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+  }).format(date);
 }
 
 const overlayStyle: CSSProperties = {
@@ -358,6 +471,82 @@ const checkboxHintStyle: CSSProperties = {
   fontSize: 12.5,
   color: 'var(--text-muted)',
   lineHeight: 1.45,
+};
+
+const attachmentCardStyle: CSSProperties = {
+  border: '1px solid var(--border)',
+  borderRadius: 14,
+  padding: 14,
+  background: 'rgba(248, 250, 252, 0.85)',
+};
+
+const attachmentHeaderStyle: CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  gap: 12,
+  alignItems: 'start',
+};
+
+const sectionSubtitleStyle: CSSProperties = {
+  fontSize: 14,
+  fontWeight: 700,
+  color: 'var(--text-primary)',
+};
+
+const copyTextStyle: CSSProperties = {
+  marginTop: 4,
+  fontSize: 12.5,
+  color: 'var(--text-muted)',
+  lineHeight: 1.45,
+};
+
+const attachmentActionsStyle: CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  gap: 12,
+  alignItems: 'center',
+  flexWrap: 'wrap',
+};
+
+const fileInputStyle: CSSProperties = {
+  border: '1px dashed var(--border)',
+  borderRadius: 12,
+  padding: 12,
+  background: 'white',
+  color: 'var(--text-primary)',
+  fontSize: 13,
+};
+
+const attachmentListStyle: CSSProperties = {
+  display: 'grid',
+  gap: 10,
+  marginTop: 4,
+};
+
+const attachmentItemStyle: CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  gap: 12,
+  alignItems: 'center',
+  border: '1px solid var(--border)',
+  borderRadius: 12,
+  padding: '10px 12px',
+  background: 'white',
+};
+
+const attachmentNameStyle: CSSProperties = {
+  fontSize: 13,
+  fontWeight: 700,
+  color: 'var(--text-primary)',
+  overflow: 'hidden',
+  textOverflow: 'ellipsis',
+  whiteSpace: 'nowrap',
+};
+
+const attachmentMetaStyle: CSSProperties = {
+  marginTop: 3,
+  fontSize: 12,
+  color: 'var(--text-muted)',
 };
 
 const footerStyle: CSSProperties = {

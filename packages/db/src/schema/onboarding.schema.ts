@@ -44,6 +44,12 @@ export const onboardingTaskStatusEnum = pgEnum('onboarding_task_status', [
   'blocked',
 ]);
 
+export const onboardingAttachmentTypeEnum = pgEnum('onboarding_attachment_type', [
+  'document',
+  'policy_acknowledgement',
+  'other',
+]);
+
 export const hireCases = pgTable('hire_cases', {
   id: uuid('id').primaryKey().defaultRandom(),
   tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
@@ -105,4 +111,25 @@ export const onboardingTasks = pgTable('onboarding_tasks', {
   index('onboarding_tasks_case_idx').on(t.onboardingCaseId),
   index('onboarding_tasks_tenant_idx').on(t.tenantId),
   unique('onboarding_tasks_case_order_uniq').on(t.onboardingCaseId, t.taskOrder),
+]);
+
+export const onboardingAttachments = pgTable('onboarding_attachments', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  onboardingCaseId: uuid('onboarding_case_id').notNull().references(() => onboardingCases.id),
+  onboardingTaskId: uuid('onboarding_task_id').notNull().references(() => onboardingTasks.id),
+  employeeId: uuid('employee_id').notNull().references(() => employees.id),
+  attachmentType: onboardingAttachmentTypeEnum('attachment_type').notNull().default('document'),
+  originalFileName: varchar('original_file_name', { length: 255 }).notNull(),
+  mimeType: varchar('mime_type', { length: 150 }).notNull(),
+  fileSize: integer('file_size').notNull(),
+  storageKey: text('storage_key').notNull().unique(),
+  uploadedBy: uuid('uploaded_by').references(() => users.id),
+  uploadedAt: timestamp('uploaded_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => [
+  index('onboarding_attachments_case_idx').on(t.onboardingCaseId),
+  index('onboarding_attachments_task_idx').on(t.onboardingTaskId),
+  index('onboarding_attachments_tenant_idx').on(t.tenantId),
 ]);

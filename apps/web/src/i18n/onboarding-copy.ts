@@ -56,6 +56,18 @@ export type OnboardingCopy = {
   taskCaptureSuccess: string;
   taskCaptureDocumentsPlaceholder: string;
   taskCaptureNotesPlaceholder: string;
+  attachmentSectionTitle: string;
+  attachmentSectionHelp: string;
+  attachmentLabelSingular: string;
+  attachmentLabelPlural: string;
+  attachmentChooseFile: string;
+  attachmentSelected: string;
+  attachmentUpload: string;
+  attachmentDownload: string;
+  attachmentRequired: string;
+  attachmentUploadSuccess: string;
+  attachmentUploadFailed: string;
+  attachmentDownloadFailed: string;
   createFailed: string;
   completeFailed: string;
   transitionFailed: string;
@@ -74,6 +86,7 @@ export type OnboardingCopy = {
     caseNotOnHold: string;
     taskNotFound: string;
     taskAlreadyCompleted: string;
+    taskActorRoleNotAllowed: string;
     activationBlocked: string;
     notFound: string;
   };
@@ -144,6 +157,18 @@ const ONBOARDING_COPY: Record<Locale, OnboardingCopy> = {
     taskCaptureSuccess: 'Task completed and captured.',
     taskCaptureDocumentsPlaceholder: 'NIK, KTP, passport, signed contract, tax form...',
     taskCaptureNotesPlaceholder: 'Add any additional notes for the record...',
+    attachmentSectionTitle: 'Attachments',
+    attachmentSectionHelp: 'Upload supporting files for this onboarding task.',
+    attachmentLabelSingular: 'file',
+    attachmentLabelPlural: 'files',
+    attachmentChooseFile: 'Choose a file to upload.',
+    attachmentSelected: 'Selected file',
+    attachmentUpload: 'Upload attachment',
+    attachmentDownload: 'Download',
+    attachmentRequired: 'Please choose a file before uploading.',
+    attachmentUploadSuccess: 'Attachment uploaded successfully.',
+    attachmentUploadFailed: 'Could not upload the attachment right now.',
+    attachmentDownloadFailed: 'Could not download the attachment right now.',
     createFailed: 'Could not create the onboarding case right now.',
     completeFailed: 'Could not complete the onboarding task right now.',
     transitionFailed: 'Could not update the onboarding case right now.',
@@ -159,12 +184,13 @@ const ONBOARDING_COPY: Record<Locale, OnboardingCopy> = {
       startDateNotReached: 'The start date has not been reached yet.',
       caseNotHoldable: 'This onboarding case cannot be put on hold.',
       caseNotCancellable: 'Active or completed onboarding cases cannot be cancelled.',
-      caseNotOnHold: 'Only held onboarding cases can be reactivated.',
-      taskNotFound: 'The onboarding task was not found.',
-      taskAlreadyCompleted: 'This onboarding task is already completed.',
-      activationBlocked: 'Complete the required tasks before activating the employee.',
-      notFound: 'The onboarding case was not found.',
-    },
+        caseNotOnHold: 'Only held onboarding cases can be reactivated.',
+        taskNotFound: 'The onboarding task was not found.',
+        taskAlreadyCompleted: 'This onboarding task is already completed.',
+        taskActorRoleNotAllowed: 'You do not have permission to complete this onboarding task.',
+        activationBlocked: 'Complete the required tasks before activating the employee.',
+        notFound: 'The onboarding case was not found.',
+      },
     status: {
       draft: 'Draft',
       in_progress: 'In progress',
@@ -238,6 +264,18 @@ const ONBOARDING_COPY: Record<Locale, OnboardingCopy> = {
     taskCaptureSuccess: 'Tugas selesai dan tercatat.',
     taskCaptureDocumentsPlaceholder: 'NIK, KTP, paspor, kontrak ditandatangani, formulir pajak...',
     taskCaptureNotesPlaceholder: 'Tambahkan catatan tambahan untuk catatan...',
+    attachmentSectionTitle: 'Lampiran',
+    attachmentSectionHelp: 'Unggah file pendukung untuk tugas onboarding ini.',
+    attachmentLabelSingular: 'file',
+    attachmentLabelPlural: 'file',
+    attachmentChooseFile: 'Pilih file untuk diunggah.',
+    attachmentSelected: 'File terpilih',
+    attachmentUpload: 'Unggah lampiran',
+    attachmentDownload: 'Unduh',
+    attachmentRequired: 'Pilih file sebelum mengunggah.',
+    attachmentUploadSuccess: 'Lampiran berhasil diunggah.',
+    attachmentUploadFailed: 'Lampiran belum bisa diunggah saat ini.',
+    attachmentDownloadFailed: 'Lampiran belum bisa diunduh saat ini.',
     createFailed: 'Kasus onboarding belum bisa dibuat saat ini.',
     completeFailed: 'Tugas onboarding belum bisa diselesaikan saat ini.',
     transitionFailed: 'Kasus onboarding belum bisa diperbarui saat ini.',
@@ -253,12 +291,13 @@ const ONBOARDING_COPY: Record<Locale, OnboardingCopy> = {
       startDateNotReached: 'Tanggal mulai belum tercapai.',
       caseNotHoldable: 'Kasus onboarding ini tidak bisa ditahan.',
       caseNotCancellable: 'Kasus onboarding aktif atau selesai tidak bisa dibatalkan.',
-      caseNotOnHold: 'Hanya kasus yang sedang ditahan yang bisa diaktifkan kembali.',
-      taskNotFound: 'Tugas onboarding tidak ditemukan.',
-      taskAlreadyCompleted: 'Tugas onboarding ini sudah selesai.',
-      activationBlocked: 'Selesaikan tugas wajib sebelum mengaktifkan karyawan.',
-      notFound: 'Kasus onboarding tidak ditemukan.',
-    },
+        caseNotOnHold: 'Hanya kasus yang sedang ditahan yang bisa diaktifkan kembali.',
+        taskNotFound: 'Tugas onboarding tidak ditemukan.',
+        taskAlreadyCompleted: 'Tugas onboarding ini sudah selesai.',
+        taskActorRoleNotAllowed: 'Anda tidak memiliki izin untuk menyelesaikan tugas onboarding ini.',
+        activationBlocked: 'Selesaikan tugas wajib sebelum mengaktifkan karyawan.',
+        notFound: 'Kasus onboarding tidak ditemukan.',
+      },
     status: {
       draft: 'Draf',
       in_progress: 'Berjalan',

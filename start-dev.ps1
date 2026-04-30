@@ -35,7 +35,7 @@ Write-Host "[0/3] Clearing ports 3000 and 3001..."
 }
 
 # 1. Start infrastructure
-Write-Host "[1/3] Starting infrastructure (postgres, redis, keycloak)..."
+Write-Host "[1/3] Starting infrastructure (postgres, redis, keycloak, minio)..."
 docker compose -f $ComposeFile up -d
 if ($LASTEXITCODE -ne 0) {
   Write-Error "Docker failed to start. Is Docker Desktop running?"
@@ -75,6 +75,9 @@ Write-Host "  Web       http://localhost:3001"
 Write-Host "  Keycloak  http://localhost:8080  (admin / admin)"
 Write-Host "  Postgres  localhost:5432          (hris_user / password)"
 Write-Host "  Redis     localhost:6379"
+Write-Host "  MinIO     http://localhost:9000   (minioadmin / minioadmin)"
+Write-Host "  Console   http://localhost:9001"
+Write-Host "  Use S3   set FILE_STORAGE_DRIVER=s3 in .env.example"
 Write-Host ""
 Write-Host "Stop infra:  .\start-dev.ps1 -Down"
 Write-Host ""

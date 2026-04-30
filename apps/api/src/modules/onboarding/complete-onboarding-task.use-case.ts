@@ -6,6 +6,7 @@ import type {
   OnboardingDetailSnapshot,
   OnboardingTaskSnapshot,
 } from './onboarding.types';
+import { canActorCompleteOnboardingTask } from './onboarding.routing';
 
 export class OnboardingTaskError extends Error {
   constructor(
@@ -74,6 +75,13 @@ export class CompleteOnboardingTaskUseCase {
 
     if (currentTask.status === 'completed') {
       throw new OnboardingTaskError('TASK_ALREADY_COMPLETED', `Onboarding task ${command.onboardingTaskId} is already completed`);
+    }
+
+    if (!canActorCompleteOnboardingTask(command.actorRole, currentTask.assigneeRole)) {
+      throw new OnboardingTaskError(
+        'TASK_ACTOR_ROLE_NOT_ALLOWED',
+        `Actor role ${command.actorRole ?? 'unknown'} cannot complete onboarding task ${command.onboardingTaskId}`,
+      );
     }
 
     const updatedTask: OnboardingTaskSnapshot = {

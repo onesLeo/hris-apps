@@ -18,7 +18,7 @@ echo "=== HRIS Dev Environment ==="
 echo ""
 
 # 1. Start infrastructure
-echo "[1/3] Starting infrastructure (postgres, redis, keycloak)..."
+echo "[1/3] Starting infrastructure (postgres, redis, keycloak, minio)..."
 docker compose -f "$COMPOSE_FILE" up -d
 
 # 2. Wait for postgres
@@ -54,6 +54,9 @@ echo "  Web       http://localhost:3001"
 echo "  Keycloak  http://localhost:8080  (admin / admin)"
 echo "  Postgres  localhost:5432          (hris_user / password)"
 echo "  Redis     localhost:6379"
+echo "  MinIO     http://localhost:9000   (minioadmin / minioadmin)"
+echo "  Console   http://localhost:9001"
+echo "  Use S3   set FILE_STORAGE_DRIVER=s3 in .env.example"
 echo ""
 echo "Press Ctrl+C to stop API and Web."
 echo "Stop infra:  ./start-dev.sh --down"

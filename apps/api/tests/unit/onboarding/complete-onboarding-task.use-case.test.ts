@@ -80,6 +80,7 @@ test('completing the last required task moves the onboarding case to ready_for_s
     {
       tenantId,
       actorId: 'hr-1',
+      actorRole: 'employee',
       onboardingCaseId: 'onboarding-case-1',
       onboardingTaskId: 'task-1',
       completedAt: '2026-04-30T10:00:00.000Z',
@@ -103,6 +104,7 @@ test('rejects task completion for a missing task', () => {
       {
         tenantId,
         actorId: 'hr-1',
+        actorRole: 'employee',
         onboardingCaseId: 'onboarding-case-1',
         onboardingTaskId: 'missing-task',
         completedAt: '2026-04-30T10:00:00.000Z',
@@ -131,6 +133,7 @@ test('rejects task completion for an already completed task', () => {
       {
         tenantId,
         actorId: 'hr-1',
+        actorRole: 'employee',
         onboardingCaseId: 'onboarding-case-1',
         onboardingTaskId: 'task-1',
         completedAt: '2026-04-30T10:00:00.000Z',
@@ -138,4 +141,31 @@ test('rejects task completion for an already completed task', () => {
       snapshot,
     );
   }, (error: unknown) => error instanceof OnboardingTaskError && error.code === 'TASK_ALREADY_COMPLETED');
+});
+
+test('rejects task completion when the actor role is not allowed for the assignee route', () => {
+  const useCase = new CompleteOnboardingTaskUseCase();
+  const snapshot = makeSnapshot({
+    tasks: [
+      {
+        ...makeSnapshot().tasks[0],
+        assigneeRole: 'payroll_manager',
+      },
+      makeSnapshot().tasks[1],
+    ],
+  });
+
+  assert.throws(() => {
+    useCase.execute(
+      {
+        tenantId,
+        actorId: 'hr-1',
+        actorRole: 'employee',
+        onboardingCaseId: 'onboarding-case-1',
+        onboardingTaskId: 'task-1',
+        completedAt: '2026-04-30T10:00:00.000Z',
+      },
+      snapshot,
+    );
+  }, (error: unknown) => error instanceof OnboardingTaskError && error.code === 'TASK_ACTOR_ROLE_NOT_ALLOWED');
 });

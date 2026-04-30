@@ -31,6 +31,20 @@ export type OnboardingTaskCompletedEvent = {
   completedAt: string;
 };
 
+export type OnboardingAttachmentUploadedEvent = {
+  tenantId: string;
+  onboardingCaseId: string;
+  onboardingTaskId: string;
+  attachmentId: string;
+  attachmentType: 'document' | 'policy_acknowledgement' | 'other';
+  fileName: string;
+  mimeType: string;
+  fileSize: number;
+  storageKey: string;
+  actorId: string;
+  uploadedAt: string;
+};
+
 export type OnboardingCaseTransitionEvent = {
   tenantId: string;
   onboardingCaseId: string;

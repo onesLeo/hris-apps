@@ -58,11 +58,27 @@ export type OnboardingTaskSnapshot = {
   comment: string | null;
 };
 
+export type OnboardingAttachmentSnapshot = {
+  id: string;
+  tenantId: string;
+  onboardingCaseId: string;
+  onboardingTaskId: string;
+  employeeId: string;
+  attachmentType: 'document' | 'policy_acknowledgement' | 'other';
+  originalFileName: string;
+  mimeType: string;
+  fileSize: number;
+  storageKey: string;
+  uploadedBy: string | null;
+  uploadedAt: string;
+};
+
 export type OnboardingDetailSnapshot = {
   employee: EmployeeRow | null;
   hireCase: HireCaseSnapshot | null;
   onboardingCase: OnboardingCaseSnapshot | null;
   tasks: OnboardingTaskSnapshot[];
+  attachments?: OnboardingAttachmentSnapshot[];
   openHireCase: HireCaseSnapshot | null;
   openOnboardingCase: OnboardingCaseSnapshot | null;
 };
@@ -88,6 +104,7 @@ export type CreateOnboardingCaseResult = {
 export type CompleteOnboardingTaskCommand = {
   tenantId: string;
   actorId: string;
+  actorRole?: string | null;
   onboardingCaseId: string;
   onboardingTaskId: string;
   completedAt: string;
@@ -117,5 +134,23 @@ export type TransitionOnboardingCaseResult = {
   hireCase: HireCaseSnapshot;
   onboardingCase: OnboardingCaseSnapshot;
   employeeStatus: 'active' | null;
+  events: Array<{ type: string; payload: Record<string, unknown> }>;
+};
+
+export type UploadOnboardingAttachmentCommand = {
+  tenantId: string;
+  actorId: string;
+  onboardingCaseId: string;
+  onboardingTaskId: string;
+  attachmentId: string;
+  originalFileName: string;
+  mimeType: string;
+  fileSize: number;
+  storageKey: string;
+  uploadedAt: string;
+};
+
+export type UploadOnboardingAttachmentResult = {
+  attachment: OnboardingAttachmentSnapshot;
   events: Array<{ type: string; payload: Record<string, unknown> }>;
 };

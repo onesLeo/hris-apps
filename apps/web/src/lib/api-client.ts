@@ -69,6 +69,40 @@ export async function apiPatch<T>(path: string, body: unknown): Promise<T> {
   return res.json() as Promise<T>;
 }
 
+export async function apiUpload<T>(path: string, body: FormData): Promise<T> {
+  const token = getToken();
+  const res = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: {
+      'Accept': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    },
+    body,
+  });
+  if (!res.ok) {
+    throw await readError(res);
+  }
+  return res.json() as Promise<T>;
+}
+
+export async function apiGetBlob(path: string): Promise<{ blob: Blob; contentType: string; disposition: string | null }> {
+  const token = getToken();
+  const res = await fetch(`${API_BASE}${path}`, {
+    headers: {
+      'Accept': 'application/octet-stream',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+    },
+  });
+  if (!res.ok) {
+    throw await readError(res);
+  }
+  return {
+    blob: await res.blob(),
+    contentType: res.headers.get('content-type') ?? 'application/octet-stream',
+    disposition: res.headers.get('content-disposition'),
+  };
+}
+
 export class ApiError extends Error {
   constructor(
     public readonly status: number,

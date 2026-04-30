@@ -4,12 +4,14 @@ import { DATABASE_SERVICE, type IDatabaseService } from '../../common/database/d
 import type { EmployeeRow as EmployeeRecord } from '../employee/employee.types';
 import type {
   CreateOnboardingCaseResult,
+  OnboardingAttachmentSnapshot,
   HireCaseSnapshot,
   OnboardingCaseSnapshot,
   OnboardingDetailSnapshot,
   OnboardingTaskSnapshot,
   CompleteOnboardingTaskResult,
   TransitionOnboardingCaseResult,
+  UploadOnboardingAttachmentResult,
 } from './onboarding.types';
 
 type HireCaseRow = {
@@ -53,6 +55,21 @@ type OnboardingTaskRow = {
   completed_by: string | null;
   completed_at: string | null;
   comment: string | null;
+};
+
+type OnboardingAttachmentRow = {
+  id: string;
+  tenant_id: string;
+  onboarding_case_id: string;
+  onboarding_task_id: string;
+  employee_id: string;
+  attachment_type: OnboardingAttachmentSnapshot['attachmentType'];
+  original_file_name: string;
+  mime_type: string;
+  file_size: number;
+  storage_key: string;
+  uploaded_by: string | null;
+  uploaded_at: string;
 };
 
 @Injectable()
@@ -141,6 +158,7 @@ export class OnboardingRepository {
         hireCase: createSnapshot.openHireCase,
         onboardingCase: null,
         tasks: [],
+        attachments: [],
         openHireCase: createSnapshot.openHireCase,
         openOnboardingCase: null,
       };
@@ -162,6 +180,7 @@ export class OnboardingRepository {
         hireCase: null,
         onboardingCase: null,
         tasks: [],
+        attachments: [],
         openHireCase: null,
         openOnboardingCase: null,
       };
@@ -198,6 +217,14 @@ export class OnboardingRepository {
       FROM onboarding_tasks
       WHERE onboarding_case_id = $1 AND tenant_id = $2
       ORDER BY task_order ASC
+    `, [onboardingCaseRow.id, tenantId]);
+
+    const attachmentRows = await this.db.queryWithTenant<OnboardingAttachmentRow>(tenantId, `
+      SELECT id, tenant_id, onboarding_case_id, onboarding_task_id, employee_id, attachment_type,
+        original_file_name, mime_type, file_size, storage_key, uploaded_by, uploaded_at
+      FROM onboarding_attachments
+      WHERE onboarding_case_id = $1 AND tenant_id = $2
+      ORDER BY uploaded_at DESC, created_at DESC
     `, [onboardingCaseRow.id, tenantId]);
 
     return {
@@ -244,6 +271,20 @@ export class OnboardingRepository {
         completedAt: task.completed_at,
         comment: task.comment,
       })),
+      attachments: attachmentRows.map((attachment) => ({
+        id: attachment.id,
+        tenantId: attachment.tenant_id,
+        onboardingCaseId: attachment.onboarding_case_id,
+        onboardingTaskId: attachment.onboarding_task_id,
+        employeeId: attachment.employee_id,
+        attachmentType: attachment.attachment_type,
+        originalFileName: attachment.original_file_name,
+        mimeType: attachment.mime_type,
+        fileSize: attachment.file_size,
+        storageKey: attachment.storage_key,
+        uploadedBy: attachment.uploaded_by,
+        uploadedAt: attachment.uploaded_at,
+      })),
       openHireCase: hireCaseRow
         ? {
             id: hireCaseRow.id,
@@ -270,6 +311,34 @@ export class OnboardingRepository {
         holdReason: onboardingCaseRow.hold_reason,
         cancelReason: onboardingCaseRow.cancel_reason,
       },
+    };
+  }
+
+  async loadAttachmentDetail(tenantId: string, attachmentId: string): Promise<OnboardingAttachmentSnapshot | null> {
+    const [attachment] = await this.db.queryWithTenant<OnboardingAttachmentRow>(tenantId, `
+      SELECT id, tenant_id, onboarding_case_id, onboarding_task_id, employee_id, attachment_type,
+        original_file_name, mime_type, file_size, storage_key, uploaded_by, uploaded_at
+      FROM onboarding_attachments
+      WHERE id = $1 AND tenant_id = $2
+    `, [attachmentId, tenantId]);
+
+    if (!attachment) {
+      return null;
+    }
+
+    return {
+      id: attachment.id,
+      tenantId: attachment.tenant_id,
+      onboardingCaseId: attachment.onboarding_case_id,
+      onboardingTaskId: attachment.onboarding_task_id,
+      employeeId: attachment.employee_id,
+      attachmentType: attachment.attachment_type,
+      originalFileName: attachment.original_file_name,
+      mimeType: attachment.mime_type,
+      fileSize: attachment.file_size,
+      storageKey: attachment.storage_key,
+      uploadedBy: attachment.uploaded_by,
+      uploadedAt: attachment.uploaded_at,
     };
   }
 
@@ -440,6 +509,36 @@ export class OnboardingRepository {
           `);
         }
       });
+    });
+  }
+
+  async saveAttachment(
+    tenantId: string,
+    attachment: OnboardingAttachmentSnapshot,
+  ): Promise<void> {
+    await this.db.withTenant(tenantId, async (db) => {
+      await db.execute(sql`
+        INSERT INTO onboarding_attachments (
+          id, tenant_id, onboarding_case_id, onboarding_task_id, employee_id,
+          attachment_type, original_file_name, mime_type, file_size, storage_key,
+          uploaded_by, uploaded_at, created_at, updated_at
+        ) VALUES (
+          ${attachment.id},
+          ${attachment.tenantId},
+          ${attachment.onboardingCaseId},
+          ${attachment.onboardingTaskId},
+          ${attachment.employeeId},
+          ${attachment.attachmentType},
+          ${attachment.originalFileName},
+          ${attachment.mimeType},
+          ${attachment.fileSize},
+          ${attachment.storageKey},
+          ${attachment.uploadedBy},
+          ${attachment.uploadedAt},
+          ${attachment.uploadedAt},
+          ${attachment.uploadedAt}
+        )
+      `);
     });
   }
 

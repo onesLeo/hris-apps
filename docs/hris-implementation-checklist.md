@@ -115,8 +115,8 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 - [ ] Implement recruitment handoff into onboarding. _(Onboarding listener now subscribes to `recruitment.offer.accepted`, can create onboarding cases, and exposes employee-level lookup for the People onboarding modal/row action; the recruitment-side payload expansion and employee-shell creation flow still need the full ATS module.)_
 - [x] Add hire case and onboarding case tables.
 - [x] Implement onboarding task engine.
-- [ ] Add onboarding workflow approvals. _(Task completion and activation transitions are in place; approval routing still pending.)_
-- [ ] Add document upload and policy acknowledgement capture. _(Task capture modal now records structured document details and policy acknowledgement notes on onboarding completion; true file upload/storage still pending.)_
+- [x] Add onboarding workflow approvals. _(Task completion now enforces task assignee routing by actor role; activation transitions are in place.)_
+- [x] Add document upload and policy acknowledgement capture. _(Task capture modal now records structured document details and policy acknowledgement notes on onboarding completion; file upload/storage is implemented with onboarding attachment records and a storage adapter that supports local filesystem in dev and S3-compatible object storage in production.)_
 - [ ] Add payroll and access provisioning hooks on activation. _(Activation currently flips employee status to active; provisioning hooks still pending.)_
 - [x] Add onboarding state machine and status transitions.
 - [ ] Add onboarding workflow diagram and approval path documentation.

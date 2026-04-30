@@ -1,4 +1,4 @@
-import { apiGet, apiPost, ApiError } from './api-client';
+import { apiGet, apiGetBlob, apiPost, apiUpload, ApiError } from './api-client';
 
 export type OnboardingEmployee = {
   id: string;
@@ -76,11 +76,27 @@ export type OnboardingTask = {
   comment: string | null;
 };
 
+export type OnboardingAttachment = {
+  id: string;
+  tenantId: string;
+  onboardingCaseId: string;
+  onboardingTaskId: string;
+  employeeId: string;
+  attachmentType: 'document' | 'policy_acknowledgement' | 'other';
+  originalFileName: string;
+  mimeType: string;
+  fileSize: number;
+  storageKey: string;
+  uploadedBy: string | null;
+  uploadedAt: string;
+};
+
 export type OnboardingDetail = {
   employee: OnboardingEmployee | null;
   hireCase: OnboardingHireCase | null;
   onboardingCase: OnboardingCase | null;
   tasks: OnboardingTask[];
+  attachments?: OnboardingAttachment[];
   openHireCase: OnboardingHireCase | null;
   openOnboardingCase: OnboardingCase | null;
 };
@@ -104,6 +120,7 @@ function normalizeDetail(detail: OnboardingDetail): OnboardingDetail {
   return {
     ...detail,
     tasks: [...detail.tasks].sort((a, b) => a.taskOrder - b.taskOrder),
+    attachments: [...(detail.attachments ?? [])].sort((a, b) => new Date(b.uploadedAt).getTime() - new Date(a.uploadedAt).getTime()),
   };
 }
 
@@ -126,6 +143,27 @@ export async function transitionOnboardingCase(
   return normalizeDetail(await apiPost<OnboardingDetail>(`/onboarding/cases/${caseId}/transition`, input));
 }
 
+export async function uploadOnboardingAttachment(
+  caseId: string,
+  taskId: string,
+  file: File,
+): Promise<OnboardingDetail> {
+  const formData = new FormData();
+  formData.append('file', file);
+  return normalizeDetail(await apiUpload<OnboardingDetail>(`/onboarding/cases/${caseId}/tasks/${taskId}/attachments`, formData));
+}
+
+export async function downloadOnboardingAttachment(
+  attachmentId: string,
+): Promise<{ blob: Blob; fileName: string; mimeType: string }> {
+  const result = await apiGetBlob(`/onboarding/attachments/${attachmentId}/download`);
+  return {
+    blob: result.blob,
+    mimeType: result.contentType,
+    fileName: getFileNameFromDisposition(result.disposition) ?? `attachment-${attachmentId}`,
+  };
+}
+
 export async function fetchOnboardingCase(caseId: string): Promise<OnboardingDetail> {
   return normalizeDetail(await apiGet<OnboardingDetail>(`/onboarding/cases/${caseId}`));
 }
@@ -135,3 +173,12 @@ export async function fetchOnboardingForEmployee(employeeId: string): Promise<On
 }
 
 export { ApiError };
+
+function getFileNameFromDisposition(disposition: string | null): string | null {
+  if (!disposition) {
+    return null;
+  }
+
+  const match = /filename=\"?([^\";]+)\"?/i.exec(disposition);
+  return match?.[1] ?? null;
+}

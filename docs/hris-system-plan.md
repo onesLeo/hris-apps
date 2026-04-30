@@ -117,7 +117,7 @@ This is a live status snapshot of the current branch so the plan and implementat
 
 ### Still Open
 - Employee lifecycle docs such as the state machine diagram and import/export support.
-- Recruitment offer-accepted handoff into onboarding, onboarding workflow approvals, and document / policy capture. The listener and employee-level onboarding lookup are in place; the People onboarding modal and row action are wired, and the onboarding task capture modal now records structured document details and policy acknowledgement notes, while the ATS-side payload expansion, true file upload storage, and shell provisioning are still pending.
+- Recruitment offer-accepted handoff into onboarding, onboarding workflow approvals, and document / policy capture. The listener and employee-level onboarding lookup are in place; the People onboarding modal and row action are wired, the onboarding task completion flow now enforces assignee-role routing, and the task capture modal records structured document details and policy acknowledgement notes. File upload storage is now implemented with onboarding attachment rows plus a storage adapter that uses local filesystem in development and S3-compatible object storage in production, while the ATS-side payload expansion and shell provisioning are still pending.
 - Workflow escalation, conditional routing, and any dedicated payroll approval orchestration beyond run finalisation.
 - Full statutory payroll engines, component catalog, payslip generation, and payroll admin UI.
 

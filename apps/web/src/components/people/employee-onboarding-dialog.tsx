@@ -10,6 +10,7 @@ import {
   ApiError,
   completeOnboardingTask,
   createOnboardingCase,
+  uploadOnboardingAttachment,
   fetchOnboardingForEmployee,
   transitionOnboardingCase,
   type OnboardingDetail,
@@ -103,6 +104,7 @@ export function EmployeeOnboardingDialog({
   const hireCase = detail?.hireCase ?? detail?.openHireCase ?? null;
   const onboardingCase = detail?.onboardingCase ?? detail?.openOnboardingCase ?? null;
   const tasks = detail?.tasks ?? [];
+  const attachments = detail?.attachments ?? [];
   const requiredTasks = tasks.filter((task) => task.required);
   const completedRequiredTasks = requiredTasks.filter((task) => task.status === 'completed').length;
   const completedTasks = tasks.filter((task) => task.status === 'completed').length;
@@ -173,6 +175,22 @@ export function EmployeeOnboardingDialog({
       return false;
     } finally {
       setBusyAction(null);
+    }
+  };
+
+  const uploadAttachment = async (file: File): Promise<boolean> => {
+    if (!onboardingCase || !activeTask) {
+      setFeedback(copy.validation.caseNotFound);
+      return false;
+    }
+
+    try {
+      const nextDetail = await uploadOnboardingAttachment(onboardingCase.id, activeTask.id, file);
+      setDetail(nextDetail);
+      return true;
+    } catch (error) {
+      setFeedback(resolveApiError(error, copy.attachmentUploadFailed, copy));
+      return false;
     }
   };
 
@@ -280,14 +298,16 @@ export function EmployeeOnboardingDialog({
         <EmployeeOnboardingTaskDialog
           open={activeTask !== null}
           employee={employee}
-        task={activeTask}
-        copy={copy}
-        onClose={closeTaskCapture}
-        onSubmit={async (comment) => {
-          if (!activeTask) return false;
-          return completeTask(activeTask, comment);
-        }}
-      />
+          task={activeTask}
+          attachments={activeTask ? attachments.filter((item) => item.onboardingTaskId === activeTask.id) : []}
+          copy={copy}
+          onClose={closeTaskCapture}
+          onUploadAttachment={uploadAttachment}
+          onSubmit={async (comment) => {
+            if (!activeTask) return false;
+            return completeTask(activeTask, comment);
+          }}
+        />
 
         <div className="aurora-screen-stack" style={{ gap: 18 }}>
           {!loading && !onboardingCase && (
@@ -638,12 +658,19 @@ function resolveApiError(error: unknown, fallback: string, copy: OnboardingCopy)
     HIRE_CASE_NOT_FOUND: copy.validation.caseNotFound,
     TASK_NOT_FOUND: copy.validation.taskNotFound,
     TASK_ALREADY_COMPLETED: copy.validation.taskAlreadyCompleted,
+    TASK_ACTOR_ROLE_NOT_ALLOWED: copy.validation.taskActorRoleNotAllowed,
     CASE_NOT_READY: copy.validation.caseNotReady,
     TASKS_INCOMPLETE: copy.validation.tasksIncomplete,
     START_DATE_NOT_REACHED: copy.validation.startDateNotReached,
     CASE_NOT_HOLDABLE: copy.validation.caseNotHoldable,
     CASE_NOT_CANCELLABLE: copy.validation.caseNotCancellable,
     CASE_NOT_ON_HOLD: copy.validation.caseNotOnHold,
+    ATTACHMENT_REQUIRED: copy.attachmentRequired,
+    ATTACHMENT_NOT_ALLOWED: copy.attachmentUploadFailed,
+    ATTACHMENT_EMPTY: copy.attachmentUploadFailed,
+    ATTACHMENT_TYPE_INVALID: copy.attachmentUploadFailed,
+    ATTACHMENT_NOT_FOUND: copy.attachmentDownloadFailed,
+    ATTACHMENT_STORAGE_FAILED: copy.attachmentUploadFailed,
   };
 
   return map[code] ?? fallback;
