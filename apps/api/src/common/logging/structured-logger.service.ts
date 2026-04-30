@@ -21,6 +21,10 @@ type LogEntry = {
 
 @Injectable()
 export class StructuredLoggerService extends ConsoleLogger {
+  constructor(context?: string) {
+    super(context ?? 'App');
+  }
+
   protected formatMessage(
     logLevel: LogLevel,
     message: unknown,
