@@ -68,6 +68,10 @@ export class CompleteOnboardingTaskUseCase {
     }
 
     const currentTask = snapshot.tasks[taskIndex];
+    if (!currentTask) {
+      throw new OnboardingTaskError('TASK_NOT_FOUND', `Onboarding task ${command.onboardingTaskId} not found`);
+    }
+
     if (currentTask.status === 'completed') {
       throw new OnboardingTaskError('TASK_ALREADY_COMPLETED', `Onboarding task ${command.onboardingTaskId} is already completed`);
     }
@@ -100,6 +104,7 @@ export class CompleteOnboardingTaskUseCase {
             code: updatedTask.code,
             completedBy: command.actorId,
             completedAt: command.completedAt,
+            comment: command.comment ?? null,
           },
         },
         ...(onboardingCase.status === 'ready_for_start'

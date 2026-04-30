@@ -16,6 +16,7 @@ export type HireEmployeeDto = {
   employmentType?: 'full_time' | 'part_time' | 'contract' | 'intern';
   workArrangement?: 'office' | 'remote' | 'hybrid';
   managerId?: string;          // direct manager employee UUID (optional)
+  status?: 'active' | 'pre_boarding';
   probationEndDate?: string;   // ISO date
   noticePeriodDays?: number;
   jobGrade?: string;

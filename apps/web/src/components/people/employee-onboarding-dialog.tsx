@@ -5,6 +5,7 @@ import { Avatar, Badge, Button, Icon, type Accent } from '../aurora-primitives';
 import { useLocale } from '../../i18n';
 import type { OnboardingCopy } from '../../i18n/onboarding-copy';
 import type { Employee } from './people-data';
+import { EmployeeOnboardingTaskDialog } from './employee-onboarding-task-dialog';
 import {
   ApiError,
   completeOnboardingTask,
@@ -52,6 +53,7 @@ export function EmployeeOnboardingDialog({
   const [loading, setLoading] = useState(false);
   const [feedback, setFeedback] = useState<string | null>(null);
   const [busyAction, setBusyAction] = useState<string | null>(null);
+  const [activeTask, setActiveTask] = useState<OnboardingTask | null>(null);
   const [createForm, setCreateForm] = useState<CreateForm>(defaultCreateForm());
 
   useEffect(() => {
@@ -60,6 +62,7 @@ export function EmployeeOnboardingDialog({
       setLoading(false);
       setFeedback(null);
       setBusyAction(null);
+      setActiveTask(null);
       return;
     }
 
@@ -67,6 +70,7 @@ export function EmployeeOnboardingDialog({
     setDetail(null);
     setFeedback(null);
     setBusyAction(null);
+    setActiveTask(null);
     setLoading(true);
     setCreateForm(defaultCreateForm());
 
@@ -112,6 +116,15 @@ export function EmployeeOnboardingDialog({
 
   const canCreate = employee.status === 'Pre_Boarding' && !loading && !onboardingCase;
 
+  const openTaskCapture = (task: OnboardingTask) => {
+    setFeedback(null);
+    setActiveTask(task);
+  };
+
+  const closeTaskCapture = () => {
+    setActiveTask(null);
+  };
+
   const submitCreate = async () => {
     if (!employee.id) {
       setFeedback(copy.validation.caseNotFound);
@@ -141,19 +154,23 @@ export function EmployeeOnboardingDialog({
     }
   };
 
-  const completeTask = async (task: OnboardingTask) => {
+  const completeTask = async (task: OnboardingTask, comment: string): Promise<boolean> => {
     if (!onboardingCase) {
       setFeedback(copy.validation.caseNotFound);
-      return;
+      return false;
     }
 
     setFeedback(null);
     setBusyAction(`task:${task.id}`);
     try {
-      const nextDetail = await completeOnboardingTask(onboardingCase.id, task.id, {});
+      const nextDetail = await completeOnboardingTask(onboardingCase.id, task.id, {
+        comment,
+      });
       setDetail(nextDetail);
+      return true;
     } catch (error) {
       setFeedback(resolveApiError(error, copy.completeFailed, copy));
+      return false;
     } finally {
       setBusyAction(null);
     }
@@ -259,6 +276,18 @@ export function EmployeeOnboardingDialog({
             <div>{feedback}</div>
           </div>
         )}
+
+        <EmployeeOnboardingTaskDialog
+          open={activeTask !== null}
+          employee={employee}
+        task={activeTask}
+        copy={copy}
+        onClose={closeTaskCapture}
+        onSubmit={async (comment) => {
+          if (!activeTask) return false;
+          return completeTask(activeTask, comment);
+        }}
+      />
 
         <div className="aurora-screen-stack" style={{ gap: 18 }}>
           {!loading && !onboardingCase && (
@@ -394,16 +423,17 @@ export function EmployeeOnboardingDialog({
 
                             {task.status === 'completed' ? (
                               <div style={taskCompletedStyle}>
-                                {task.completedAt ? `Completed ${formatDateTime(task.completedAt, locale)}` : copy.completedLabel}
+                                <div>{task.completedAt ? `Completed ${formatDateTime(task.completedAt, locale)}` : copy.completedLabel}</div>
+                                {task.comment && <div style={taskCommentStyle}>{summarizeTaskComment(task.comment)}</div>}
                               </div>
                             ) : (
                               <div style={taskActionRowStyle}>
                               <div style={taskHintStyle}>
                                   {task.required ? copy.requiredBeforeActivation : copy.optionalTask}
                                 </div>
-                                <Button variant="primary" onClick={() => completeTask(task)} disabled={isBusy}>
+                                <Button variant="primary" onClick={() => openTaskCapture(task)} disabled={isBusy}>
                                   <Icon name="checkCircle" size={14} color="#fff" strokeWidth={2} />
-                                  {isBusy ? copy.working : copy.completeTask}
+                                  {isBusy ? copy.working : copy.captureTask}
                                 </Button>
                               </div>
                             )}
@@ -927,6 +957,14 @@ const taskCompletedStyle: CSSProperties = {
   fontWeight: 600,
 };
 
+const taskCommentStyle: CSSProperties = {
+  marginTop: 6,
+  fontSize: 12.5,
+  color: 'var(--text-muted)',
+  fontWeight: 400,
+  lineHeight: 1.5,
+};
+
 const footerStyle: CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
@@ -999,5 +1037,19 @@ function taskStatusLabel(status: OnboardingTaskStatus, copy: OnboardingCopy): st
       return copy.taskBlocked;
     default:
       return status;
+  }
+}
+
+function summarizeTaskComment(comment: string): string {
+  try {
+    const payload = JSON.parse(comment) as Record<string, unknown>;
+    const parts = [
+      payload.documents ? `Documents: ${String(payload.documents)}` : null,
+      payload.policyAcknowledged ? 'Policy acknowledged' : null,
+      payload.notes ? `Notes: ${String(payload.notes)}` : null,
+    ].filter(Boolean);
+    return parts.length > 0 ? parts.join(' | ') : comment;
+  } catch {
+    return comment;
   }
 }

@@ -23,6 +23,7 @@ export type OnboardingCopy = {
   taskInProgress: string;
   taskWaived: string;
   taskBlocked: string;
+  captureTask: string;
   completeTask: string;
   activate: string;
   hold: string;
@@ -43,6 +44,18 @@ export type OnboardingCopy = {
   footerHint: string;
   taskCountSuffix: string;
   remainingSuffix: string;
+  taskCaptureTitle: string;
+  taskCaptureSubtitle: string;
+  taskCaptureDocuments: string;
+  taskCapturePolicy: string;
+  taskCaptureNotes: string;
+  taskCaptureRequired: string;
+  taskCapturePolicyRequired: string;
+  taskCaptureSubmit: string;
+  taskCaptureCancel: string;
+  taskCaptureSuccess: string;
+  taskCaptureDocumentsPlaceholder: string;
+  taskCaptureNotesPlaceholder: string;
   createFailed: string;
   completeFailed: string;
   transitionFailed: string;
@@ -98,6 +111,7 @@ const ONBOARDING_COPY: Record<Locale, OnboardingCopy> = {
     taskInProgress: 'In progress',
     taskWaived: 'Waived',
     taskBlocked: 'Blocked',
+    captureTask: 'Capture details',
     completeTask: 'Mark complete',
     activate: 'Activate employee',
     hold: 'Put on hold',
@@ -118,6 +132,18 @@ const ONBOARDING_COPY: Record<Locale, OnboardingCopy> = {
     footerHint: 'Keep the case moving through tasks before you activate the employee.',
     taskCountSuffix: 'tasks',
     remainingSuffix: 'remaining',
+    taskCaptureTitle: 'Capture task details',
+    taskCaptureSubtitle: 'Add the information needed to complete this onboarding step.',
+    taskCaptureDocuments: 'Document details',
+    taskCapturePolicy: 'Policy acknowledgement',
+    taskCaptureNotes: 'Notes',
+    taskCaptureRequired: 'This field is required to complete the task.',
+    taskCapturePolicyRequired: 'Policy acknowledgement must be checked before completion.',
+    taskCaptureSubmit: 'Complete task',
+    taskCaptureCancel: 'Cancel',
+    taskCaptureSuccess: 'Task completed and captured.',
+    taskCaptureDocumentsPlaceholder: 'NIK, KTP, passport, signed contract, tax form...',
+    taskCaptureNotesPlaceholder: 'Add any additional notes for the record...',
     createFailed: 'Could not create the onboarding case right now.',
     completeFailed: 'Could not complete the onboarding task right now.',
     transitionFailed: 'Could not update the onboarding case right now.',
@@ -179,6 +205,7 @@ const ONBOARDING_COPY: Record<Locale, OnboardingCopy> = {
     taskInProgress: 'Berjalan',
     taskWaived: 'Ditiadakan',
     taskBlocked: 'Diblokir',
+    captureTask: 'Isi detail',
     completeTask: 'Tandai selesai',
     activate: 'Aktifkan karyawan',
     hold: 'Tahan sementara',
@@ -199,6 +226,18 @@ const ONBOARDING_COPY: Record<Locale, OnboardingCopy> = {
     footerHint: 'Jaga kasus tetap berjalan lewat tugas sebelum mengaktifkan karyawan.',
     taskCountSuffix: 'tugas',
     remainingSuffix: 'tersisa',
+    taskCaptureTitle: 'Isi detail tugas',
+    taskCaptureSubtitle: 'Tambahkan informasi yang diperlukan untuk menyelesaikan langkah onboarding ini.',
+    taskCaptureDocuments: 'Detail dokumen',
+    taskCapturePolicy: 'Persetujuan kebijakan',
+    taskCaptureNotes: 'Catatan',
+    taskCaptureRequired: 'Kolom ini wajib diisi untuk menyelesaikan tugas.',
+    taskCapturePolicyRequired: 'Persetujuan kebijakan harus dicentang sebelum selesai.',
+    taskCaptureSubmit: 'Selesaikan tugas',
+    taskCaptureCancel: 'Batal',
+    taskCaptureSuccess: 'Tugas selesai dan tercatat.',
+    taskCaptureDocumentsPlaceholder: 'NIK, KTP, paspor, kontrak ditandatangani, formulir pajak...',
+    taskCaptureNotesPlaceholder: 'Tambahkan catatan tambahan untuk catatan...',
     createFailed: 'Kasus onboarding belum bisa dibuat saat ini.',
     completeFailed: 'Tugas onboarding belum bisa diselesaikan saat ini.',
     transitionFailed: 'Kasus onboarding belum bisa diperbarui saat ini.',

@@ -51,7 +51,7 @@ export class OnboardingService {
       hireCaseId: randomUUID(),
       onboardingCaseId: randomUUID(),
       startDate: dto.startDate,
-      contextJson: dto.contextJson,
+      ...(dto.contextJson ? { contextJson: dto.contextJson } : {}),
       createdAt: now,
     }, snapshot);
 

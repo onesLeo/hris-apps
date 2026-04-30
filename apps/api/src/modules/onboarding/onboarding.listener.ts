@@ -19,7 +19,7 @@ export class OnboardingListener {
     await this.onboarding.createCaseWithActor(payload.tenantId, payload.actorId, {
       employeeId: payload.employeeId,
       startDate: payload.startDate,
-      contextJson: payload.contextJson,
+      ...(payload.contextJson ? { contextJson: payload.contextJson } : {}),
     });
   }
 }

@@ -1,6 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import { DATABASE_SERVICE, type IDatabaseService } from '../../common/database/database.types';
+import type { EmployeeRow as EmployeeRecord } from '../employee/employee.types';
 import type {
   CreateOnboardingCaseResult,
   HireCaseSnapshot,
@@ -10,35 +11,6 @@ import type {
   CompleteOnboardingTaskResult,
   TransitionOnboardingCaseResult,
 } from './onboarding.types';
-
-type EmployeeRow = {
-  id: string;
-  tenant_id: string;
-  employee_number: string;
-  user_id: string | null;
-  first_name: string;
-  last_name: string;
-  display_name: string;
-  email: string;
-  phone: string | null;
-  date_of_birth: string | null;
-  gender: string | null;
-  nationality: string | null;
-  status: string;
-  hire_date: string;
-  termination_date: string | null;
-  created_at: string;
-  updated_at: string;
-  manager_id: string | null;
-  manager_display_name: string | null;
-  job_title: string | null;
-  department_id: string | null;
-  department_name: string | null;
-  location_id: string | null;
-  location_name: string | null;
-  employment_type: string | null;
-  work_arrangement: string | null;
-};
 
 type HireCaseRow = {
   id: string;
@@ -88,11 +60,11 @@ export class OnboardingRepository {
   constructor(@Inject(DATABASE_SERVICE) private readonly db: IDatabaseService) {}
 
   async loadCreateSnapshot(tenantId: string, employeeId: string): Promise<{
-    employee: EmployeeRow | null;
+    employee: EmployeeRecord | null;
     openHireCase: HireCaseSnapshot | null;
     openOnboardingCase: OnboardingCaseSnapshot | null;
   }> {
-    const [employee] = await this.db.queryWithTenant<EmployeeRow>(tenantId, `
+    const [employee] = await this.db.queryWithTenant<EmployeeRecord>(tenantId, `
       SELECT e.*,
         s.job_title,
         s.department_id,
@@ -195,7 +167,7 @@ export class OnboardingRepository {
       };
     }
 
-    const [employee] = await this.db.queryWithTenant<EmployeeRow>(tenantId, `
+    const [employee] = await this.db.queryWithTenant<EmployeeRecord>(tenantId, `
       SELECT e.*,
         s.job_title,
         s.department_id,
