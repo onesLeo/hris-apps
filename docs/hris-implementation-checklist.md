@@ -226,10 +226,10 @@ flowchart TD
 ## Phase 9: Talent, Performance, and Learning
 
 ### 9a — Recruitment / ATS (ADR 016)
-- [ ] Add ADR 016 ATS database schema migration: `job_requisitions`, `candidates`, `job_applications`, `application_stage_log`, `interviews`, `interview_interviewers`, `interview_scorecards`, `scorecard_templates`, `scorecard_criteria`, `interview_scorecard_ratings`, `job_offers`. _(Enable RLS on all tables; add tenant_id FK to every table)_
-- [ ] Implement RequisitionService: create/update/submit-for-approval requisition; emit `recruitment.requisition.opened` on status → `open`. _(Approval chain reuses workflow engine from Phase 5; ADR 016)_
-- [ ] Implement CandidateService: create candidate with duplicate detection on email per tenant; support anonymisation on privacy request (`anonymised_at` + null PII fields). _(ADR 016)_
-- [ ] Implement ApplicationService: link candidate to requisition; advance stage with `application_stage_log` entry on each transition; emit `recruitment.application.stage_changed`. _(ADR 016)_
+- [x] Add ADR 016 ATS database schema migration: `job_requisitions`, `candidates`, `job_applications`, `application_stage_log`, `interviews`, `interview_interviewers`, `interview_scorecards`, `scorecard_templates`, `scorecard_criteria`, `interview_scorecard_ratings`, `job_offers`. _(Enable RLS on all tables; add tenant_id FK to every table)_
+- [x] Implement RequisitionService: create/update/submit-for-approval requisition; emit `recruitment.requisition.opened` on status → `open`. _(Approval chain reuses workflow engine from Phase 5; ADR 016)_
+- [x] Implement CandidateService: create candidate with duplicate detection on email per tenant; support anonymisation on privacy request (`anonymised_at` + null PII fields). _(ADR 016)_
+- [x] Implement ApplicationService: link candidate to requisition; advance stage with `application_stage_log` entry on each transition; emit `recruitment.application.stage_changed`. _(ADR 016)_
 - [ ] Implement InterviewService: schedule rounds, assign interviewers, submit and read scorecards per interviewer; compute `overall_recommendation` when all scorecards submitted. _(ADR 016)_
 - [ ] Implement OfferService: create offer draft, submit for approval via workflow engine, mark sent/accepted/declined; emit `recruitment.offer.accepted` on acceptance. _(ADR 016)_
 - [ ] Implement OnboardingHandlerService: subscribe to `recruitment.offer.accepted`; create `employees` row (`status = pre_boarding`) pre-populated from candidate + offer; create `onboarding_cases` row; increment `job_requisitions.filled_count`. _(ADR 016 onboarding handoff)_

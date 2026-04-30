@@ -25,6 +25,7 @@ import { PolicyModule } from './modules/policy/policy.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
 import { TenantMiddleware } from './modules/tenant/tenant.middleware';
 import { TenantModule } from './modules/tenant/tenant.module';
+import { RecruitmentModule } from './modules/recruitment/recruitment.module';
 
 @Module({
   imports: [
@@ -58,6 +59,7 @@ import { TenantModule } from './modules/tenant/tenant.module';
     AttendanceModule,
     LeaveModule,
     PayrollModule,
+    RecruitmentModule,
   ],
   providers: [
     I18nService,
