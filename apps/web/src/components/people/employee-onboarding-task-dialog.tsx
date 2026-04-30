@@ -1,4 +1,4 @@
-'use client';
+﻿'use client';
 
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Avatar, Badge, Button, Icon, type Accent } from '../aurora-primitives';
@@ -222,7 +222,7 @@ export function EmployeeOnboardingTaskDialog({
                           <div style={{ minWidth: 0 }}>
                             <div style={attachmentNameStyle}>{attachment.originalFileName}</div>
                             <div style={attachmentMetaStyle}>
-                              {formatFileSize(attachment.fileSize)} · {formatDateTime(attachment.uploadedAt, locale)} · {attachment.mimeType}
+                              {formatFileSize(attachment.fileSize)} | {formatDateTime(attachment.uploadedAt, locale)} | {attachment.mimeType}
                             </div>
                           </div>
                           <Button variant="ghost" onClick={() => download(attachment)}>
@@ -237,18 +237,19 @@ export function EmployeeOnboardingTaskDialog({
               )}
 
               {(task.code === 'employee_documents' || task.code === 'access_provisioning') && (
-                <label className="field">
-                  <span className="aurora-card-subtitle">{copy.taskCaptureDocuments}</span>
+                <section style={fieldBlockStyle}>
+                  <div className="aurora-card-subtitle" style={fieldLabelStyle}>{copy.taskCaptureDocuments}</div>
                   <textarea
                     value={form.documents}
                     onChange={(event) => setForm((current) => ({ ...current, documents: event.target.value }))}
-                    style={{ ...inputStyle, minHeight: 120, resize: 'vertical' }}
+                    style={{ ...inputStyle, minHeight: 120, resize: 'vertical', width: '100%' }}
                     placeholder={task.code === 'employee_documents'
                       ? copy.taskCaptureDocumentsPlaceholder
                       : 'Laptop, email account, VPN, payroll access...'}
                   />
-                  <span className="aurora-card-subtitle" style={helpTextStyle}>{copy.taskCaptureRequired}</span>
-                </label>
+                  <div className="aurora-card-subtitle" style={fieldHintStyle}>{copy.taskCaptureDocumentsHint}</div>
+                  <div className="aurora-card-subtitle" style={helpTextStyle}>{copy.taskCaptureRequired}</div>
+                </section>
               )}
 
               {task.code === 'policy_acknowledgement' && (
@@ -265,12 +266,12 @@ export function EmployeeOnboardingTaskDialog({
                 </label>
               )}
 
-              <label className="field">
-                <span className="aurora-card-subtitle">{copy.taskCaptureNotes}</span>
+              <section style={fieldBlockStyle}>
+                <div className="aurora-card-subtitle" style={fieldLabelStyle}>{copy.taskCaptureNotes}</div>
                 <textarea
                   value={form.notes}
                   onChange={(event) => setForm((current) => ({ ...current, notes: event.target.value }))}
-                  style={{ ...inputStyle, minHeight: 110, resize: 'vertical' }}
+                  style={{ ...inputStyle, minHeight: 110, resize: 'vertical', width: '100%' }}
                   placeholder={task.code === 'manager_introduction'
                     ? 'Meeting date, attendees, and key points...'
                     : task.code === 'payroll_setup'
@@ -279,13 +280,14 @@ export function EmployeeOnboardingTaskDialog({
                         ? 'Welcome agenda and materials covered...'
                         : copy.taskCaptureNotesPlaceholder}
                 />
-                <span className="aurora-card-subtitle" style={helpTextStyle}>{copy.taskSummaryHelp}</span>
-              </label>
+                <div className="aurora-card-subtitle" style={fieldHintStyle}>{copy.taskCaptureNotesHint}</div>
+                <div className="aurora-card-subtitle" style={helpTextStyle}>{copy.taskSummaryHelp}</div>
+              </section>
             </div>
           </section>
 
           <div style={footerStyle}>
-            <div className="aurora-card-subtitle">{copy.taskCaptureSubtitle}</div>
+            <div className="aurora-card-subtitle" style={{ maxWidth: 420, lineHeight: 1.45 }}>{copy.taskCaptureSubtitle}</div>
             <div style={buttonRowStyle}>
               <Button variant="ghost" onClick={onClose}>
                 <Icon name="xMark" size={14} color="currentColor" strokeWidth={2} />
@@ -480,6 +482,23 @@ const attachmentCardStyle: CSSProperties = {
   background: 'rgba(248, 250, 252, 0.85)',
 };
 
+const fieldBlockStyle: CSSProperties = {
+  display: 'grid',
+  gap: 8,
+  width: '100%',
+};
+
+const fieldLabelStyle: CSSProperties = {
+  fontSize: 13,
+  fontWeight: 700,
+  color: 'var(--text-primary)',
+};
+
+const fieldHintStyle: CSSProperties = {
+  fontSize: 12.5,
+  lineHeight: 1.45,
+};
+
 const attachmentHeaderStyle: CSSProperties = {
   display: 'flex',
   justifyContent: 'space-between',
@@ -576,3 +595,4 @@ const closeStyle: CSSProperties = {
   cursor: 'pointer',
   flexShrink: 0,
 };
+

@@ -1,6 +1,6 @@
 # Phase 1 Foundation — What We Built and Why
 
-This document explains every piece of infrastructure built in Phase 1, what it does, and why it matters for the HRIS application. The branch now has a few Phase 2 slices wired up as well, so this summary notes where the UI is still mock-driven versus where it already talks to the real backend.
+This document explains every piece of infrastructure built in Phase 1, what it does, and why it matters for the HRIS application. The branch now has a few Phase 2 and Phase 3 slices wired up as well, so this summary notes where the UI is still mock-driven versus where it already talks to the real backend. For local development, there is also a temporary auth bypass that allows the seeded API rows to remain visible when the browser token bridge is unavailable; that bypass is dev-only and must stay off in production.
 
 ---
 

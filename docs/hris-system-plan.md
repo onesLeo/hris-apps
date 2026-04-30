@@ -109,17 +109,30 @@ This is a live status snapshot of the current branch so the plan and implementat
 - Core auth, tenant scoping, RLS, RBAC, audit logging, structured logging, policy resolution, i18n, and base CI are in place.
 - The employee core is implemented: employee profile records, employment spells, lifecycle event logging, tax profile linkage, and encrypted sensitive fields.
 - The People screen is wired to the API with a graceful fallback to local mock data when the backend is unavailable, and its create flow now pulls organization catalog data instead of placeholder org IDs. Transfer, promote, resign, and history controls are also present in the UI.
+- For local development, the API can temporarily run with `DEV_AUTH_BYPASS=true` so the seeded tenant and pre-boarding employee rows remain visible while we finish hardening the browser token bridge against Keycloak.
 
 ### Completed Workflow and Payroll Slices
 - The approval workflow backend now has workflow schema tables, assignee resolution helpers, a decision use case, controller adapter, and unit tests.
 - Payroll now has period/run schema tables plus the start-run, per-employee calculation, and finalisation slices with repository adapters and tests.
 - The first Phase 3 onboarding backbone is in place: hire case and onboarding case tables, onboarding tasks, task completion, onboarding state transitions, and the People onboarding modal / row action / employee lookup bridge are implemented.
+- Phase 3 is the active onboarding delivery phase, so the remaining work is still part of the same end-to-end flow: recruitment handoff, onboarding approvals, activation hooks, and the final documentation polish.
+
+```mermaid
+flowchart TD
+  A["Recruitment offer accepted"] --> B["Pre-boarding employee shell"]
+  B --> C["Onboarding case created"]
+  C --> D["Task capture and attachments"]
+  D --> E["Onboarding approvals"]
+  E --> F["Activate employee"]
+  F --> G["Payroll and access provisioning"]
+```
 
 ### Still Open
 - Employee lifecycle docs such as the state machine diagram and import/export support.
 - Recruitment offer-accepted handoff into onboarding, onboarding workflow approvals, and document / policy capture. The listener and employee-level onboarding lookup are in place; the People onboarding modal and row action are wired, the onboarding task completion flow now enforces assignee-role routing, and the task capture modal records structured document details and policy acknowledgement notes. File upload storage is now implemented with onboarding attachment rows plus a storage adapter that uses local filesystem in development and S3-compatible object storage in production, while the ATS-side payload expansion and shell provisioning are still pending.
 - Workflow escalation, conditional routing, and any dedicated payroll approval orchestration beyond run finalisation.
 - Full statutory payroll engines, component catalog, payslip generation, and payroll admin UI.
+- Local dev verification currently relies on a seeded `Pre_Boarding` employee and the temporary auth bypass mentioned above; production auth remains Keycloak-backed.
 
 ## Test Strategy
 - Validate core HR workflows end to end.

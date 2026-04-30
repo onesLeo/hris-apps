@@ -47,8 +47,10 @@ export type OnboardingCopy = {
   taskCaptureTitle: string;
   taskCaptureSubtitle: string;
   taskCaptureDocuments: string;
+  taskCaptureDocumentsHint: string;
   taskCapturePolicy: string;
   taskCaptureNotes: string;
+  taskCaptureNotesHint: string;
   taskCaptureRequired: string;
   taskCapturePolicyRequired: string;
   taskCaptureSubmit: string;
@@ -148,8 +150,10 @@ const ONBOARDING_COPY: Record<Locale, OnboardingCopy> = {
     taskCaptureTitle: 'Capture task details',
     taskCaptureSubtitle: 'Add the information needed to complete this onboarding step.',
     taskCaptureDocuments: 'Document details',
+    taskCaptureDocumentsHint: 'Upload one file at a time and note what it is for, such as KTP, contract, or tax form.',
     taskCapturePolicy: 'Policy acknowledgement',
-    taskCaptureNotes: 'Notes',
+    taskCaptureNotes: 'Notes / remarks',
+    taskCaptureNotesHint: 'Optional remarks for HR or payroll follow-up.',
     taskCaptureRequired: 'This field is required to complete the task.',
     taskCapturePolicyRequired: 'Policy acknowledgement must be checked before completion.',
     taskCaptureSubmit: 'Complete task',
@@ -158,7 +162,7 @@ const ONBOARDING_COPY: Record<Locale, OnboardingCopy> = {
     taskCaptureDocumentsPlaceholder: 'NIK, KTP, passport, signed contract, tax form...',
     taskCaptureNotesPlaceholder: 'Add any additional notes for the record...',
     attachmentSectionTitle: 'Attachments',
-    attachmentSectionHelp: 'Upload supporting files for this onboarding task.',
+    attachmentSectionHelp: 'Upload supporting files one by one, then describe what each file is for.',
     attachmentLabelSingular: 'file',
     attachmentLabelPlural: 'files',
     attachmentChooseFile: 'Choose a file to upload.',
@@ -255,8 +259,10 @@ const ONBOARDING_COPY: Record<Locale, OnboardingCopy> = {
     taskCaptureTitle: 'Isi detail tugas',
     taskCaptureSubtitle: 'Tambahkan informasi yang diperlukan untuk menyelesaikan langkah onboarding ini.',
     taskCaptureDocuments: 'Detail dokumen',
+    taskCaptureDocumentsHint: 'Unggah satu file setiap kali dan jelaskan kegunaannya, misalnya KTP, kontrak, atau formulir pajak.',
     taskCapturePolicy: 'Persetujuan kebijakan',
-    taskCaptureNotes: 'Catatan',
+    taskCaptureNotes: 'Catatan / remarks',
+    taskCaptureNotesHint: 'Catatan tambahan untuk tindak lanjut HR atau payroll.',
     taskCaptureRequired: 'Kolom ini wajib diisi untuk menyelesaikan tugas.',
     taskCapturePolicyRequired: 'Persetujuan kebijakan harus dicentang sebelum selesai.',
     taskCaptureSubmit: 'Selesaikan tugas',
@@ -265,7 +271,7 @@ const ONBOARDING_COPY: Record<Locale, OnboardingCopy> = {
     taskCaptureDocumentsPlaceholder: 'NIK, KTP, paspor, kontrak ditandatangani, formulir pajak...',
     taskCaptureNotesPlaceholder: 'Tambahkan catatan tambahan untuk catatan...',
     attachmentSectionTitle: 'Lampiran',
-    attachmentSectionHelp: 'Unggah file pendukung untuk tugas onboarding ini.',
+    attachmentSectionHelp: 'Unggah file pendukung satu per satu, lalu jelaskan fungsi masing-masing file.',
     attachmentLabelSingular: 'file',
     attachmentLabelPlural: 'file',
     attachmentChooseFile: 'Pilih file untuk diunggah.',

@@ -312,13 +312,13 @@ export function EmployeeOnboardingDialog({
         <div className="aurora-screen-stack" style={{ gap: 18 }}>
           {!loading && !onboardingCase && (
             <section style={sectionCardStyle}>
-              <div style={sectionHeaderStyle}>
-                <div>
+                <div style={sectionHeaderStyle}>
+                  <div>
                     <div className="aurora-card-title" style={{ fontSize: 16 }}>{copy.createCta}</div>
-                  <div className="aurora-card-subtitle" style={{ marginTop: 2 }}>
-                    {copy.noCaseMessage}
+                    <div className="aurora-card-subtitle" style={{ marginTop: 2 }}>
+                      {copy.noCaseMessage}
+                    </div>
                   </div>
-                </div>
                 <Badge label={copy.status.draft} tone="ghost" />
               </div>
 
@@ -345,8 +345,8 @@ export function EmployeeOnboardingDialog({
                 </label>
               </div>
 
-                <div style={footerRowStyle}>
-                  <div className="aurora-card-subtitle">
+              <div style={footerRowStyle}>
+                <div className="aurora-card-subtitle" style={{ maxWidth: 420, lineHeight: 1.45 }}>
                   {canCreate ? copy.startDateHelp : copy.validation.createNotReady}
                 </div>
                 <Button variant="primary" onClick={submitCreate} disabled={!canCreate || busyAction === 'create'}>
@@ -362,7 +362,7 @@ export function EmployeeOnboardingDialog({
               <section style={sectionCardStyle}>
                 <div style={sectionHeaderStyle}>
                   <div>
-                  <div className="aurora-card-title" style={{ fontSize: 16 }}>{copy.caseSummary}</div>
+                    <div className="aurora-card-title" style={{ fontSize: 16 }}>{copy.caseSummary}</div>
                     <div className="aurora-card-subtitle" style={{ marginTop: 2 }}>
                       {copy.caseSummaryHelp}
                     </div>
@@ -448,7 +448,7 @@ export function EmployeeOnboardingDialog({
                               </div>
                             ) : (
                               <div style={taskActionRowStyle}>
-                              <div style={taskHintStyle}>
+                                <div style={taskHintStyle}>
                                   {task.required ? copy.requiredBeforeActivation : copy.optionalTask}
                                 </div>
                                 <Button variant="primary" onClick={() => openTaskCapture(task)} disabled={isBusy}>

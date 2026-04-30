@@ -64,6 +64,7 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 
 ## Phase 1: Foundation
 - [x] Implement authentication provider integration (Keycloak / OIDC).
+    _(Local dev currently includes a temporary auth bypass (`DEV_AUTH_BYPASS=true`) so seeded API data stays visible even when the browser token bridge is unavailable; this is dev-only and must stay off in production.)_
 - [ ] Add MFA enforcement for admin, HR, payroll, and security roles. _(Keycloak config — Phase 1b)_
 - [ ] Implement short-lived session management and secure cookie handling. _(JWT stateless model in use; revisit if browser sessions needed)_
 - [ ] Add anti-CSRF protections for browser-based sessions. _(Not applicable: JWT in Authorization header is not CSRF-vulnerable)_
@@ -111,6 +112,21 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 - [ ] Add profile photo upload to the employee profile. _(Stored in object storage; displayed as avatar replacing the initials placeholder)_
 
 ## Phase 3: Hiring and Onboarding
+- Phase 3 is the active onboarding delivery phase. The full employee path is being built here in order: pre-boarding employee shell, onboarding case, task capture and attachments, approval routing, activation, then payroll and access provisioning hooks.
+- Done so far: hire case/onboarding tables, onboarding task engine, task capture, file attachments, state transitions, cancellation/hold/reactivation, and the People onboarding modal.
+- Still next in this phase: recruitment handoff payload expansion, onboarding workflow approvals, and activation hooks for payroll/access provisioning.
+- Later follow-up: onboarding workflow diagram and approval-path documentation.
+
+```mermaid
+flowchart TD
+  A["Recruitment offer accepted"] --> B["Pre-boarding employee shell"]
+  B --> C["Onboarding case created"]
+  C --> D["Task capture and attachments"]
+  D --> E["Onboarding approvals"]
+  E --> F["Activate employee"]
+  F --> G["Payroll and access provisioning"]
+```
+
 - [x] Add `hire_cases` and `onboarding_tasks` database schema.
 - [ ] Implement recruitment handoff into onboarding. _(Onboarding listener now subscribes to `recruitment.offer.accepted`, can create onboarding cases, and exposes employee-level lookup for the People onboarding modal/row action; the recruitment-side payload expansion and employee-shell creation flow still need the full ATS module.)_
 - [x] Add hire case and onboarding case tables.
@@ -122,6 +138,7 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 - [ ] Add onboarding workflow diagram and approval path documentation.
 - [x] Add support for onboarding cancellation, hold, and reactivation scenarios.
 - [x] Add People onboarding modal and row action for pre-boarding employees. _(Create, load, task completion, structured task capture, hold/reactivate/cancel, and activation are wired through the backend onboarding API.)_
+    _(Local smoke testing path: seed or bootstrap a `Pre_Boarding` employee and verify the People screen can show real DB rows once the API is reachable.)_
 
 ## Phase 4: Attendance and Leave
 - [ ] Implement location-specific attendance policies.

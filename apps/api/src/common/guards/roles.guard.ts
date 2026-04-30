@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable } from '@nestjs/common';
+import { CanActivate, ExecutionContext, ForbiddenException, Injectable, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 
@@ -7,6 +7,8 @@ import { ROLES_KEY } from './roles.decorator';
 
 @Injectable()
 export class RolesGuard implements CanActivate {
+  private readonly logger = new Logger(RolesGuard.name);
+
   constructor(private readonly reflector: Reflector) {}
 
   canActivate(context: ExecutionContext): boolean {
@@ -21,11 +23,18 @@ export class RolesGuard implements CanActivate {
     const req = context.switchToHttp().getRequest<Request>();
     const user = req.user;
 
-    if (!user) throw new ForbiddenException('auth.token.invalid');
+    if (!user) {
+      this.logger.warn(`missing authenticated user for ${req.method} ${req.url}`);
+      throw new ForbiddenException('auth.token.invalid');
+    }
 
-    console.log('[RolesGuard] user.roles =', user.roles, '| required =', required);
     const hasRole = required.some((role) => user.roles.includes(role));
-    if (!hasRole) throw new ForbiddenException('auth.forbidden');
+    if (!hasRole) {
+      this.logger.warn(
+        `forbidden ${req.method} ${req.url} userRoles=${user.roles.join(',')} required=${required.join(',')}`,
+      );
+      throw new ForbiddenException('auth.forbidden');
+    }
 
     return true;
   }

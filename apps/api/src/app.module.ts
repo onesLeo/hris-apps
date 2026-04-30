@@ -14,6 +14,7 @@ import { I18nService } from './common/i18n/i18n.service';
 import { AuditModule } from './modules/audit/audit.module';
 import { ApprovalModule } from './modules/approval/approval.module';
 import { AuthModule } from './modules/auth/auth.module';
+import { JwtAuthGuard } from './modules/auth/jwt.guard';
 import { EmployeeModule } from './modules/employee/employee.module';
 import { HealthModule } from './modules/health/health.module';
 import { OrganizationModule } from './modules/organization/organization.module';
@@ -56,6 +57,7 @@ import { TenantModule } from './modules/tenant/tenant.module';
   ],
   providers: [
     I18nService,
+    { provide: APP_GUARD, useClass: JwtAuthGuard },
     {
       provide: APP_INTERCEPTOR,
       useFactory: (audit: AuditService) => new AuditInterceptor(audit),

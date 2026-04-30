@@ -1,4 +1,4 @@
-import { CanActivate, ExecutionContext, Injectable, UnauthorizedException } from '@nestjs/common';
+import { CanActivate, ExecutionContext, Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
@@ -21,6 +21,8 @@ function getJwks(jwksUri: string): ReturnType<typeof createRemoteJWKSet> {
 
 @Injectable()
 export class JwtAuthGuard implements CanActivate {
+  private readonly logger = new Logger(JwtAuthGuard.name);
+
   constructor(
     private readonly config: ConfigService,
     private readonly reflector: Reflector,
@@ -35,20 +37,56 @@ export class JwtAuthGuard implements CanActivate {
 
     const req = context.switchToHttp().getRequest<Request>();
     const token = this.extractToken(req);
-    if (!token) throw new UnauthorizedException('auth.token.invalid');
+    const devAuthBypass = this.config.get<string>('DEV_AUTH_BYPASS') === 'true';
+    const defaultTenantId = this.config.get<string>('DEFAULT_TENANT_ID');
+    const defaultUserId = this.config.get<string>('DEFAULT_USER_ID');
+    const defaultRoles = (this.config.get<string>('DEV_AUTH_BYPASS_ROLES') ?? 'hris_admin')
+      .split(',')
+      .map((role) => role.trim())
+      .filter(Boolean);
+
+    if (!token) {
+      if (devAuthBypass && defaultTenantId && defaultUserId) {
+        this.logger.warn(`dev auth bypass enabled for ${req.method} ${req.url}`);
+        req.user = {
+          userId: defaultUserId,
+          keycloakId: defaultUserId,
+          tenantId: defaultTenantId,
+          email: 'dev@example.local',
+          displayName: 'Dev User',
+          roles: defaultRoles,
+        };
+
+        const requestContext = RequestContext.get();
+        if (requestContext) {
+          requestContext.tenantId = defaultTenantId;
+          requestContext.userId = defaultUserId;
+          if (defaultRoles[0]) {
+            requestContext.actorRole = defaultRoles[0];
+          }
+        }
+
+        return true;
+      }
+
+      this.logger.warn(`missing bearer token for ${req.method} ${req.url}`);
+      throw new UnauthorizedException('auth.token.invalid');
+    }
 
     const jwksUri = this.config.get<string>('KEYCLOAK_JWKS_URI');
-    if (!jwksUri) throw new UnauthorizedException('auth.token.invalid');
+    if (!jwksUri) {
+      this.logger.error('KEYCLOAK_JWKS_URI is not configured');
+      throw new UnauthorizedException('auth.token.invalid');
+    }
 
     let payload: JwtClaims;
     try {
       ({ payload } = await jwtVerify<JwtClaims>(token, getJwks(jwksUri)));
     } catch {
+      this.logger.warn(`token verification failed for ${req.method} ${req.url}`);
       throw new UnauthorizedException('auth.token.expired');
     }
 
-    const defaultTenantId = this.config.get<string>('DEFAULT_TENANT_ID');
-    const defaultUserId = this.config.get<string>('DEFAULT_USER_ID');
     const tenantId = payload.tenant_id ?? defaultTenantId;
     const userId = defaultUserId ?? payload.sub;
 
@@ -56,6 +94,7 @@ export class JwtAuthGuard implements CanActivate {
     const roles = payload.roles ?? realmRoles;
 
     if (!tenantId || !userId) {
+      this.logger.warn(`token missing tenant/user for ${req.method} ${req.url}`);
       throw new UnauthorizedException('auth.token.invalid');
     }
 

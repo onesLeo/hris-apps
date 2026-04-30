@@ -461,6 +461,21 @@ a {
   gap: 16px;
 }
 
+.field {
+  display: grid;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+  align-content: start;
+}
+
+.field > input,
+.field > textarea,
+.field > select {
+  width: 100%;
+  min-width: 0;
+}
+
 .aurora-table {
   overflow: hidden;
 }
