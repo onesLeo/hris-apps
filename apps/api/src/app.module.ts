@@ -6,6 +6,7 @@ import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 
 import { RequestContextMiddleware } from './common/context/request-context.middleware';
 import { AuditInterceptor } from './modules/audit/audit.interceptor';
+import { AuditService } from './modules/audit/audit.service';
 import { DatabaseModule } from './common/database/database.module';
 import { EncryptionModule } from './common/encryption/encryption.module';
 import { RolesGuard } from './common/guards/roles.guard';
@@ -55,7 +56,11 @@ import { TenantModule } from './modules/tenant/tenant.module';
   ],
   providers: [
     I18nService,
-    { provide: APP_INTERCEPTOR, useClass: AuditInterceptor },
+    {
+      provide: APP_INTERCEPTOR,
+      useFactory: (audit: AuditService) => new AuditInterceptor(audit),
+      inject: [AuditService],
+    },
     { provide: APP_GUARD, useClass: RolesGuard },
   ],
   exports: [I18nService],
