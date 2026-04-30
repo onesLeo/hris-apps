@@ -718,6 +718,168 @@ INSERT INTO onboarding_tasks (
 )
 ON CONFLICT (onboarding_case_id, task_order) DO NOTHING;
 
+-- Enums for leave and attendance
+CREATE TYPE leave_request_status AS ENUM ('pending', 'approved', 'rejected', 'cancelled');
+
+-- Shifts
+CREATE TABLE IF NOT EXISTS shifts (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id),
+  name VARCHAR(100) NOT NULL,
+  code VARCHAR(20) NOT NULL,
+  start_time TIME NOT NULL,
+  end_time TIME NOT NULL,
+  break_minutes INT NOT NULL DEFAULT 60,
+  grace_late_minutes INT NOT NULL DEFAULT 15,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT shifts_tenant_code_uniq UNIQUE (tenant_id, code)
+);
+CREATE INDEX IF NOT EXISTS shifts_tenant_idx ON shifts (tenant_id);
+
+CREATE TABLE IF NOT EXISTS shift_assignments (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id),
+  employee_id UUID NOT NULL REFERENCES employees(id),
+  shift_id UUID NOT NULL REFERENCES shifts(id),
+  effective_from DATE NOT NULL,
+  effective_to DATE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS shift_assignments_employee_idx ON shift_assignments (employee_id);
+CREATE INDEX IF NOT EXISTS shift_assignments_tenant_idx ON shift_assignments (tenant_id);
+
+-- Clock events (immutable raw records)
+CREATE TABLE IF NOT EXISTS clock_events (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id),
+  employee_id UUID NOT NULL REFERENCES employees(id),
+  event_time TIMESTAMPTZ NOT NULL,
+  direction VARCHAR(10) NOT NULL CHECK (direction IN ('in', 'out')),
+  source VARCHAR(50) NOT NULL DEFAULT 'manual',
+  device_id VARCHAR(100),
+  raw_payload JSONB,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS clock_events_employee_idx ON clock_events (employee_id);
+CREATE INDEX IF NOT EXISTS clock_events_tenant_idx ON clock_events (tenant_id);
+CREATE INDEX IF NOT EXISTS clock_events_event_time_idx ON clock_events (tenant_id, event_time);
+
+-- Attendance records (processed per-day)
+CREATE TABLE IF NOT EXISTS attendance_records (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id),
+  employee_id UUID NOT NULL REFERENCES employees(id),
+  work_date DATE NOT NULL,
+  shift_id UUID REFERENCES shifts(id),
+  clock_in TIMESTAMPTZ,
+  clock_out TIMESTAMPTZ,
+  worked_minutes INT,
+  late_minutes INT NOT NULL DEFAULT 0,
+  overtime_minutes INT NOT NULL DEFAULT 0,
+  is_absent BOOLEAN NOT NULL DEFAULT FALSE,
+  is_leave BOOLEAN NOT NULL DEFAULT FALSE,
+  notes TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT attendance_records_employee_date_uniq UNIQUE (employee_id, work_date)
+);
+CREATE INDEX IF NOT EXISTS attendance_records_employee_idx ON attendance_records (employee_id);
+CREATE INDEX IF NOT EXISTS attendance_records_tenant_idx ON attendance_records (tenant_id);
+CREATE INDEX IF NOT EXISTS attendance_records_date_idx ON attendance_records (tenant_id, work_date);
+
+-- Leave types
+CREATE TABLE IF NOT EXISTS leave_types (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id),
+  name VARCHAR(100) NOT NULL,
+  code VARCHAR(20) NOT NULL,
+  is_paid BOOLEAN NOT NULL DEFAULT TRUE,
+  days_per_year INT,
+  carry_over_days INT NOT NULL DEFAULT 0,
+  requires_approval BOOLEAN NOT NULL DEFAULT TRUE,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT leave_types_tenant_code_uniq UNIQUE (tenant_id, code)
+);
+CREATE INDEX IF NOT EXISTS leave_types_tenant_idx ON leave_types (tenant_id);
+
+-- Leave balances per employee per year
+CREATE TABLE IF NOT EXISTS leave_balances (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id),
+  employee_id UUID NOT NULL REFERENCES employees(id),
+  leave_type_id UUID NOT NULL REFERENCES leave_types(id),
+  year INT NOT NULL,
+  entitled_days INT NOT NULL DEFAULT 0,
+  taken_days INT NOT NULL DEFAULT 0,
+  pending_days INT NOT NULL DEFAULT 0,
+  carried_over_days INT NOT NULL DEFAULT 0,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT leave_balances_uniq UNIQUE (employee_id, leave_type_id, year)
+);
+CREATE INDEX IF NOT EXISTS leave_balances_employee_idx ON leave_balances (employee_id);
+CREATE INDEX IF NOT EXISTS leave_balances_tenant_idx ON leave_balances (tenant_id);
+
+-- Leave requests
+CREATE TABLE IF NOT EXISTS leave_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id),
+  employee_id UUID NOT NULL REFERENCES employees(id),
+  leave_type_id UUID NOT NULL REFERENCES leave_types(id),
+  from_date DATE NOT NULL,
+  to_date DATE NOT NULL,
+  days INT NOT NULL,
+  reason TEXT,
+  status leave_request_status NOT NULL DEFAULT 'pending',
+  reviewed_by UUID REFERENCES users(id),
+  reviewed_at TIMESTAMPTZ,
+  review_note TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS leave_requests_employee_idx ON leave_requests (employee_id);
+CREATE INDEX IF NOT EXISTS leave_requests_tenant_idx ON leave_requests (tenant_id);
+CREATE INDEX IF NOT EXISTS leave_requests_status_idx ON leave_requests (tenant_id, status);
+
+-- Seed leave types for dev tenant
+INSERT INTO shifts (id, tenant_id, name, code, start_time, end_time, break_minutes, grace_late_minutes, is_active, created_at, updated_at)
+VALUES
+  ('aaaa0001-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Morning Shift', 'MORN', '08:00', '17:00', 60, 15, TRUE, NOW(), NOW()),
+  ('aaaa0001-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Afternoon Shift', 'AFT', '13:00', '22:00', 60, 15, TRUE, NOW(), NOW()),
+  ('aaaa0001-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'Night Shift', 'NGHT', '22:00', '07:00', 60, 15, TRUE, NOW(), NOW())
+ON CONFLICT (tenant_id, code) DO NOTHING;
+
+INSERT INTO leave_types (id, tenant_id, name, code, is_paid, days_per_year, carry_over_days, requires_approval, is_active, created_at, updated_at)
+VALUES
+  ('bbbb0001-0000-0000-0000-000000000001', '11111111-1111-1111-1111-111111111111', 'Annual Leave', 'ANNUAL', TRUE, 12, 5, TRUE, TRUE, NOW(), NOW()),
+  ('bbbb0001-0000-0000-0000-000000000002', '11111111-1111-1111-1111-111111111111', 'Sick Leave', 'SICK', TRUE, 14, 0, FALSE, TRUE, NOW(), NOW()),
+  ('bbbb0001-0000-0000-0000-000000000003', '11111111-1111-1111-1111-111111111111', 'Compensatory Leave', 'COMP', TRUE, NULL, 0, TRUE, TRUE, NOW(), NOW()),
+  ('bbbb0001-0000-0000-0000-000000000004', '11111111-1111-1111-1111-111111111111', 'WFH Days', 'WFH', TRUE, 52, 0, FALSE, TRUE, NOW(), NOW())
+ON CONFLICT (tenant_id, code) DO NOTHING;
+
+INSERT INTO leave_balances (tenant_id, employee_id, leave_type_id, year, entitled_days, taken_days, pending_days, carried_over_days)
+VALUES
+  ('11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555555', 'bbbb0001-0000-0000-0000-000000000001', 2026, 12, 3, 1, 2),
+  ('11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555555', 'bbbb0001-0000-0000-0000-000000000002', 2026, 14, 1, 0, 0),
+  ('11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555555', 'bbbb0001-0000-0000-0000-000000000003', 2026, 2, 0, 0, 0),
+  ('11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555555', 'bbbb0001-0000-0000-0000-000000000004', 2026, 52, 8, 0, 0)
+ON CONFLICT (employee_id, leave_type_id, year) DO NOTHING;
+
+-- Seed some attendance records for the dev tenant (Sarah Chen EMP-0001, last 7 days)
+INSERT INTO attendance_records (tenant_id, employee_id, work_date, shift_id, clock_in, clock_out, worked_minutes, late_minutes, overtime_minutes, is_absent, is_leave)
+VALUES
+  ('11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555555', CURRENT_DATE - 6, 'aaaa0001-0000-0000-0000-000000000001', NOW() - INTERVAL '6 days' + INTERVAL '8 hours', NOW() - INTERVAL '6 days' + INTERVAL '17 hours', 480, 0, 0, FALSE, FALSE),
+  ('11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555555', CURRENT_DATE - 5, 'aaaa0001-0000-0000-0000-000000000001', NOW() - INTERVAL '5 days' + INTERVAL '8 hours 22 minutes', NOW() - INTERVAL '5 days' + INTERVAL '17 hours 30 minutes', 488, 22, 30, FALSE, FALSE),
+  ('11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555555', CURRENT_DATE - 4, 'aaaa0001-0000-0000-0000-000000000001', NULL, NULL, NULL, 0, 0, FALSE, TRUE),
+  ('11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555555', CURRENT_DATE - 3, 'aaaa0001-0000-0000-0000-000000000001', NOW() - INTERVAL '3 days' + INTERVAL '7 hours 55 minutes', NOW() - INTERVAL '3 days' + INTERVAL '17 hours', 485, 0, 0, FALSE, FALSE),
+  ('11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555555', CURRENT_DATE - 2, 'aaaa0001-0000-0000-0000-000000000001', NOW() - INTERVAL '2 days' + INTERVAL '8 hours', NOW() - INTERVAL '2 days' + INTERVAL '19 hours', 540, 0, 60, FALSE, FALSE),
+  ('11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555555', CURRENT_DATE - 1, 'aaaa0001-0000-0000-0000-000000000001', NOW() - INTERVAL '1 day' + INTERVAL '8 hours 35 minutes', NOW() - INTERVAL '1 day' + INTERVAL '17 hours', 445, 35, 0, FALSE, FALSE)
+ON CONFLICT (employee_id, work_date) DO NOTHING;
+
 -- Row-level security for tenant-scoped tables
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
@@ -784,3 +946,19 @@ CREATE POLICY tenant_isolation ON onboarding_tasks
 CREATE POLICY tenant_isolation ON onboarding_attachments
   USING (tenant_id = current_tenant_id())
   WITH CHECK (tenant_id = current_tenant_id());
+
+ALTER TABLE shifts ENABLE ROW LEVEL SECURITY;
+ALTER TABLE shift_assignments ENABLE ROW LEVEL SECURITY;
+ALTER TABLE clock_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE attendance_records ENABLE ROW LEVEL SECURITY;
+ALTER TABLE leave_types ENABLE ROW LEVEL SECURITY;
+ALTER TABLE leave_balances ENABLE ROW LEVEL SECURITY;
+ALTER TABLE leave_requests ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY tenant_isolation ON shifts USING (tenant_id = current_tenant_id()) WITH CHECK (tenant_id = current_tenant_id());
+CREATE POLICY tenant_isolation ON shift_assignments USING (tenant_id = current_tenant_id()) WITH CHECK (tenant_id = current_tenant_id());
+CREATE POLICY tenant_isolation ON clock_events USING (tenant_id = current_tenant_id()) WITH CHECK (tenant_id = current_tenant_id());
+CREATE POLICY tenant_isolation ON attendance_records USING (tenant_id = current_tenant_id()) WITH CHECK (tenant_id = current_tenant_id());
+CREATE POLICY tenant_isolation ON leave_types USING (tenant_id = current_tenant_id()) WITH CHECK (tenant_id = current_tenant_id());
+CREATE POLICY tenant_isolation ON leave_balances USING (tenant_id = current_tenant_id()) WITH CHECK (tenant_id = current_tenant_id());
+CREATE POLICY tenant_isolation ON leave_requests USING (tenant_id = current_tenant_id()) WITH CHECK (tenant_id = current_tenant_id());
