@@ -19,6 +19,8 @@ import { EmployeeModule } from './modules/employee/employee.module';
 import { HealthModule } from './modules/health/health.module';
 import { OrganizationModule } from './modules/organization/organization.module';
 import { OnboardingModule } from './modules/onboarding/onboarding.module';
+import { AttendanceModule } from './modules/attendance/attendance.module';
+import { LeaveModule } from './modules/leave/leave.module';
 import { PolicyModule } from './modules/policy/policy.module';
 import { PayrollModule } from './modules/payroll/payroll.module';
 import { TenantMiddleware } from './modules/tenant/tenant.middleware';
@@ -53,6 +55,8 @@ import { TenantModule } from './modules/tenant/tenant.module';
     OrganizationModule,
     EmployeeModule,
     OnboardingModule,
+    AttendanceModule,
+    LeaveModule,
     PayrollModule,
   ],
   providers: [

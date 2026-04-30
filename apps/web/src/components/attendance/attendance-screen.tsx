@@ -1,8 +1,10 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { Badge, Avatar, Icon, SectionHeading } from '../aurora-primitives';
 import { useLocale, getAttendanceCopy } from '../../i18n';
-import { getAttendanceOverview } from './attendance-data';
+import { getAttendanceOverview, type AttendanceOverview } from './attendance-data';
+import { fetchAttendanceSummary } from '../../lib/attendance-api';
 
 const STATUS_TONE = {
   'On Time': 'success',
@@ -13,7 +15,25 @@ const STATUS_TONE = {
 export function AttendanceScreen() {
   const { locale } = useLocale();
   const copy = getAttendanceCopy(locale);
-  const overview = getAttendanceOverview(locale);
+  const mockOverview = getAttendanceOverview(locale);
+  const [overview, setOverview] = useState<AttendanceOverview>(mockOverview);
+
+  useEffect(() => {
+    fetchAttendanceSummary()
+      .then((summary) => {
+        setOverview((current) => ({
+          ...current,
+          metrics: current.metrics.map((metric, index) => {
+            if (index === 0) return { ...metric, value: String(summary.presentToday) };
+            if (index === 1) return { ...metric, value: String(summary.lateToday) };
+            return metric;
+          }),
+        }));
+      })
+      .catch(() => {
+        // Fall back to mock data if API is unavailable
+      });
+  }, []);
 
   return (
     <div className="aurora-screen-stack" style={{ animation: 'auroraFadeUp 0.4s ease' }}>

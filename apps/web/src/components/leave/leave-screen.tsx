@@ -1,15 +1,23 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Badge, Avatar, Button, Icon, type Accent } from '../aurora-primitives';
 import { getLeaveCopy, useLocale } from '../../i18n';
 import { LeaveApplyDialog } from './leave-apply-dialog';
-import { addLeaveRequest, filterLeaveRequests, LEAVE_BALANCES, LEAVE_REQUESTS, LEAVE_TABS, type CreateLeaveRequestInput, type LeaveStatus } from './leave-data';
+import { addLeaveRequest, filterLeaveRequests, LEAVE_BALANCES, LEAVE_REQUESTS, LEAVE_TABS, type CreateLeaveRequestInput, type LeaveBalance, type LeaveRequest, type LeaveStatus } from './leave-data';
+import { fetchLeaveRequests, submitLeaveRequest } from '../../lib/leave-api';
 
 const STATUS_TONE: Record<LeaveStatus, Accent> = {
   Pending: 'warning',
   Approved: 'success',
   Rejected: 'danger',
+};
+
+const STATUS_MAP: Record<string, LeaveStatus> = {
+  pending: 'Pending',
+  approved: 'Approved',
+  rejected: 'Rejected',
+  cancelled: 'Rejected',
 };
 
 export function LeaveScreen() {
@@ -18,7 +26,36 @@ export function LeaveScreen() {
   const [tab, setTab] = useState<'All' | 'Pending' | 'Approved' | 'Rejected'>('All');
   const [search, setSearch] = useState('');
   const [isApplyOpen, setIsApplyOpen] = useState(false);
-  const [requests, setRequests] = useState(LEAVE_REQUESTS);
+  const [requests, setRequests] = useState<readonly LeaveRequest[]>(LEAVE_REQUESTS);
+  const [balances] = useState<readonly LeaveBalance[]>(LEAVE_BALANCES);
+
+  useEffect(() => {
+    fetchLeaveRequests({ limit: 100 })
+      .then((apiRequests) => {
+        const mapped: LeaveRequest[] = apiRequests.map((req) => ({
+          employee: req.employeeName,
+          initials: req.employeeName
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map((p) => p[0] ?? '')
+            .join('')
+            .toUpperCase()
+            .slice(0, 2) || 'EN',
+          color: '#e8317a',
+          leaveType: req.leaveTypeName as LeaveRequest['leaveType'],
+          from: req.fromDate,
+          to: req.toDate,
+          days: req.days,
+          reason: req.reason ?? '',
+          status: STATUS_MAP[req.status] ?? 'Pending',
+        }));
+        setRequests(mapped);
+      })
+      .catch(() => {
+        // Fall back to mock data if API is unavailable
+      });
+  }, []);
 
   const filtered = useMemo(() => filterLeaveRequests(requests, tab, search), [requests, search, tab]);
   const statusCounts = useMemo(
@@ -35,12 +72,23 @@ export function LeaveScreen() {
 
   const submitRequest = (input: CreateLeaveRequestInput) => {
     setRequests((current) => addLeaveRequest(current, input));
+
+    submitLeaveRequest({
+      employeeId: '55555555-5555-5555-5555-555555555555',
+      leaveTypeId: 'bbbb0001-0000-0000-0000-000000000001',
+      fromDate: input.from,
+      toDate: input.to,
+      days: input.days,
+      reason: input.reason,
+    }).catch(() => {
+      // Optimistic update already applied; API failure is non-fatal
+    });
   };
 
   return (
     <div className="aurora-screen-stack" style={{ animation: 'auroraFadeUp 0.4s ease' }}>
       <div className="aurora-kpi-grid">
-        {LEAVE_BALANCES.map((balance) => (
+        {balances.map((balance) => (
           <div key={balance.label} className="aurora-card aurora-card-padding aurora-card-lift">
             <div className="aurora-card-subtitle" style={{ marginBottom: 8, fontWeight: 500 }}>
               {copy.balanceLabels[balance.label]}
