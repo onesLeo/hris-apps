@@ -499,6 +499,9 @@ export class EmployeeService {
     if (!role) {
       throw new BadRequestException('Employee role is not configured');
     }
+    if (!user) {
+      throw new BadRequestException('Failed to provision employee access');
+    }
 
     const [existingRole] = await this.db.queryWithTenant<{ id: string }>(tenantId, `
       SELECT id

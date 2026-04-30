@@ -119,6 +119,8 @@ export class TransitionOnboardingCaseUseCase {
       throw new OnboardingTransitionError('HIRE_CASE_NOT_FOUND', `Hire case for onboarding ${command.onboardingCaseId} not found`);
     }
 
+    const hireCase = snapshot.hireCase;
+    const onboardingCaseSnapshot = snapshot.onboardingCase;
     const previousStatus = snapshot.onboardingCase.status;
     let nextStatus: OnboardingCaseSnapshot['status'] = previousStatus;
     let employeeStatus: 'active' | null = null;
@@ -161,18 +163,18 @@ export class TransitionOnboardingCaseUseCase {
     }
 
     const onboardingCase: OnboardingCaseSnapshot = {
-      ...snapshot.onboardingCase,
+      ...onboardingCaseSnapshot,
       status: nextStatus,
-      currentTaskOrder: nextStatus === 'active' || nextStatus === 'cancelled' ? null : snapshot.onboardingCase.currentTaskOrder,
-      activatedAt: command.action === 'activate' ? command.transitionedAt : snapshot.onboardingCase.activatedAt,
-      holdReason: command.action === 'hold' ? (command.reason ?? null) : snapshot.onboardingCase.holdReason,
-      cancelReason: command.action === 'cancel' ? (command.reason ?? null) : snapshot.onboardingCase.cancelReason,
+      currentTaskOrder: nextStatus === 'active' || nextStatus === 'cancelled' ? null : onboardingCaseSnapshot.currentTaskOrder,
+      activatedAt: command.action === 'activate' ? command.transitionedAt : onboardingCaseSnapshot.activatedAt,
+      holdReason: command.action === 'hold' ? (command.reason ?? null) : onboardingCaseSnapshot.holdReason,
+      cancelReason: command.action === 'cancel' ? (command.reason ?? null) : onboardingCaseSnapshot.cancelReason,
     };
 
-    const hireCase = updateHireCase(snapshot.hireCase, command.action, nextStatus);
+    const updatedHireCase = updateHireCase(hireCase, command.action, nextStatus);
     const hireCaseContextJson = command.action === 'activate'
       ? {
-          ...hireCase.contextJson,
+          ...updatedHireCase.contextJson,
           activationChecklist: activationHooks,
           activationChecklistSummary: {
             completed: activationHooks.filter((hook) => hook.status === 'completed').length,
@@ -185,7 +187,7 @@ export class TransitionOnboardingCaseUseCase {
 
     return {
       hireCase: {
-        ...hireCase,
+        ...updatedHireCase,
         contextJson: hireCaseContextJson,
       },
       onboardingCase,
@@ -197,8 +199,8 @@ export class TransitionOnboardingCaseUseCase {
           payload: {
             tenantId: command.tenantId,
             onboardingCaseId: command.onboardingCaseId,
-            hireCaseId: snapshot.hireCase.id,
-            employeeId: snapshot.onboardingCase.employeeId,
+            hireCaseId: hireCase.id,
+            employeeId: onboardingCaseSnapshot.employeeId,
             previousStatus,
             nextStatus,
             action: command.action,
@@ -213,8 +215,8 @@ export class TransitionOnboardingCaseUseCase {
               payload: {
                 tenantId: command.tenantId,
                 onboardingCaseId: command.onboardingCaseId,
-                hireCaseId: snapshot.hireCase.id,
-                employeeId: snapshot.onboardingCase.employeeId,
+                hireCaseId: hireCase.id,
+                employeeId: onboardingCaseSnapshot.employeeId,
                 actorId: command.actorId,
                 activatedAt: command.transitionedAt,
               },
@@ -226,8 +228,8 @@ export class TransitionOnboardingCaseUseCase {
               payload: {
                 tenantId: command.tenantId,
                 onboardingCaseId: command.onboardingCaseId,
-                hireCaseId: snapshot.hireCase.id,
-                employeeId: snapshot.onboardingCase.employeeId,
+                hireCaseId: hireCase.id,
+                employeeId: onboardingCaseSnapshot.employeeId,
                 actorId: command.actorId,
                 transitionedAt: command.transitionedAt,
                 activationHooks,
@@ -239,8 +241,8 @@ export class TransitionOnboardingCaseUseCase {
           payload: {
             tenantId: command.tenantId,
             onboardingCaseId: command.onboardingCaseId,
-            hireCaseId: snapshot.hireCase.id,
-            employeeId: snapshot.onboardingCase.employeeId,
+            hireCaseId: hireCase.id,
+            employeeId: onboardingCaseSnapshot.employeeId,
             actorId: command.actorId,
             transitionedAt: command.transitionedAt,
             hook,
