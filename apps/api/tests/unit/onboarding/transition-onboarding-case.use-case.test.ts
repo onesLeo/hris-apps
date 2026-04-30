@@ -44,7 +44,14 @@ function makeSnapshot(overrides?: Partial<TransitionOnboardingCaseSnapshot>): Tr
       employeeId: 'employee-1',
       status: 'ready_for_start',
       startDate: '2026-05-01',
-      contextJson: {},
+      contextJson: {
+        baseSalary: 8500000,
+        currency: 'IDR',
+        payrollProfile: {
+          taxProfileId: 'tax-profile-1',
+          contributionBand: 'default',
+        },
+      },
       holdReason: null,
       cancelReason: null,
       approvedBy: 'hr-1',
@@ -102,7 +109,84 @@ test('activating a ready onboarding case makes the employee active', () => {
   assert.equal(result.onboardingCase.status, 'active');
   assert.equal(result.employeeStatus, 'active');
   assert.equal(result.hireCase.status, 'active');
-  assert.equal(result.events.at(-1)?.type, 'onboarding.employee.activated');
+  assert.equal(result.activationHooks.length, 4);
+  assert.equal(result.activationHooks[0]?.status, 'completed');
+  assert.equal(result.activationHooks[1]?.status, 'completed');
+  assert.equal(result.activationHooks[2]?.status, 'completed');
+  assert.equal(result.activationHooks[3]?.status, 'completed');
+  const summary = result.hireCase.contextJson.activationChecklistSummary as {
+    completed: number;
+    pending: number;
+    failed: number;
+    skipped: number;
+  };
+  assert.equal(summary.completed, 4);
+  assert.equal(summary.pending, 0);
+  assert.equal(summary.failed, 0);
+  assert.equal(result.events.some((event) => event.type === 'onboarding.employee.activated'), true);
+  assert.equal(result.events.some((event) => event.type === 'onboarding.activation.checklist.updated'), true);
+});
+
+test('activation checklist applies the default payroll setup when payroll payload is absent', () => {
+  const useCase = new TransitionOnboardingCaseUseCase();
+  const snapshot = makeSnapshot({
+    hireCase: {
+      ...makeSnapshot().hireCase,
+      contextJson: {},
+    },
+  });
+
+  const result = useCase.execute(
+    {
+      tenantId,
+      actorId: 'hr-1',
+      onboardingCaseId: 'onboarding-case-1',
+      action: 'activate',
+      transitionedAt: '2026-05-01T08:00:00.000Z',
+    },
+    snapshot,
+  );
+
+  assert.equal(result.activationHooks[1]?.status, 'completed');
+  const summary = result.hireCase.contextJson.activationChecklistSummary as {
+    completed: number;
+    pending: number;
+    failed: number;
+    skipped: number;
+  };
+  assert.equal(summary.failed, 0);
+  assert.equal(summary.completed, 4);
+});
+
+test('activation checklist flags missing downstream prerequisites as failures', () => {
+  const useCase = new TransitionOnboardingCaseUseCase();
+  const snapshot = makeSnapshot({
+    employee: {
+      ...makeSnapshot().employee,
+      email: '',
+    } as TransitionOnboardingCaseSnapshot['employee'],
+  });
+
+  const result = useCase.execute(
+    {
+      tenantId,
+      actorId: 'hr-1',
+      onboardingCaseId: 'onboarding-case-1',
+      action: 'activate',
+      transitionedAt: '2026-05-01T08:00:00.000Z',
+    },
+    snapshot,
+  );
+
+  assert.equal(result.activationHooks[2]?.status, 'failed');
+  const summary = result.hireCase.contextJson.activationChecklistSummary as {
+    completed: number;
+    pending: number;
+    failed: number;
+    skipped: number;
+  };
+  assert.equal(summary.failed, 1);
+  assert.equal(summary.completed, 3);
 });
 
 test('holding an onboarding case moves it to on_hold', () => {

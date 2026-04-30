@@ -4,6 +4,7 @@ import { DATABASE_SERVICE, type IDatabaseService } from '../../common/database/d
 import type { EmployeeRow as EmployeeRecord } from '../employee/employee.types';
 import type {
   CreateOnboardingCaseResult,
+  OnboardingActivationHookStep,
   OnboardingAttachmentSnapshot,
   HireCaseSnapshot,
   OnboardingCaseSnapshot,
@@ -80,6 +81,7 @@ export class OnboardingRepository {
     employee: EmployeeRecord | null;
     openHireCase: HireCaseSnapshot | null;
     openOnboardingCase: OnboardingCaseSnapshot | null;
+    activationHooks: OnboardingActivationHookStep[];
   }> {
     const [employee] = await this.db.queryWithTenant<EmployeeRecord>(tenantId, `
       SELECT e.*,
@@ -146,6 +148,7 @@ export class OnboardingRepository {
             cancelReason: openOnboardingCase.cancel_reason,
           }
         : null,
+      activationHooks: extractActivationHooks(openHireCase?.context_json),
     };
   }
 
@@ -159,6 +162,7 @@ export class OnboardingRepository {
         onboardingCase: null,
         tasks: [],
         attachments: [],
+        activationHooks: extractActivationHooks(createSnapshot.openHireCase?.contextJson),
         openHireCase: createSnapshot.openHireCase,
         openOnboardingCase: null,
       };
@@ -181,6 +185,7 @@ export class OnboardingRepository {
         onboardingCase: null,
         tasks: [],
         attachments: [],
+        activationHooks: [],
         openHireCase: null,
         openOnboardingCase: null,
       };
@@ -311,6 +316,7 @@ export class OnboardingRepository {
         holdReason: onboardingCaseRow.hold_reason,
         cancelReason: onboardingCaseRow.cancel_reason,
       },
+      activationHooks: extractActivationHooks(hireCaseRow?.context_json),
     };
   }
 
@@ -491,6 +497,7 @@ export class OnboardingRepository {
           UPDATE hire_cases
           SET
             status = ${result.hireCase.status},
+            context_json = ${result.hireCase.contextJson},
             hold_reason = ${result.hireCase.holdReason},
             cancel_reason = ${result.hireCase.cancelReason},
             approved_by = ${result.hireCase.approvedBy},
@@ -552,4 +559,38 @@ export class OnboardingRepository {
       `);
     });
   }
+}
+
+function extractActivationHooks(contextJson: unknown): OnboardingActivationHookStep[] {
+  if (!contextJson || typeof contextJson !== 'object') {
+    return [];
+  }
+
+  const checklist = (contextJson as Record<string, unknown>).activationChecklist;
+  if (!Array.isArray(checklist)) {
+    return [];
+  }
+
+  return checklist.flatMap((entry) => {
+    if (!entry || typeof entry !== 'object') {
+      return [];
+    }
+
+    const item = entry as Record<string, unknown>;
+    const key = typeof item.key === 'string' ? item.key : null;
+    const label = typeof item.label === 'string' ? item.label : null;
+    const status = item.status;
+
+    if (!key || !label || (status !== 'pending' && status !== 'completed' && status !== 'failed' && status !== 'skipped')) {
+      return [];
+    }
+
+    return [{
+      key,
+      label,
+      status,
+      message: typeof item.message === 'string' ? item.message : null,
+      completedAt: typeof item.completedAt === 'string' ? item.completedAt : null,
+    }];
+  });
 }

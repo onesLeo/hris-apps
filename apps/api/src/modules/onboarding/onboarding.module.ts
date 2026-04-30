@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../common/database/database.module';
 import { StorageModule } from '../../common/storage/storage.module';
+import { EmployeeModule } from '../employee/employee.module';
 import { OnboardingController } from './onboarding.controller';
 import { OnboardingListener } from './onboarding.listener';
 import { OnboardingRepository } from './onboarding.repository';
@@ -11,7 +12,7 @@ import { TransitionOnboardingCaseUseCase } from './transition-onboarding-case.us
 import { UploadOnboardingAttachmentUseCase } from './upload-onboarding-attachment.use-case';
 
 @Module({
-  imports: [DatabaseModule, StorageModule],
+  imports: [DatabaseModule, StorageModule, EmployeeModule],
   controllers: [OnboardingController],
   providers: [
     OnboardingRepository,

@@ -105,6 +105,10 @@ export function EmployeeOnboardingDialog({
   const onboardingCase = detail?.onboardingCase ?? detail?.openOnboardingCase ?? null;
   const tasks = detail?.tasks ?? [];
   const attachments = detail?.attachments ?? [];
+  const activationHooks = detail?.activationHooks ?? [];
+  const activationHookCompletedCount = activationHooks.filter((hook) => hook.status === 'completed').length;
+  const activationHookFailedCount = activationHooks.filter((hook) => hook.status === 'failed').length;
+  const activationHookPendingCount = activationHooks.filter((hook) => hook.status === 'pending').length;
   const requiredTasks = tasks.filter((task) => task.required);
   const completedRequiredTasks = requiredTasks.filter((task) => task.status === 'completed').length;
   const completedTasks = tasks.filter((task) => task.status === 'completed').length;
@@ -114,7 +118,7 @@ export function EmployeeOnboardingDialog({
   const caseStatus = onboardingCase ? copy.status[onboardingCase.status] : hireCase ? humanizeStatus(hireCase.status) : copy.status.draft;
   const caseTone = onboardingCase ? onboardingStatusTone(onboardingCase.status) : hireCase ? humanizeCaseTone(hireCase.status) : 'ghost';
   const contextEntries = Object.entries((hireCase?.contextJson ?? detail?.openHireCase?.contextJson ?? {}) as Record<string, unknown>)
-    .filter(([, value]) => value !== null && value !== undefined && `${value}`.trim() !== '');
+    .filter(([key, value]) => key !== 'activationChecklist' && key !== 'activationChecklistSummary' && value !== null && value !== undefined && `${value}`.trim() !== '');
 
   const canCreate = employee.status === 'Pre_Boarding' && !loading && !onboardingCase;
 
@@ -389,17 +393,63 @@ export function EmployeeOnboardingDialog({
                   </div>
                 </div>
 
-                {contextEntries.length > 0 && (
-                  <div style={contextGridStyle}>
-                    {contextEntries.map(([key, value]) => (
-                      <div key={key} style={contextItemStyle}>
-                        <div style={contextKeyStyle}>{formatKeyLabel(key)}</div>
-                        <div style={contextValueStyle}>{String(value)}</div>
+              {contextEntries.length > 0 && (
+                <div style={contextGridStyle}>
+                  {contextEntries.map(([key, value]) => (
+                    <div key={key} style={contextItemStyle}>
+                      <div style={contextKeyStyle}>{formatKeyLabel(key)}</div>
+                      <div style={contextValueStyle}>{String(value)}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {activationHooks.length > 0 && (
+                <div style={activationChecklistStyle}>
+                  <div style={sectionHeaderStyle}>
+                    <div>
+                      <div className="aurora-card-title" style={{ fontSize: 16 }}>{copy.activationChecklistTitle}</div>
+                      <div className="aurora-card-subtitle" style={{ marginTop: 2 }}>
+                        {copy.activationChecklistSubtitle}
+                      </div>
+                    </div>
+                    <div style={activationChecklistBadgeRowStyle}>
+                      <Badge
+                        label={`${activationHookCompletedCount}/${activationHooks.length} ${copy.activationChecklistDoneSuffix}`}
+                        tone="accent"
+                      />
+                      {activationHookFailedCount > 0 && (
+                        <Badge
+                          label={`${activationHookFailedCount} issue${activationHookFailedCount === 1 ? '' : 's'}`}
+                          tone="danger"
+                        />
+                      )}
+                      {activationHookPendingCount > 0 && (
+                        <Badge
+                          label={`${activationHookPendingCount} queued`}
+                          tone="warning"
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  <div style={activationHookStackStyle}>
+                    {activationHooks.map((hook) => (
+                      <div key={hook.key} style={activationHookItemStyle}>
+                        <div style={{ minWidth: 0 }}>
+                          <div style={activationHookTitleStyle}>{hook.label}</div>
+                          <div style={activationHookMetaStyle}>{hook.message ?? copy.activationChecklistQueuedFallback}</div>
+                        </div>
+                        <Badge
+                          label={hook.status}
+                          tone={hook.status === 'completed' ? 'success' : hook.status === 'failed' ? 'danger' : hook.status === 'skipped' ? 'warning' : 'ghost'}
+                        />
                       </div>
                     ))}
                   </div>
-                )}
-              </section>
+                </div>
+              )}
+            </section>
 
               <section style={sectionCardStyle}>
                 <div style={sectionHeaderStyle}>
@@ -882,6 +932,50 @@ const contextValueStyle: CSSProperties = {
   fontSize: 13,
   color: 'var(--text-primary)',
   wordBreak: 'break-word',
+};
+
+const activationChecklistStyle: CSSProperties = {
+  marginTop: 16,
+  borderTop: '1px solid rgba(148, 163, 184, 0.22)',
+  paddingTop: 16,
+  display: 'grid',
+  gap: 12,
+};
+
+const activationChecklistBadgeRowStyle: CSSProperties = {
+  display: 'flex',
+  gap: 8,
+  flexWrap: 'wrap',
+  justifyContent: 'flex-end',
+};
+
+const activationHookStackStyle: CSSProperties = {
+  display: 'grid',
+  gap: 10,
+};
+
+const activationHookItemStyle: CSSProperties = {
+  display: 'flex',
+  justifyContent: 'space-between',
+  gap: 12,
+  alignItems: 'center',
+  border: '1px solid var(--border)',
+  borderRadius: 14,
+  padding: '10px 12px',
+  background: 'rgba(248, 250, 252, 0.88)',
+};
+
+const activationHookTitleStyle: CSSProperties = {
+  fontSize: 13.5,
+  fontWeight: 700,
+  color: 'var(--text-primary)',
+};
+
+const activationHookMetaStyle: CSSProperties = {
+  marginTop: 4,
+  fontSize: 12.5,
+  lineHeight: 1.45,
+  color: 'var(--text-muted)',
 };
 
 const emptyStateStyle: CSSProperties = {

@@ -39,3 +39,24 @@ export type PayslipGeneratedEvent = {
   periodLabel: string;
   generatedAt: string;
 };
+
+export type PayrollSetupInitializedEvent = {
+  tenantId: string;
+  onboardingCaseId: string;
+  hireCaseId: string;
+  employeeId: string;
+  actorId: string;
+  initializedAt: string;
+  ptkpCategoryCode: string | null;
+  npwpActive: boolean;
+};
+
+export type PayrollSetupFailedEvent = {
+  tenantId: string;
+  onboardingCaseId: string;
+  hireCaseId: string;
+  employeeId: string;
+  actorId: string;
+  failedAt: string;
+  reason: string;
+};

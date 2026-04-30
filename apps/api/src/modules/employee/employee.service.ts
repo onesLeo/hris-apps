@@ -412,6 +412,198 @@ export class EmployeeService {
     `, [tenantId, employeeId, npwpEncrypted, ptkpCategoryId, npwp !== null]);
   }
 
+  async initializePayrollSetup(
+    tenantId: string,
+    employeeId: string,
+    input: {
+      npwp?: string | null;
+      ptkpCategoryCode?: string | null;
+    },
+  ): Promise<{ ptkpCategoryCode: string | null }> {
+    const resolvedPtkpCategoryCode = input.ptkpCategoryCode?.trim() || 'TK/0';
+    const [category] = await this.db.queryWithTenant<{ id: string; code: string }>(tenantId, `
+      SELECT id, code
+      FROM ptkp_categories
+      WHERE code = $1
+      LIMIT 1
+    `, [resolvedPtkpCategoryCode]);
+
+    await this.upsertTaxProfile(tenantId, employeeId, input.npwp ?? null, category?.id ?? null);
+
+    return {
+      ptkpCategoryCode: category?.code ?? null,
+    };
+  }
+
+  async initializeAccessProvisioning(
+    tenantId: string,
+    employeeId: string,
+  ): Promise<{ userId: string; keycloakId: string; roleName: string }> {
+    const employee = await this.getById(tenantId, employeeId);
+    const employeeEmail = employee.email.trim();
+
+    if (!employeeEmail) {
+      throw new BadRequestException('Employee email is required for access provisioning');
+    }
+
+    const existingUserId = employee.user_id;
+    const [linkedUser] = existingUserId
+      ? await this.db.queryWithTenant<{ id: string; keycloak_id: string; email: string; display_name: string; status: string }>(tenantId, `
+          SELECT id, keycloak_id, email, display_name, status
+          FROM users
+          WHERE id = $1 AND tenant_id = $2
+          LIMIT 1
+        `, [existingUserId, tenantId])
+      : [];
+    const [emailUser] = !linkedUser
+      ? await this.db.queryWithTenant<{ id: string; keycloak_id: string; email: string; display_name: string; status: string }>(tenantId, `
+          SELECT id, keycloak_id, email, display_name, status
+          FROM users
+          WHERE email = $1 AND tenant_id = $2
+          LIMIT 1
+        `, [employeeEmail, tenantId])
+      : [];
+
+    let user = linkedUser ?? emailUser ?? null;
+    if (!user) {
+      const keycloakId = `provisioned:${tenantId}:${employeeId}`;
+      const [createdUser] = await this.db.queryWithTenant<{ id: string; keycloak_id: string; email: string; display_name: string; status: string }>(tenantId, `
+        INSERT INTO users (
+          tenant_id, keycloak_id, email, display_name, status, created_at, updated_at
+        ) VALUES ($1,$2,$3,$4,'active',NOW(),NOW())
+        RETURNING id, keycloak_id, email, display_name, status
+      `, [tenantId, keycloakId, employeeEmail, employee.display_name]);
+
+      user = createdUser ?? null;
+    } else if (user.email !== employeeEmail || user.display_name !== employee.display_name || user.status !== 'active') {
+      const [updatedUser] = await this.db.queryWithTenant<{ id: string; keycloak_id: string; email: string; display_name: string; status: string }>(tenantId, `
+        UPDATE users
+        SET email = $1,
+            display_name = $2,
+            status = 'active',
+            updated_at = NOW()
+        WHERE id = $3 AND tenant_id = $4
+        RETURNING id, keycloak_id, email, display_name, status
+      `, [employeeEmail, employee.display_name, user.id, tenantId]);
+
+      user = updatedUser ?? user;
+    }
+
+    const [role] = await this.db.queryWithTenant<{ id: string; name: string }>(tenantId, `
+      SELECT id, name
+      FROM roles
+      WHERE name = 'employee'
+      LIMIT 1
+    `);
+
+    if (!role) {
+      throw new BadRequestException('Employee role is not configured');
+    }
+
+    const [existingRole] = await this.db.queryWithTenant<{ id: string }>(tenantId, `
+      SELECT id
+      FROM user_roles
+      WHERE tenant_id = $1
+        AND user_id = $2
+        AND role_id = $3
+        AND scope_type = 'tenant'
+        AND scope_entity_id IS NULL
+      LIMIT 1
+    `, [tenantId, user.id, role.id]);
+
+    if (!existingRole) {
+      await this.db.queryWithTenant(tenantId, `
+        INSERT INTO user_roles (
+          tenant_id, user_id, role_id, scope_type, scope_entity_id, granted_at, granted_by
+        ) VALUES ($1,$2,$3,'tenant',NULL,NOW(),NULL)
+      `, [tenantId, user.id, role.id]);
+    }
+
+    await this.db.queryWithTenant(tenantId, `
+      UPDATE employees
+      SET user_id = $1,
+          updated_at = NOW()
+      WHERE id = $2 AND tenant_id = $3
+    `, [user.id, employeeId, tenantId]);
+
+    return {
+      userId: user.id,
+      keycloakId: user.keycloak_id,
+      roleName: role.name,
+    };
+  }
+
+  async initializeAttendanceProfile(
+    tenantId: string,
+    employeeId: string,
+  ): Promise<{
+    profileId: string;
+    locationId: string;
+    departmentId: string;
+    timezone: string;
+    clockingMethod: string;
+  }> {
+    const employee = await this.getById(tenantId, employeeId);
+    if (!employee.department_id || !employee.location_id) {
+      throw new BadRequestException('Employee department and location are required for attendance profile initialization');
+    }
+
+    const [location] = await this.db.queryWithTenant<{ id: string; timezone: string; clocking_method: string }>(tenantId, `
+      SELECT id, timezone, clocking_method
+      FROM locations
+      WHERE id = $1 AND tenant_id = $2
+      LIMIT 1
+    `, [employee.location_id, tenantId]);
+
+    if (!location) {
+      throw new BadRequestException('Employee location is not available for attendance profile initialization');
+    }
+
+    const [profile] = await this.db.queryWithTenant<{
+      id: string;
+      tenant_id: string;
+      employee_id: string;
+      department_id: string;
+      location_id: string;
+      timezone: string;
+      clocking_method: string;
+      initialized_at: string;
+    }>(tenantId, `
+      INSERT INTO employee_attendance_profiles (
+        tenant_id, employee_id, department_id, location_id, timezone, clocking_method, initialized_at, created_at, updated_at
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,NOW(),NOW())
+      ON CONFLICT (employee_id)
+      DO UPDATE SET
+        department_id = EXCLUDED.department_id,
+        location_id = EXCLUDED.location_id,
+        timezone = EXCLUDED.timezone,
+        clocking_method = EXCLUDED.clocking_method,
+        initialized_at = EXCLUDED.initialized_at,
+        updated_at = NOW()
+      RETURNING id, tenant_id, employee_id, department_id, location_id, timezone, clocking_method, initialized_at
+    `, [
+      tenantId,
+      employeeId,
+      employee.department_id,
+      employee.location_id,
+      location.timezone,
+      location.clocking_method,
+      new Date().toISOString(),
+    ]);
+
+    if (!profile) {
+      throw new BadRequestException('Failed to initialize employee attendance profile');
+    }
+
+    return {
+      profileId: profile.id,
+      locationId: profile.location_id,
+      departmentId: profile.department_id,
+      timezone: profile.timezone,
+      clockingMethod: profile.clocking_method,
+    };
+  }
+
   // Called during hire or profile update to persist encrypted bank account.
   async addBankAccount(
     tenantId: string,

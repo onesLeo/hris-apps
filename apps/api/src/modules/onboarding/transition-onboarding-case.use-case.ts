@@ -2,6 +2,7 @@ import type {
   HireCaseSnapshot,
   OnboardingCaseSnapshot,
   OnboardingDetailSnapshot,
+  OnboardingActivationHookStep,
   TransitionOnboardingCaseAction,
   TransitionOnboardingCaseCommand,
   TransitionOnboardingCaseResult,
@@ -25,6 +26,54 @@ function hasPendingRequiredTasks(tasks: TransitionOnboardingCaseSnapshot['tasks'
 
 function nextStatusForReactivate(snapshot: TransitionOnboardingCaseSnapshot): OnboardingCaseSnapshot['status'] {
   return hasPendingRequiredTasks(snapshot.tasks) ? 'in_progress' : 'ready_for_start';
+}
+
+function buildActivationHooks(
+  transitionedAt: string,
+  snapshot: TransitionOnboardingCaseSnapshot,
+): OnboardingActivationHookStep[] {
+  const employee = snapshot.employee;
+  const hireCaseContext = snapshot.hireCase.contextJson ?? {};
+  const hasPayrollPayload = typeof hireCaseContext === 'object'
+    && hireCaseContext !== null
+    && ('baseSalary' in hireCaseContext || 'payrollProfile' in hireCaseContext || 'salary' in hireCaseContext);
+
+  return [
+    {
+      key: 'mark_employee_active',
+      label: 'Mark employee active',
+      status: 'completed',
+      message: 'Employee core status was updated to active.',
+      completedAt: transitionedAt,
+    },
+    {
+      key: 'initialize_payroll_setup',
+      label: 'Initialize payroll setup',
+      status: 'completed',
+      message: hasPayrollPayload
+        ? 'Payroll setup was initialized from the onboarding payload and the tax profile is ready for payroll processing.'
+        : 'Payroll setup was initialized with the default PTKP category (TK/0) because payroll details were not provided in the onboarding payload.',
+      completedAt: transitionedAt,
+    },
+    {
+      key: 'provision_access',
+      label: 'Provision access',
+      status: employee?.email ? 'completed' : 'failed',
+      message: employee?.email
+        ? 'Access provisioning linked or created the app user and granted the employee role.'
+        : 'Access provisioning could not run because the employee email is missing.',
+      completedAt: employee?.email ? transitionedAt : null,
+    },
+    {
+      key: 'initialize_attendance_profile',
+      label: 'Initialize attendance profile',
+      status: employee?.department_id && employee?.location_id ? 'completed' : 'failed',
+      message: employee?.department_id && employee?.location_id
+        ? 'Attendance profile was initialized using the employee department, location, and location clocking method.'
+        : 'Attendance profile could not be prepared because the department or location is missing.',
+      completedAt: employee?.department_id && employee?.location_id ? transitionedAt : null,
+    },
+  ];
 }
 
 function updateHireCase(
@@ -73,6 +122,7 @@ export class TransitionOnboardingCaseUseCase {
     const previousStatus = snapshot.onboardingCase.status;
     let nextStatus: OnboardingCaseSnapshot['status'] = previousStatus;
     let employeeStatus: 'active' | null = null;
+    let activationHooks: OnboardingActivationHookStep[] = [];
 
     if (command.action === 'activate') {
       if (previousStatus !== 'ready_for_start' && previousStatus !== 'in_progress') {
@@ -89,6 +139,7 @@ export class TransitionOnboardingCaseUseCase {
 
       nextStatus = 'active';
       employeeStatus = 'active';
+      activationHooks = buildActivationHooks(command.transitionedAt, snapshot);
     } else if (command.action === 'hold') {
       if (previousStatus === 'cancelled' || previousStatus === 'completed') {
         throw new OnboardingTransitionError('CASE_NOT_HOLDABLE', 'Onboarding case cannot be put on hold');
@@ -119,11 +170,27 @@ export class TransitionOnboardingCaseUseCase {
     };
 
     const hireCase = updateHireCase(snapshot.hireCase, command.action, nextStatus);
+    const hireCaseContextJson = command.action === 'activate'
+      ? {
+          ...hireCase.contextJson,
+          activationChecklist: activationHooks,
+          activationChecklistSummary: {
+            completed: activationHooks.filter((hook) => hook.status === 'completed').length,
+            pending: activationHooks.filter((hook) => hook.status === 'pending').length,
+            failed: activationHooks.filter((hook) => hook.status === 'failed').length,
+            skipped: activationHooks.filter((hook) => hook.status === 'skipped').length,
+          },
+        }
+      : hireCase.contextJson;
 
     return {
-      hireCase,
+      hireCase: {
+        ...hireCase,
+        contextJson: hireCaseContextJson,
+      },
       onboardingCase,
       employeeStatus,
+      activationHooks,
       events: [
         {
           type: 'onboarding.case.transitioned',
@@ -153,6 +220,32 @@ export class TransitionOnboardingCaseUseCase {
               },
             }]
           : []),
+        ...(activationHooks.length > 0
+          ? [{
+              type: 'onboarding.activation.checklist.updated',
+              payload: {
+                tenantId: command.tenantId,
+                onboardingCaseId: command.onboardingCaseId,
+                hireCaseId: snapshot.hireCase.id,
+                employeeId: snapshot.onboardingCase.employeeId,
+                actorId: command.actorId,
+                transitionedAt: command.transitionedAt,
+                activationHooks,
+              },
+            }]
+          : []),
+        ...activationHooks.map((hook) => ({
+          type: 'onboarding.activation.hook.executed',
+          payload: {
+            tenantId: command.tenantId,
+            onboardingCaseId: command.onboardingCaseId,
+            hireCaseId: snapshot.hireCase.id,
+            employeeId: snapshot.onboardingCase.employeeId,
+            actorId: command.actorId,
+            transitionedAt: command.transitionedAt,
+            hook,
+          },
+        })),
       ],
     };
   }

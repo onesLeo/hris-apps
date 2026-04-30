@@ -79,6 +79,7 @@ export type OnboardingDetailSnapshot = {
   onboardingCase: OnboardingCaseSnapshot | null;
   tasks: OnboardingTaskSnapshot[];
   attachments?: OnboardingAttachmentSnapshot[];
+  activationHooks?: OnboardingActivationHookStep[];
   openHireCase: HireCaseSnapshot | null;
   openOnboardingCase: OnboardingCaseSnapshot | null;
 };
@@ -121,6 +122,16 @@ export type CompleteOnboardingTaskResult = {
 
 export type TransitionOnboardingCaseAction = 'activate' | 'hold' | 'cancel' | 'reactivate';
 
+export type OnboardingActivationHookStatus = 'pending' | 'completed' | 'failed' | 'skipped';
+
+export type OnboardingActivationHookStep = {
+  key: string;
+  label: string;
+  status: OnboardingActivationHookStatus;
+  message: string | null;
+  completedAt: string | null;
+};
+
 export type TransitionOnboardingCaseCommand = {
   tenantId: string;
   actorId: string;
@@ -134,6 +145,7 @@ export type TransitionOnboardingCaseResult = {
   hireCase: HireCaseSnapshot;
   onboardingCase: OnboardingCaseSnapshot;
   employeeStatus: 'active' | null;
+  activationHooks: OnboardingActivationHookStep[];
   events: Array<{ type: string; payload: Record<string, unknown> }>;
 };
 

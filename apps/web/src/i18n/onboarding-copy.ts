@@ -70,6 +70,10 @@ export type OnboardingCopy = {
   attachmentUploadSuccess: string;
   attachmentUploadFailed: string;
   attachmentDownloadFailed: string;
+  activationChecklistTitle: string;
+  activationChecklistSubtitle: string;
+  activationChecklistDoneSuffix: string;
+  activationChecklistQueuedFallback: string;
   createFailed: string;
   completeFailed: string;
   transitionFailed: string;
@@ -173,6 +177,10 @@ const ONBOARDING_COPY: Record<Locale, OnboardingCopy> = {
     attachmentUploadSuccess: 'Attachment uploaded successfully.',
     attachmentUploadFailed: 'Could not upload the attachment right now.',
     attachmentDownloadFailed: 'Could not download the attachment right now.',
+    activationChecklistTitle: 'Activation hooks',
+    activationChecklistSubtitle: 'Track downstream activation steps and their current state.',
+    activationChecklistDoneSuffix: 'done',
+    activationChecklistQueuedFallback: 'Queued for downstream processing.',
     createFailed: 'Could not create the onboarding case right now.',
     completeFailed: 'Could not complete the onboarding task right now.',
     transitionFailed: 'Could not update the onboarding case right now.',
@@ -282,6 +290,10 @@ const ONBOARDING_COPY: Record<Locale, OnboardingCopy> = {
     attachmentUploadSuccess: 'Lampiran berhasil diunggah.',
     attachmentUploadFailed: 'Lampiran belum bisa diunggah saat ini.',
     attachmentDownloadFailed: 'Lampiran belum bisa diunduh saat ini.',
+    activationChecklistTitle: 'Hook aktivasi',
+    activationChecklistSubtitle: 'Pantau langkah aktivasi lanjutan dan statusnya saat ini.',
+    activationChecklistDoneSuffix: 'selesai',
+    activationChecklistQueuedFallback: 'Menunggu pemrosesan lanjutan.',
     createFailed: 'Kasus onboarding belum bisa dibuat saat ini.',
     completeFailed: 'Tugas onboarding belum bisa diselesaikan saat ini.',
     transitionFailed: 'Kasus onboarding belum bisa diperbarui saat ini.',

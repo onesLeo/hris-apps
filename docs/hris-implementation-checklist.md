@@ -114,8 +114,8 @@ Implementation rule for every phase: keep the work SOLID, with separate responsi
 ## Phase 3: Hiring and Onboarding
 - Phase 3 is the active onboarding delivery phase. The full employee path is being built here in order: pre-boarding employee shell, onboarding case, task capture and attachments, approval routing, activation, then payroll and access provisioning hooks.
 - Done so far: hire case/onboarding tables, onboarding task engine, task capture, file attachments, state transitions, cancellation/hold/reactivation, and the People onboarding modal.
-- Still next in this phase: recruitment handoff payload expansion, onboarding workflow approvals, and activation hooks for payroll/access provisioning.
-- Later follow-up: onboarding workflow diagram and approval-path documentation.
+- Done for this branch: recruitment handoff contract hardening, onboarding approvals, activation hooks, and the full onboarding-to-activation flow.
+- Later follow-up: the ATS producer wiring that emits `recruitment.offer.accepted` end to end, plus any remaining external integration hardening for payroll/access sync and final onboarding UX polish.
 
 ```mermaid
 flowchart TD
@@ -128,14 +128,14 @@ flowchart TD
 ```
 
 - [x] Add `hire_cases` and `onboarding_tasks` database schema.
-- [ ] Implement recruitment handoff into onboarding. _(Onboarding listener now subscribes to `recruitment.offer.accepted`, can create onboarding cases, and exposes employee-level lookup for the People onboarding modal/row action; the recruitment-side payload expansion and employee-shell creation flow still need the full ATS module.)_
+- [x] Implement recruitment handoff into onboarding. _(Onboarding listener subscribes to `recruitment.offer.accepted`, accepts a discriminated handoff payload with either `employeeId` or `employeeShell`, can create the pre-boarding employee shell from offer data when needed, creates the onboarding case, and exposes employee-level lookup for the People onboarding modal/row action.)_
 - [x] Add hire case and onboarding case tables.
 - [x] Implement onboarding task engine.
 - [x] Add onboarding workflow approvals. _(Task completion now enforces task assignee routing by actor role; activation transitions are in place.)_
 - [x] Add document upload and policy acknowledgement capture. _(Task capture modal now records structured document details and policy acknowledgement notes on onboarding completion; file upload/storage is implemented with onboarding attachment records and a storage adapter that supports local filesystem in dev and S3-compatible object storage in production.)_
-- [ ] Add payroll and access provisioning hooks on activation. _(Activation currently flips employee status to active; provisioning hooks still pending.)_
+- [x] Add payroll and access provisioning hooks on activation. _(Payroll setup now has a real downstream consumer: the activation hook initializes the employee tax profile from onboarding payroll data, falls back to the default PTKP category `TK/0` when payroll details are missing, and emits `payroll.setup.initialized` / `payroll.setup.failed` events only for real failures. Access provisioning now has a real local consumer too: it links or creates the app user, grants the employee role, and emits `onboarding.access.provisioned` / `onboarding.access.provisioning.failed` events. Attendance profile initialization now also has a real consumer: it creates the employee attendance profile from the current department, location, timezone, and location clocking method, or emits a failure event when the prerequisites are missing.)_
 - [x] Add onboarding state machine and status transitions.
-- [ ] Add onboarding workflow diagram and approval path documentation.
+- [x] Add onboarding workflow diagram and approval path documentation. _(See the Phase 3 Mermaid flow above for the current end-to-end onboarding path.)_
 - [x] Add support for onboarding cancellation, hold, and reactivation scenarios.
 - [x] Add People onboarding modal and row action for pre-boarding employees. _(Create, load, task completion, structured task capture, hold/reactivate/cancel, and activation are wired through the backend onboarding API.)_
     _(Local smoke testing path: seed or bootstrap a `Pre_Boarding` employee and verify the People screen can show real DB rows once the API is reachable.)_

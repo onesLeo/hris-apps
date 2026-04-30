@@ -91,12 +91,23 @@ export type OnboardingAttachment = {
   uploadedAt: string;
 };
 
+export type OnboardingActivationHookStatus = 'pending' | 'completed' | 'failed' | 'skipped';
+
+export type OnboardingActivationHook = {
+  key: string;
+  label: string;
+  status: OnboardingActivationHookStatus;
+  message: string | null;
+  completedAt: string | null;
+};
+
 export type OnboardingDetail = {
   employee: OnboardingEmployee | null;
   hireCase: OnboardingHireCase | null;
   onboardingCase: OnboardingCase | null;
   tasks: OnboardingTask[];
   attachments?: OnboardingAttachment[];
+  activationHooks?: OnboardingActivationHook[];
   openHireCase: OnboardingHireCase | null;
   openOnboardingCase: OnboardingCase | null;
 };
