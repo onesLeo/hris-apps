@@ -3,7 +3,7 @@ export type JwtClaims = {
   email: string;
   preferred_username?: string;
   name?: string;
-  tenant_id: string;
+  tenant_id?: string;
   roles?: string[];
   realm_access?: { roles: string[] };
   iat: number;

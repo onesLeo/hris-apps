@@ -4,6 +4,7 @@ import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import { createRemoteJWKSet, jwtVerify } from 'jose';
 
+import { RequestContext } from '../../common/context/request-context';
 import type { JwtClaims } from './auth.types';
 
 export const PUBLIC_KEY = 'isPublic';
@@ -39,25 +40,45 @@ export class JwtAuthGuard implements CanActivate {
     const jwksUri = this.config.get<string>('KEYCLOAK_JWKS_URI');
     if (!jwksUri) throw new UnauthorizedException('auth.token.invalid');
 
+    let payload: JwtClaims;
     try {
-      const { payload } = await jwtVerify<JwtClaims>(token, getJwks(jwksUri));
-
-      const realmRoles = payload.realm_access?.roles ?? [];
-      const roles = payload.roles ?? realmRoles;
-
-      req.user = {
-        userId: payload.sub,
-        keycloakId: payload.sub,
-        tenantId: payload.tenant_id,
-        email: payload.email,
-        displayName: payload.name ?? payload.preferred_username ?? payload.email,
-        roles,
-      };
-
-      return true;
+      ({ payload } = await jwtVerify<JwtClaims>(token, getJwks(jwksUri)));
     } catch {
       throw new UnauthorizedException('auth.token.expired');
     }
+
+    const defaultTenantId = this.config.get<string>('DEFAULT_TENANT_ID');
+    const defaultUserId = this.config.get<string>('DEFAULT_USER_ID');
+    const tenantId = payload.tenant_id ?? defaultTenantId;
+    const userId = defaultUserId ?? payload.sub;
+
+    const realmRoles = payload.realm_access?.roles ?? [];
+    const roles = payload.roles ?? realmRoles;
+
+    if (!tenantId || !userId) {
+      throw new UnauthorizedException('auth.token.invalid');
+    }
+
+    req.user = {
+      userId,
+      keycloakId: payload.sub,
+      tenantId,
+      email: payload.email,
+      displayName: payload.name ?? payload.preferred_username ?? payload.email,
+      roles,
+    };
+
+    const requestContext = RequestContext.get();
+    if (requestContext) {
+      requestContext.tenantId = tenantId;
+      requestContext.userId = userId;
+      const actorRole = roles[0];
+      if (actorRole) {
+        requestContext.actorRole = actorRole;
+      }
+    }
+
+    return true;
   }
 
   private extractToken(req: Request): string | null {

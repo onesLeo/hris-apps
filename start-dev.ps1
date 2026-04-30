@@ -1,20 +1,58 @@
 # HRIS local development startup
 # Usage: .\start-dev.ps1
 # Stops everything: .\start-dev.ps1 -Down
+# Bypass port cleanup: .\start-dev.ps1 -SkipPortCleanup
+# Skip DB bootstrap: .\start-dev.ps1 -SkipBootstrap
 
-param([switch]$Down)
+param(
+  [switch]$Down,
+  [switch]$SkipPortCleanup,
+  [switch]$SkipBootstrap
+)
 
 $ComposeFile = "docker\docker-compose.infra.yml"
+
+function Get-ProcessIdOnPort([int]$Port) {
+  $pattern = [regex]::Escape(":$Port") + '\s+\S+\s+LISTENING\s+(\d+)\s*$'
+  $lines = netstat -ano -p tcp 2>$null | Select-String -Pattern $pattern -ErrorAction SilentlyContinue
+  foreach ($line in $lines) {
+    if ($line.Matches.Count -gt 0) {
+      return [int]$line.Matches[0].Groups[1].Value
+    }
+  }
+
+  return $null
+}
+
+function Stop-Ports([int[]]$Ports) {
+  foreach ($port in $Ports) {
+    $processId = Get-ProcessIdOnPort -Port $port
+    if ($processId) {
+      Write-Host "    Killing process $processId on port $port"
+      taskkill /F /T /PID $processId | Out-Null
+    }
+  }
+}
+
+function Invoke-DevBootstrap {
+  $bootstrapScript = Join-Path $PSScriptRoot 'scripts/bootstrap-dev-db.ps1'
+  if (-not (Test-Path $bootstrapScript)) {
+    throw "Bootstrap script not found at $bootstrapScript"
+  }
+
+  Write-Host "    Bootstrapping foundational dev schema and seed data..."
+  & $bootstrapScript -ComposeFile $ComposeFile
+  if ($LASTEXITCODE -ne 0) {
+    throw "Dev bootstrap failed."
+  }
+}
 
 if ($Down) {
   Write-Host "Stopping infrastructure..."
   docker compose -f $ComposeFile down
 
   Write-Host "Killing any Node processes on ports 3000 and 3001..."
-  @(3000, 3001) | ForEach-Object {
-    $conn = Get-NetTCPConnection -LocalPort $_ -ErrorAction SilentlyContinue
-    if ($conn) { Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue }
-  }
+  Stop-Ports -Ports @(3000, 3001)
 
   Write-Host "Done."
   exit 0
@@ -26,12 +64,10 @@ Write-Host ""
 
 # Kill any leftover processes from previous runs
 Write-Host "[0/3] Clearing ports 3000 and 3001..."
-@(3000, 3001) | ForEach-Object {
-  $conn = Get-NetTCPConnection -LocalPort $_ -ErrorAction SilentlyContinue
-  if ($conn) {
-    Write-Host "    Killing process $($conn.OwningProcess) on port $_"
-    Stop-Process -Id $conn.OwningProcess -Force -ErrorAction SilentlyContinue
-  }
+if ($SkipPortCleanup) {
+  Write-Host "    Skipping port cleanup."
+} else {
+  Stop-Ports -Ports @(3000, 3001)
 }
 
 # 1. Start infrastructure
@@ -59,6 +95,12 @@ if ($retries -ge 30) {
   exit 1
 }
 Write-Host "    Postgres is ready."
+
+if (-not $SkipBootstrap) {
+  Invoke-DevBootstrap
+} else {
+  Write-Host "    Skipping bootstrap."
+}
 
 # 3. Open API + Web in separate terminals
 Write-Host "[3/3] Starting API and Web..."

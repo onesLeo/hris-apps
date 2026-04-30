@@ -150,7 +150,7 @@ export class OnboardingService {
       fileSize: file.size,
       storageKey,
       uploadedAt: now,
-    }, snapshot);
+    }, snapshot, file.originalname, file.mimetype, file.size);
 
     try {
       await this.storage.save(result.attachment.storageKey, file.buffer);

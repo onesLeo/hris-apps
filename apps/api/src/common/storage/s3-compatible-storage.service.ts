@@ -106,11 +106,16 @@ export class S3CompatibleStorageService implements IFileStorageService {
       headers.set('content-length', String(payload.byteLength));
     }
 
-    return fetch(url, {
+    const requestInit: RequestInit = {
       method,
       headers,
-      body: method === 'GET' || method === 'DELETE' ? undefined : payload,
-    });
+    };
+
+    if (method === 'PUT') {
+      requestInit.body = payload;
+    }
+
+    return fetch(url, requestInit);
   }
 
   private resolveUrl(storageKey: string): URL {

@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
+import { useSession } from 'next-auth/react';
 import { Badge, Avatar, Button, Icon } from '../aurora-primitives';
 import { getOnboardingCopy, getPeopleCopy, useLocale } from '../../i18n';
 import { getOrganizationOverview } from '../organization/organization-data';
@@ -59,6 +60,7 @@ const BADGE_TONE: Record<EmployeeStatus | WorkType, 'accent' | 'violet' | 'warni
 
 export function PeopleScreen() {
   const { locale } = useLocale();
+  const { data: session, status: sessionStatus } = useSession();
   const localeCopy = getPeopleCopy(locale);
   const [filter, setFilter] = useState<'All' | 'Active' | 'On Leave' | 'Terminated' | 'Remote' | 'Office'>('All');
   const [search, setSearch] = useState('');
@@ -92,11 +94,24 @@ export function PeopleScreen() {
     })),
   );
 
-  // Attempt to load real data from the API on mount.
+  // Attempt to load real data from the API once the session token is ready.
   // Falls back silently to the mock EMPLOYEES array if the API is unavailable
   // (e.g. no token, dev without backend running).
   useEffect(() => {
+    if (sessionStatus === 'loading') {
+      return;
+    }
+
     let cancelled = false;
+
+    if (!session?.accessToken) {
+      setEmployeesApiReady(false);
+      setCatalogReady(false);
+      setEmployees(EMPLOYEES);
+      return () => {
+        cancelled = true;
+      };
+    }
 
     Promise.allSettled([fetchEmployees(), fetchOrganizationCatalog()]).then(([employeesResult, catalogResult]) => {
       if (cancelled) return;
@@ -120,7 +135,7 @@ export function PeopleScreen() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [session?.accessToken, sessionStatus]);
 
   const statusLabel = (label: EmployeeStatus | WorkType) => localeCopy.status[label];
 
