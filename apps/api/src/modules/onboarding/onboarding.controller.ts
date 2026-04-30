@@ -12,7 +12,6 @@ import {
 import { FileInterceptor } from '@nestjs/platform-express';
 import { memoryStorage } from 'multer';
 import { RequestContext } from '../../common/context/request-context';
-import { AuditInterceptor } from '../audit/audit.interceptor';
 import { Roles } from '../../common/guards/roles.decorator';
 import { OnboardingService } from './onboarding.service';
 import {
@@ -29,7 +28,6 @@ import type {
 } from './onboarding.dto';
 
 @Controller('onboarding')
-@UseInterceptors(AuditInterceptor)
 export class OnboardingController {
   constructor(private readonly service: OnboardingService) {}
 

@@ -6,9 +6,7 @@ import {
   Patch,
   Post,
   Query,
-  UseInterceptors,
 } from '@nestjs/common';
-import { AuditInterceptor } from '../audit/audit.interceptor';
 import { Roles } from '../../common/guards/roles.decorator';
 import type {
   EmployeeListQuery,
@@ -25,7 +23,6 @@ import { EmployeeService } from './employee.service';
 import { RequestContext } from '../../common/context/request-context';
 
 @Controller('employees')
-@UseInterceptors(AuditInterceptor)
 export class EmployeeController {
   constructor(private readonly service: EmployeeService) {}
 

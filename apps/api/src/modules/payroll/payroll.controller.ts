@@ -1,6 +1,5 @@
-import { Body, Controller, Param, ParseUUIDPipe, Post, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Param, ParseUUIDPipe, Post } from '@nestjs/common';
 import { randomUUID } from 'node:crypto';
-import { AuditInterceptor } from '../audit/audit.interceptor';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { Roles } from '../../common/guards/roles.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
@@ -13,7 +12,6 @@ import { PayrollRunError, StartPayrollRunUseCase } from './start-payroll-run.use
 import { FinalizePayrollRunUseCase } from './finalize-payroll-run.use-case';
 
 @Controller('payroll')
-@UseInterceptors(AuditInterceptor)
 export class PayrollController {
   constructor(
     private readonly payrollRepository: PayrollRepository,

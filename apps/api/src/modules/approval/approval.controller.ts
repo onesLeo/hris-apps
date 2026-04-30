@@ -1,5 +1,4 @@
-import { Body, Controller, Param, ParseIntPipe, Post, UseInterceptors } from '@nestjs/common';
-import { AuditInterceptor } from '../audit/audit.interceptor';
+import { Body, Controller, Param, ParseIntPipe, Post } from '@nestjs/common';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { Roles } from '../../common/guards/roles.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
@@ -10,7 +9,6 @@ import { DecideApprovalStepUseCase } from './decide-approval-step.use-case';
 import { mapApprovalDecisionError } from './approval-error.mapper';
 
 @Controller('approvals')
-@UseInterceptors(AuditInterceptor)
 export class ApprovalController {
   constructor(
     private readonly approvalRepository: ApprovalRepository,
