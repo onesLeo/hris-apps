@@ -9,6 +9,7 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
+    "@babel/runtime": "^7.24.0",
     "next": "^15.0.0",
     "next-auth": "^4.24.14",
     "react": "^19.0.0",
