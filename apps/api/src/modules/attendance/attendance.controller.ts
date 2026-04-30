@@ -22,12 +22,12 @@ export class AttendanceController {
     @Query('toDate') toDate?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.service.listRecords(this.tenantId(), {
-      employeeId,
-      fromDate,
-      toDate,
-      limit: limit ? Number(limit) : undefined,
-    });
+    const filters: any = {};
+    if (employeeId) filters.employeeId = employeeId;
+    if (fromDate) filters.fromDate = fromDate;
+    if (toDate) filters.toDate = toDate;
+    if (limit) filters.limit = Number(limit);
+    return this.service.listRecords(this.tenantId(), filters);
   }
 
   @Get('summary/today')

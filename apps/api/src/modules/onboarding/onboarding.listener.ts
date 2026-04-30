@@ -189,27 +189,31 @@ export class OnboardingListener {
     const shell = payload.employeeShell;
     const employeeNumber = shell.employeeNumber ?? `PB-${payload.candidateId.slice(0, 8).toUpperCase()}`;
 
-    const employee = await this.employees.hire(payload.tenantId, {
-      employeeNumber,
-      firstName: shell.firstName,
-      lastName: shell.lastName,
-      email: shell.email,
-      phone: shell.phone,
-      dateOfBirth: shell.dateOfBirth,
-      gender: shell.gender,
-      nationality: shell.nationality,
-      hireDate: payload.proposedStartDate,
-      jobTitle: shell.jobTitle,
-      departmentId: shell.departmentId,
-      locationId: shell.locationId,
-      employmentType: shell.employmentType,
-      workArrangement: shell.workArrangement,
-      managerId: shell.managerId,
-      status: 'pre_boarding',
-      probationEndDate: shell.probationEndDate,
-      noticePeriodDays: shell.noticePeriodDays,
-      jobGrade: shell.jobGrade,
-    });
+    const dto = Object.fromEntries(
+      Object.entries({
+        employeeNumber,
+        firstName: shell.firstName,
+        lastName: shell.lastName,
+        email: shell.email,
+        phone: shell.phone,
+        dateOfBirth: shell.dateOfBirth,
+        gender: shell.gender,
+        nationality: shell.nationality,
+        hireDate: payload.proposedStartDate,
+        jobTitle: shell.jobTitle,
+        departmentId: shell.departmentId,
+        locationId: shell.locationId,
+        employmentType: shell.employmentType,
+        workArrangement: shell.workArrangement,
+        managerId: shell.managerId,
+        status: 'pre_boarding',
+        probationEndDate: shell.probationEndDate,
+        noticePeriodDays: shell.noticePeriodDays,
+        jobGrade: shell.jobGrade,
+      }).filter(([_, v]) => v !== undefined)
+    ) as any;
+
+    const employee = await this.employees.hire(payload.tenantId, dto);
 
     return employee.id;
   }

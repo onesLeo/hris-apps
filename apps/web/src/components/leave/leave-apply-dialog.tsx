@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState, type CSSProperties } from 'react';
+import { useSession } from 'next-auth/react';
 import { Button, Icon } from '../aurora-primitives';
 import type { LeaveCopy } from '../../i18n/leave-copy';
 import { LEAVE_TYPES, type CreateLeaveRequestInput, type LeaveBalanceLabel } from './leave-data';
@@ -31,15 +32,30 @@ const INITIAL_FORM_STATE: FormState = {
 };
 
 export function LeaveApplyDialog({ open, copy, onClose, onSubmit }: LeaveApplyDialogProps) {
+  const { data: session } = useSession();
   const [form, setForm] = useState<FormState>(INITIAL_FORM_STATE);
   const [feedback, setFeedback] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!open) {
+    if (open) {
+      setForm({ ...INITIAL_FORM_STATE, employee: session?.user?.name || 'User' });
+    } else {
       setForm(INITIAL_FORM_STATE);
       setFeedback(null);
     }
-  }, [open]);
+  }, [open, session?.user?.name]);
+
+  useEffect(() => {
+    if (form.from && form.to) {
+      const fromDate = new Date(form.from);
+      const toDate = new Date(form.to);
+      if (!isNaN(fromDate.getTime()) && !isNaN(toDate.getTime())) {
+        const diffTime = toDate.getTime() - fromDate.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+        setForm((current) => ({ ...current, days: String(Math.max(1, diffDays)) }));
+      }
+    }
+  }, [form.from, form.to]);
 
   if (!open) {
     return null;
@@ -144,18 +160,18 @@ export function LeaveApplyDialog({ open, copy, onClose, onSubmit }: LeaveApplyDi
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14 }}>
             <label style={{ display: 'grid', gap: 6 }}>
               <span className="aurora-card-subtitle">{copy.leaveForm.from}</span>
-              <input value={form.from} onChange={(event) => setForm((current) => ({ ...current, from: event.target.value }))} style={inputStyle} placeholder="Apr 28" />
+              <input value={form.from} onChange={(event) => setForm((current) => ({ ...current, from: event.target.value }))} style={inputStyle} type="date" />
             </label>
             <label style={{ display: 'grid', gap: 6 }}>
               <span className="aurora-card-subtitle">{copy.leaveForm.to}</span>
-              <input value={form.to} onChange={(event) => setForm((current) => ({ ...current, to: event.target.value }))} style={inputStyle} placeholder="Apr 30" />
+              <input value={form.to} onChange={(event) => setForm((current) => ({ ...current, to: event.target.value }))} style={inputStyle} type="date" />
             </label>
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14 }}>
             <label style={{ display: 'grid', gap: 6 }}>
               <span className="aurora-card-subtitle">{copy.leaveForm.days}</span>
-              <input value={form.days} onChange={(event) => setForm((current) => ({ ...current, days: event.target.value }))} style={inputStyle} inputMode="numeric" type="number" min={1} />
+              <input value={form.days} disabled style={{ ...inputStyle, opacity: 0.6, cursor: 'not-allowed' }} inputMode="numeric" type="number" min={1} />
             </label>
             <label style={{ display: 'grid', gap: 6 }}>
               <span className="aurora-card-subtitle">{copy.leaveForm.reason}</span>

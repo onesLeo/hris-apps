@@ -3,12 +3,10 @@
   "compilerOptions": {
     "outDir": "dist",
     "rootDir": "../../",
-    "baseUrl": ".",
-    "module": "CommonJS",
-    "moduleResolution": "Node",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
     "experimentalDecorators": true,
-    "emitDecoratorMetadata": true,
-    "paths": {}
+    "emitDecoratorMetadata": true
   },
   "include": ["src/**/*.ts"],
   "exclude": ["dist", "node_modules"]

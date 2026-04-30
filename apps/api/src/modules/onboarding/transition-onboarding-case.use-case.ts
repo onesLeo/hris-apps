@@ -33,7 +33,7 @@ function buildActivationHooks(
   snapshot: TransitionOnboardingCaseSnapshot,
 ): OnboardingActivationHookStep[] {
   const employee = snapshot.employee;
-  const hireCaseContext = snapshot.hireCase.contextJson ?? {};
+  const hireCaseContext = snapshot.hireCase?.contextJson ?? {};
   const hasPayrollPayload = typeof hireCaseContext === 'object'
     && hireCaseContext !== null
     && ('baseSalary' in hireCaseContext || 'payrollProfile' in hireCaseContext || 'salary' in hireCaseContext);

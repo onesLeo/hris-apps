@@ -31,11 +31,11 @@ export class LeaveController {
     @Query('status') status?: string,
     @Query('limit') limit?: string,
   ) {
-    return this.service.listRequests(this.tenantId(), {
-      employeeId,
-      status,
-      limit: limit ? Number(limit) : undefined,
-    });
+    const filters: any = {};
+    if (employeeId) filters.employeeId = employeeId;
+    if (status) filters.status = status;
+    if (limit) filters.limit = Number(limit);
+    return this.service.listRequests(this.tenantId(), filters);
   }
 
   @Post('requests')
