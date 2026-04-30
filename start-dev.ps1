@@ -11,6 +11,9 @@ param(
 )
 
 $ComposeFile = "docker\docker-compose.infra.yml"
+$RepoRoot = $PSScriptRoot
+$NestCmd = Join-Path $RepoRoot 'apps\api\node_modules\.bin\nest.CMD'
+$NextCmd = Join-Path $RepoRoot 'apps\web\node_modules\.bin\next.CMD'
 
 function Get-ProcessIdOnPort([int]$Port) {
   $pattern = [regex]::Escape(":$Port") + '\s+\S+\s+LISTENING\s+(\d+)\s*$'
@@ -105,10 +108,10 @@ if (-not $SkipBootstrap) {
 # 3. Open API + Web in separate terminals
 Write-Host "[3/3] Starting API and Web..."
 Start-Process powershell -ArgumentList "-NoExit", "-Command", `
-  "Write-Host 'API server'; pnpm --filter @hris/api dev"
+  "Set-Location '$RepoRoot\apps\api'; Write-Host 'API server'; & '$NestCmd' start --watch"
 Start-Sleep -Seconds 1
 Start-Process powershell -ArgumentList "-NoExit", "-Command", `
-  "Write-Host 'Web server'; pnpm --filter @hris/web dev"
+  "Set-Location '$RepoRoot\apps\web'; Write-Host 'Web server'; & '$NextCmd' dev -p 3001"
 
 Write-Host ""
 Write-Host "=== Services ==="
