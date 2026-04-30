@@ -23,6 +23,7 @@ export class RolesGuard implements CanActivate {
 
     if (!user) throw new ForbiddenException('auth.token.invalid');
 
+    console.log('[RolesGuard] user.roles =', user.roles, '| required =', required);
     const hasRole = required.some((role) => user.roles.includes(role));
     if (!hasRole) throw new ForbiddenException('auth.forbidden');
 
