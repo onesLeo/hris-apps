@@ -153,7 +153,7 @@ flowchart TD
 - [x] Seed Indonesia national public holidays for the current year (ADR 005 — required before leave and attendance calculations are correct). _(17 official holidays seeded in migration 0010)_
 - [x] Implement holiday calendar data model (`holiday_calendars`, `public_holidays`, `location_holiday_calendars`, `company_holidays`). _(Migration 0010)_
 - [x] Implement holiday calendar assignment to locations (ADR 005). _(`location_holiday_calendars` table + `effective_from`/`effective_to` range)_
-- [ ] Add company holiday management in HR admin UI (ADR 005). _(DB table exists; admin UI screen still pending)_
+- [x] Add company holiday management in HR admin UI (ADR 005). _(`HolidayPanel` component: year navigation, merged public+company list, add/delete company holidays via `holiday-api.ts`; `HolidayController` REST endpoints guarded by `hr_manager`/`hris_admin` roles; tab switcher added to `AttendanceScreen`)_
 - [x] Implement "is this date a holiday?" resolution with company holidays taking priority over public holidays (ADR 005). _(`HolidayService.isHoliday` and `getHolidaysInRange` — company overrides checked first)_
 - [x] Implement leave balances, accruals, and leave approvals. _(`leave_balances` + `LeaveAccrualJob` (monthly/annual); `SubmitLeaveRequestUseCase` creates a `workflow_instance` when leave type requires approval; frontend balances wired to live API; Approve/Decline buttons call `reviewLeaveRequest()`)_
 

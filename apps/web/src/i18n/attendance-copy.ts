@@ -27,6 +27,34 @@ export type AttendanceCopy = {
     location: string;
   };
   footer: string;
+  tabs: {
+    overview: string;
+    holidays: string;
+  };
+  holidays: {
+    title: string;
+    subtitle: string;
+    year: string;
+    addHoliday: string;
+    publicHoliday: string;
+    companyHoliday: string;
+    workingDayOverride: string;
+    allLocations: string;
+    noHolidays: string;
+    dialogTitle: string;
+    dialogSubtitle: string;
+    fieldDate: string;
+    fieldName: string;
+    fieldDescription: string;
+    fieldLocation: string;
+    fieldIsWorkingDay: string;
+    fieldIsWorkingDayHint: string;
+    cancel: string;
+    save: string;
+    delete: string;
+    confirmDelete: string;
+    recurring: string;
+  };
 };
 
 const ATTENDANCE_COPY: Record<Locale, AttendanceCopy> = {
@@ -57,6 +85,34 @@ const ATTENDANCE_COPY: Record<Locale, AttendanceCopy> = {
       location: 'Location',
     },
     footer: 'Attendance will later bind to live devices and policy rules.',
+    tabs: {
+      overview: 'Overview',
+      holidays: 'Holiday Calendar',
+    },
+    holidays: {
+      title: 'Holiday Calendar',
+      subtitle: 'Public and company holidays for absence and leave calculations.',
+      year: 'Year',
+      addHoliday: 'Add Company Holiday',
+      publicHoliday: 'Public Holiday',
+      companyHoliday: 'Company Holiday',
+      workingDayOverride: 'Working Day Override',
+      allLocations: 'All Locations',
+      noHolidays: 'No holidays found for this year.',
+      dialogTitle: 'Add Company Holiday',
+      dialogSubtitle: 'Company holidays override public holidays for absence detection.',
+      fieldDate: 'Date',
+      fieldName: 'Holiday Name',
+      fieldDescription: 'Description (optional)',
+      fieldLocation: 'Location (leave blank for all locations)',
+      fieldIsWorkingDay: 'This is a working day',
+      fieldIsWorkingDayHint: 'Check this to mark a public holiday as a regular working day.',
+      cancel: 'Cancel',
+      save: 'Save Holiday',
+      delete: 'Delete',
+      confirmDelete: 'Delete this holiday?',
+      recurring: 'Recurring',
+    },
   },
   id: {
     heroLabel: 'Kontrol Absensi',
@@ -85,6 +141,34 @@ const ATTENDANCE_COPY: Record<Locale, AttendanceCopy> = {
       location: 'Lokasi',
     },
     footer: 'Absensi akan terhubung ke perangkat live dan aturan kebijakan di tahap berikutnya.',
+    tabs: {
+      overview: 'Ringkasan',
+      holidays: 'Kalender Hari Libur',
+    },
+    holidays: {
+      title: 'Kalender Hari Libur',
+      subtitle: 'Hari libur nasional dan perusahaan untuk kalkulasi absensi dan cuti.',
+      year: 'Tahun',
+      addHoliday: 'Tambah Hari Libur Perusahaan',
+      publicHoliday: 'Hari Libur Nasional',
+      companyHoliday: 'Hari Libur Perusahaan',
+      workingDayOverride: 'Override Hari Kerja',
+      allLocations: 'Semua Lokasi',
+      noHolidays: 'Tidak ada hari libur untuk tahun ini.',
+      dialogTitle: 'Tambah Hari Libur Perusahaan',
+      dialogSubtitle: 'Hari libur perusahaan menggantikan hari libur nasional untuk deteksi absensi.',
+      fieldDate: 'Tanggal',
+      fieldName: 'Nama Hari Libur',
+      fieldDescription: 'Deskripsi (opsional)',
+      fieldLocation: 'Lokasi (kosongkan untuk semua lokasi)',
+      fieldIsWorkingDay: 'Ini adalah hari kerja',
+      fieldIsWorkingDayHint: 'Centang ini untuk menandai hari libur nasional sebagai hari kerja biasa.',
+      cancel: 'Batal',
+      save: 'Simpan Hari Libur',
+      delete: 'Hapus',
+      confirmDelete: 'Hapus hari libur ini?',
+      recurring: 'Berulang',
+    },
   },
 };
 

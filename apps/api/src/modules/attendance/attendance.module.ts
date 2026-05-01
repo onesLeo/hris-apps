@@ -5,6 +5,8 @@ import { EmployeeModule } from '../employee/employee.module';
 import { AttendanceController } from './attendance.controller';
 import { AttendanceRepository } from './attendance.repository';
 import { AttendanceService } from './attendance.service';
+import { HolidayController } from './holiday.controller';
+import { HolidayRepository } from './holiday.repository';
 import { HolidayService } from './holiday.service';
 import { AbsenceDetectionJob, ABSENCE_DETECTION_QUEUE } from './absence-detection.job';
 import { BiometricIngestionService } from './biometric/biometric-ingestion.service';
@@ -15,14 +17,15 @@ import { BiometricIngestionService } from './biometric/biometric-ingestion.servi
     EmployeeModule,
     BullModule.registerQueue({ name: ABSENCE_DETECTION_QUEUE }),
   ],
-  controllers: [AttendanceController],
+  controllers: [AttendanceController, HolidayController],
   providers: [
     AttendanceRepository,
     AttendanceService,
+    HolidayRepository,
     HolidayService,
     AbsenceDetectionJob,
     BiometricIngestionService,
   ],
-  exports: [AttendanceRepository, AttendanceService, HolidayService, BiometricIngestionService],
+  exports: [AttendanceRepository, AttendanceService, HolidayRepository, HolidayService, BiometricIngestionService],
 })
 export class AttendanceModule {}
