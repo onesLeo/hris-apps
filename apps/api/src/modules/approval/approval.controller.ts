@@ -1,4 +1,4 @@
-import { Body, Controller, Param, ParseIntPipe, Post } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Post } from '@nestjs/common';
 import { CurrentUser } from '../auth/current-user.decorator';
 import { Roles } from '../../common/guards/roles.decorator';
 import type { AuthenticatedUser } from '../auth/auth.types';
@@ -7,13 +7,30 @@ import { DecideApprovalStepDto } from './decide-approval-step.dto';
 import { ApprovalDecisionError } from './decide-approval-step.use-case';
 import { DecideApprovalStepUseCase } from './decide-approval-step.use-case';
 import { mapApprovalDecisionError } from './approval-error.mapper';
+import { WorkflowTimelineService } from './workflow-timeline.service';
 
 @Controller('approvals')
 export class ApprovalController {
   constructor(
     private readonly approvalRepository: ApprovalRepository,
     private readonly decideApprovalStepUseCase: DecideApprovalStepUseCase,
+    private readonly timelineService: WorkflowTimelineService,
   ) {}
+
+  /**
+   * GET /api/v1/workflow-instances/:id/timeline
+   * ADR 015 — Visual Workflow Tracker: merge template steps + executed step
+   * instances into a single chronological DTO for the frontend stepper.
+   */
+  @Get('/workflow-instances/:workflowInstanceId/timeline')
+  @Roles('hris_admin', 'hr_manager', 'hr_staff', 'payroll_manager', 'plant_manager', 'department_manager', 'employee')
+  async getTimeline(
+    @Param('workflowInstanceId') workflowInstanceId: string,
+    @CurrentUser() user?: AuthenticatedUser,
+  ) {
+    const tenantId = user?.tenantId ?? '';
+    return this.timelineService.getTimeline(tenantId, workflowInstanceId);
+  }
 
   @Post('instances/:workflowInstanceId/steps/:stepOrder/decide')
   @Roles('hris_admin', 'hr_manager', 'hr_staff', 'payroll_manager', 'plant_manager', 'department_manager', 'employee')

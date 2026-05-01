@@ -8,15 +8,31 @@ import { CandidateRepository } from './repositories/candidate.repository';
 import { ApplicationController } from './controllers/application.controller';
 import { ApplicationService } from './services/application.service';
 import { ApplicationRepository } from './repositories/application.repository';
+import { InterviewController } from './controllers/interview.controller';
+import { InterviewService } from './services/interview.service';
+import { InterviewRepository } from './repositories/interview.repository';
+import { OfferController } from './controllers/offer.controller';
+import { OfferService } from './services/offer.service';
+import { OfferRepository } from './repositories/offer.repository';
+import { OnboardingHandlerService } from './services/onboarding-handler.service';
 
 @Module({
   imports: [],
-  controllers: [RequisitionController, CandidateController, ApplicationController],
+  controllers: [
+    RequisitionController, CandidateController, ApplicationController, 
+    InterviewController, OfferController
+  ],
   providers: [
     RequisitionService, RequisitionRepository,
     CandidateService, CandidateRepository,
-    ApplicationService, ApplicationRepository
+    ApplicationService, ApplicationRepository,
+    InterviewService, InterviewRepository,
+    OfferService, OfferRepository,
+    OnboardingHandlerService
   ],
-  exports: [RequisitionService, CandidateService, ApplicationService],
+  exports: [
+    RequisitionService, CandidateService, ApplicationService, 
+    InterviewService, OfferService
+  ],
 })
 export class RecruitmentModule {}

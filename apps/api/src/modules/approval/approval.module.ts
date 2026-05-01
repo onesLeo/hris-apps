@@ -6,11 +6,12 @@ import { ApprovalService } from './approval.service';
 import { ApprovalController } from './approval.controller';
 import { ApprovalRepository } from './approval.repository';
 import { DecideApprovalStepUseCase } from './decide-approval-step.use-case';
+import { WorkflowTimelineService } from './workflow-timeline.service';
 
 @Module({
   imports: [AuditModule, AuthModule, DatabaseModule],
   controllers: [ApprovalController],
-  providers: [ApprovalService, ApprovalRepository, DecideApprovalStepUseCase],
-  exports: [ApprovalService, ApprovalRepository, DecideApprovalStepUseCase],
+  providers: [ApprovalService, ApprovalRepository, DecideApprovalStepUseCase, WorkflowTimelineService],
+  exports: [ApprovalService, ApprovalRepository, DecideApprovalStepUseCase, WorkflowTimelineService],
 })
 export class ApprovalModule {}

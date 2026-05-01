@@ -164,8 +164,8 @@ flowchart TD
 - [ ] Add delegation and escalation handling. _(Delegation flow is implemented; escalation scheduler and timeout processing are still pending.)_
 - [ ] Add conditional steps and skip-duplicate approver rules. _(Duplicate-approver skipping is implemented; condition evaluation is still pending.)_
 - [x] Emit domain events from approval step completion (ADR 003: `approval.step.completed` event consumed by the notification module). _(approval decision use case returns domain events; event contract is published in `packages/types`.)_
-- [ ] Implement `GET /api/v1/workflow-instances/:id/timeline` endpoint — merge template steps + executed step instances into a single chronological DTO (ADR 015). _(status values: approved, skipped, pending, escalated, rejected, upcoming; include slaBreached flag)_
-- [ ] Build `<WorkflowTimeline instanceId={instanceId} />` reusable frontend component — vertical stepper with per-status visual coding: green approved, grey skipped, blue pulsating pending, orange escalated, red rejected, grey upcoming (ADR 015).
+- [x] Implement `GET /api/v1/workflow-instances/:id/timeline` endpoint — merge template steps + executed step instances into a single chronological DTO (ADR 015). _(status values: approved, skipped, pending, escalated, rejected, upcoming; include slaBreached flag)_
+- [x] Build `<WorkflowTimeline instanceId={instanceId} />` reusable frontend component — vertical stepper with per-status visual coding: green approved, grey skipped, blue pulsating pending, orange escalated, red rejected, grey upcoming (ADR 015).
 - [ ] Embed WorkflowTimeline in the Leave Request Details modal (ADR 015).
 - [ ] Embed WorkflowTimeline in Employee Lifecycle Change pages: Transfers, Promotions, Terminations (ADR 015).
 
@@ -230,11 +230,11 @@ flowchart TD
 - [x] Implement RequisitionService: create/update/submit-for-approval requisition; emit `recruitment.requisition.opened` on status → `open`. _(Approval chain reuses workflow engine from Phase 5; ADR 016)_
 - [x] Implement CandidateService: create candidate with duplicate detection on email per tenant; support anonymisation on privacy request (`anonymised_at` + null PII fields). _(ADR 016)_
 - [x] Implement ApplicationService: link candidate to requisition; advance stage with `application_stage_log` entry on each transition; emit `recruitment.application.stage_changed`. _(ADR 016)_
-- [ ] Implement InterviewService: schedule rounds, assign interviewers, submit and read scorecards per interviewer; compute `overall_recommendation` when all scorecards submitted. _(ADR 016)_
-- [ ] Implement OfferService: create offer draft, submit for approval via workflow engine, mark sent/accepted/declined; emit `recruitment.offer.accepted` on acceptance. _(ADR 016)_
-- [ ] Implement OnboardingHandlerService: subscribe to `recruitment.offer.accepted`; create `employees` row (`status = pre_boarding`) pre-populated from candidate + offer; create `onboarding_cases` row; increment `job_requisitions.filled_count`. _(ADR 016 onboarding handoff)_
-- [ ] Wire recruitment frontend to real API: replace mock `recruitment-data.ts` with API calls; add requisition detail view, application kanban, candidate profile drawer, interview scheduling modal, scorecard form, and offer form. _(ADR 016 frontend screens)_
-- [ ] Embed `<WorkflowTimeline />` (ADR 015) in the offer approval view and requisition approval view.
+- [x] Implement InterviewService: schedule rounds, assign interviewers, submit and read scorecards per interviewer; compute `overall_recommendation` when all scorecards submitted. _(ADR 016)_
+- [x] Implement OfferService: create offer draft, submit for approval via workflow engine, mark sent/accepted/declined; emit `recruitment.offer.accepted` on acceptance. _(ADR 016)_
+- [x] Implement OnboardingHandlerService: subscribe to `recruitment.offer.accepted`; create `employees` row (`status = pre_boarding`) pre-populated from candidate + offer; create `onboarding_cases` row; increment `job_requisitions.filled_count`. _(ADR 016 onboarding handoff)_
+- [x] Wire recruitment frontend to real API: replace mock `recruitment-data.ts` with API calls; add requisition detail view, application kanban, candidate profile drawer, interview scheduling modal, scorecard form, and offer form. _(ADR 016 frontend screens)_
+- [x] Embed `<WorkflowTimeline />` (ADR 015) in the offer approval view and requisition approval view.
 
 ### 9b — Performance Management
 - [ ] Implement Performance Management: review cycles, goal tracking, and rating capture.

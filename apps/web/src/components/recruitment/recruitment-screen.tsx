@@ -1,14 +1,17 @@
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Avatar, Badge, Button, Icon, SectionHeading } from '../aurora-primitives';
 import { getRecruitmentCopy, useLocale } from '../../i18n';
 import { RecruitmentCreateDialog } from './recruitment-create-dialog';
 import {
   addRecruitmentRequisition,
+  createRequisitionRemote,
   filterRecruitmentCandidates,
   getRecruitmentOverview,
   getRecruitmentRequisitionKey,
+  loadCandidates,
+  loadRequisitions,
   PIPELINE_ORDER,
   RECRUITMENT_FILTERS,
   removeRecruitmentRequisition,
@@ -41,10 +44,28 @@ export function RecruitmentScreen() {
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | null>(null);
   const [editingKey, setEditingKey] = useState<RecruitmentRequisitionKey | null>(null);
   const [requisitions, setRequisitions] = useState(overview.requisitions);
+  const [candidates, setCandidates] = useState(overview.candidates);
+  const [loading, setLoading] = useState(true);
+
+  // Load real data from API on mount
+  useEffect(() => {
+    let cancelled = false;
+    async function load() {
+      setLoading(true);
+      const [reqs, cands] = await Promise.all([loadRequisitions(), loadCandidates()]);
+      if (!cancelled) {
+        setRequisitions(reqs);
+        setCandidates(cands);
+        setLoading(false);
+      }
+    }
+    load();
+    return () => { cancelled = true; };
+  }, []);
 
   const filteredCandidates = useMemo(
-    () => filterRecruitmentCandidates(overview.candidates, filter, search),
-    [filter, overview.candidates, search],
+    () => filterRecruitmentCandidates(candidates, filter, search),
+    [filter, candidates, search],
   );
 
   const openRolesCount = requisitions.length;
@@ -66,14 +87,16 @@ export function RecruitmentScreen() {
     setEditingKey(null);
   };
 
-  const submitDialog = (input: CreateRequisitionInput) => {
+  const submitDialog = async (input: CreateRequisitionInput) => {
     if (dialogMode === 'edit' && editingKey) {
       setRequisitions((current) => updateRecruitmentRequisition(current, editingKey, input));
       closeDialog();
       return;
     }
 
-    setRequisitions((current) => addRecruitmentRequisition(current, input));
+    // Try API first, falls back to local-only inside createRequisitionRemote
+    const created = await createRequisitionRemote(input);
+    setRequisitions((current) => [created, ...current]);
     closeDialog();
   };
 
