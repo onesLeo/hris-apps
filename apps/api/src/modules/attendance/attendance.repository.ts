@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common';
 import { DATABASE_SERVICE, type IDatabaseService } from '../../common/database/database.types';
-import type { ShiftSnapshot, AttendanceRecordSnapshot, ClockEventSnapshot } from './attendance.types';
-import type { ClockEventDto } from './attendance.dto';
+import type { ShiftSnapshot, AttendanceRecordSnapshot, ClockEventSnapshot, ShiftAssignmentSnapshot } from './attendance.types';
+import type { ClockEventDto, AssignShiftDto } from './attendance.dto';
 
 type ShiftRow = {
   id: string;
@@ -184,6 +184,77 @@ export class AttendanceRepository {
           updated_at = NOW()
       `, [tenantId, employeeId, workDate, eventTime]);
     }
+  }
+
+  async findShiftAssignments(tenantId: string, employeeId?: string): Promise<ShiftAssignmentSnapshot[]> {
+    const conditions = ['sa.tenant_id = $1'];
+    const params: unknown[] = [tenantId];
+    if (employeeId) {
+      conditions.push(`sa.employee_id = $${params.length + 1}`);
+      params.push(employeeId);
+    }
+
+    type Row = {
+      id: string; tenant_id: string; employee_id: string; employee_name: string;
+      shift_id: string; shift_name: string; effective_from: string;
+      effective_to: string | null; created_at: string;
+    };
+
+    const rows = await this.db.queryWithTenant<Row>(tenantId, `
+      SELECT sa.id, sa.tenant_id, sa.employee_id, e.display_name AS employee_name,
+        sa.shift_id, s.name AS shift_name, sa.effective_from, sa.effective_to, sa.created_at
+      FROM shift_assignments sa
+      JOIN employees e ON e.id = sa.employee_id
+      JOIN shifts s ON s.id = sa.shift_id
+      WHERE ${conditions.join(' AND ')}
+      ORDER BY sa.effective_from DESC
+      LIMIT 200
+    `, params);
+
+    return rows.map((r) => ({
+      id: r.id,
+      tenantId: r.tenant_id,
+      employeeId: r.employee_id,
+      employeeName: r.employee_name,
+      shiftId: r.shift_id,
+      shiftName: r.shift_name,
+      effectiveFrom: r.effective_from,
+      effectiveTo: r.effective_to,
+      createdAt: r.created_at,
+    }));
+  }
+
+  async assignShift(tenantId: string, dto: AssignShiftDto): Promise<ShiftAssignmentSnapshot> {
+    type Row = {
+      id: string; tenant_id: string; employee_id: string; employee_name: string;
+      shift_id: string; shift_name: string; effective_from: string;
+      effective_to: string | null; created_at: string;
+    };
+
+    const [row] = await this.db.queryWithTenant<Row>(tenantId, `
+      INSERT INTO shift_assignments (tenant_id, employee_id, shift_id, effective_from, effective_to)
+      VALUES ($1, $2, $3, $4, $5)
+      RETURNING
+        id, tenant_id, employee_id,
+        (SELECT display_name FROM employees WHERE id = $2) AS employee_name,
+        shift_id,
+        (SELECT name FROM shifts WHERE id = $3) AS shift_name,
+        effective_from, effective_to, created_at
+    `, [tenantId, dto.employeeId, dto.shiftId, dto.effectiveFrom, dto.effectiveTo ?? null]);
+
+    if (!row) throw new Error('Failed to create shift assignment');
+
+    return {
+      id: row.id,
+      tenantId: row.tenant_id,
+      employeeId: row.employee_id,
+      employeeName: row.employee_name,
+      shiftId: row.shift_id,
+      shiftName: row.shift_name,
+      effectiveFrom: row.effective_from,
+      effectiveTo: row.effective_to,
+      createdAt: row.created_at,
+    };
   }
 }
 

@@ -35,3 +35,15 @@ export type ClockEventSnapshot = {
   direction: 'in' | 'out';
   source: string;
 };
+
+export type ShiftAssignmentSnapshot = {
+  id: string;
+  tenantId: string;
+  employeeId: string;
+  employeeName: string;
+  shiftId: string;
+  shiftName: string;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  createdAt: string;
+};

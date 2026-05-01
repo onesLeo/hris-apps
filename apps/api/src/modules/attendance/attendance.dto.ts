@@ -5,3 +5,10 @@ export type ClockEventDto = {
   source?: string;
   deviceId?: string;
 };
+
+export type AssignShiftDto = {
+  employeeId: string;
+  shiftId: string;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+};

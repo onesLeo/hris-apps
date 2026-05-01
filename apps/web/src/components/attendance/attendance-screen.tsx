@@ -6,14 +6,22 @@ import { useLocale, getAttendanceCopy } from '../../i18n';
 import { getAttendanceOverview, type AttendanceOverview } from './attendance-data';
 import { fetchAttendanceSummary } from '../../lib/attendance-api';
 import { HolidayPanel } from './holiday-panel';
+import { ShiftPanel } from './shift-panel';
+import { ClockPanel } from './clock-panel';
 
-type Tab = 'overview' | 'holidays';
+type Tab = 'overview' | 'shifts' | 'holidays';
 
 const STATUS_TONE = {
   'On Time': 'success',
   Late: 'warning',
   Remote: 'violet',
 } as const;
+
+const TAB_ICONS: Record<Tab, 'clock' | 'briefcase' | 'calendar'> = {
+  overview: 'clock',
+  shifts: 'briefcase',
+  holidays: 'calendar',
+};
 
 export function AttendanceScreen() {
   const { locale } = useLocale();
@@ -39,6 +47,12 @@ export function AttendanceScreen() {
       });
   }, []);
 
+  const tabLabels: Record<Tab, string> = {
+    overview: copy.tabs.overview,
+    shifts: copy.tabs.shifts,
+    holidays: copy.tabs.holidays,
+  };
+
   return (
     <div className="aurora-screen-stack" style={{ animation: 'auroraFadeUp 0.4s ease' }}>
       {/* Hero card */}
@@ -62,7 +76,7 @@ export function AttendanceScreen() {
 
       {/* Tab switcher */}
       <div className="aurora-pill-row">
-        {(['overview', 'holidays'] as Tab[]).map((t) => (
+        {(['overview', 'shifts', 'holidays'] as Tab[]).map((t) => (
           <button
             key={t}
             type="button"
@@ -70,18 +84,18 @@ export function AttendanceScreen() {
             onClick={() => setTab(t)}
           >
             <Icon
-              name={t === 'overview' ? 'clock' : 'calendar'}
+              name={TAB_ICONS[t]}
               size={13}
               color={tab === t ? 'var(--accent)' : 'var(--text-muted)'}
               strokeWidth={tab === t ? 2 : 1.6}
             />
-            {t === 'overview' ? copy.tabs.overview : copy.tabs.holidays}
+            {tabLabels[t]}
           </button>
         ))}
       </div>
 
       {/* Tab content */}
-      {tab === 'overview' ? (
+      {tab === 'overview' && (
         <>
           {/* KPI metrics */}
           <div className="aurora-kpi-grid">
@@ -97,7 +111,7 @@ export function AttendanceScreen() {
             ))}
           </div>
 
-          {/* Roster + Clock events */}
+          {/* Roster + Manual Clock */}
           <div className="aurora-dual-grid">
             <div className="aurora-card aurora-card-padding aurora-card-lift">
               <SectionHeading title={copy.sections.roster} subtitle={overview.dateLabel} />
@@ -130,24 +144,27 @@ export function AttendanceScreen() {
               </div>
             </div>
 
-            <div className="aurora-card aurora-card-padding aurora-card-lift">
-              <SectionHeading title={copy.sections.events} subtitle={copy.labels.clockIn} />
-              <div className="aurora-screen-stack" style={{ gap: 10 }}>
-                {overview.events.map((event, index) => (
-                  <div key={`${event.time}-${event.name}`} style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: index < overview.events.length - 1 ? '1px solid var(--border)' : 'none' }}>
-                    <div style={{ width: 42, flexShrink: 0, textAlign: 'right', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{event.time}</div>
-                    <div style={{ width: 42, height: 42, borderRadius: 12, background: `${event.accent}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                      <Icon name={event.action === 'Clock In' ? 'checkCircle' : event.action === 'Clock Out' ? 'logout' : 'clock'} size={18} color={event.accent} />
-                    </div>
-                    <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>{event.name}</div>
-                      <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
-                        {event.action} {'·'} {event.detail}
-                      </div>
+            <ClockPanel copy={copy} />
+          </div>
+
+          {/* Clock events timeline */}
+          <div className="aurora-card aurora-card-padding aurora-card-lift">
+            <SectionHeading title={copy.sections.events} subtitle={copy.labels.clockIn} />
+            <div className="aurora-screen-stack" style={{ gap: 10 }}>
+              {overview.events.map((event, index) => (
+                <div key={`${event.time}-${event.name}`} style={{ display: 'flex', gap: 12, padding: '10px 0', borderBottom: index < overview.events.length - 1 ? '1px solid var(--border)' : 'none' }}>
+                  <div style={{ width: 42, flexShrink: 0, textAlign: 'right', fontSize: 12, fontWeight: 700, color: 'var(--text-primary)' }}>{event.time}</div>
+                  <div style={{ width: 42, height: 42, borderRadius: 12, background: `${event.accent}18`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    <Icon name={event.action === 'Clock In' ? 'checkCircle' : event.action === 'Clock Out' ? 'logout' : 'clock'} size={18} color={event.accent} />
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--text-primary)' }}>{event.name}</div>
+                    <div style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>
+                      {event.action} {'·'} {event.detail}
                     </div>
                   </div>
-                ))}
-              </div>
+                </div>
+              ))}
             </div>
           </div>
 
@@ -166,9 +183,11 @@ export function AttendanceScreen() {
 
           <div className="aurora-footer-note">{copy.footer}</div>
         </>
-      ) : (
-        <HolidayPanel copy={copy} />
       )}
+
+      {tab === 'shifts' && <ShiftPanel copy={copy} />}
+
+      {tab === 'holidays' && <HolidayPanel copy={copy} />}
     </div>
   );
 }

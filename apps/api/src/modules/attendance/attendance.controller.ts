@@ -2,16 +2,28 @@ import { Body, Controller, Get, Post, Query } from '@nestjs/common';
 import { RequestContext } from '../../common/context/request-context';
 import { Roles } from '../../common/guards/roles.decorator';
 import { AttendanceService } from './attendance.service';
-import type { ClockEventDto } from './attendance.dto';
+import type { ClockEventDto, AssignShiftDto } from './attendance.dto';
 
 @Controller('attendance')
 export class AttendanceController {
   constructor(private readonly service: AttendanceService) {}
 
   @Get('shifts')
-  @Roles('hris_admin', 'hr_manager', 'hr_staff')
+  @Roles('hris_admin', 'hr_manager', 'hr_staff', 'employee')
   async listShifts() {
     return this.service.listShifts(this.tenantId());
+  }
+
+  @Get('shift-assignments')
+  @Roles('hris_admin', 'hr_manager', 'hr_staff')
+  async listShiftAssignments(@Query('employeeId') employeeId?: string) {
+    return this.service.listShiftAssignments(this.tenantId(), employeeId);
+  }
+
+  @Post('shift-assignments')
+  @Roles('hris_admin', 'hr_manager', 'hr_staff')
+  async assignShift(@Body() dto: AssignShiftDto) {
+    return this.service.assignShift(this.tenantId(), dto);
   }
 
   @Get('records')

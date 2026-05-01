@@ -30,6 +30,38 @@ export type AttendanceCopy = {
   tabs: {
     overview: string;
     holidays: string;
+    shifts: string;
+  };
+  clock: {
+    title: string;
+    subtitle: string;
+    selectEmployee: string;
+    clockInBtn: string;
+    clockOutBtn: string;
+    successIn: string;
+    successOut: string;
+    lastEvent: string;
+    noRecord: string;
+  };
+  shifts: {
+    title: string;
+    subtitle: string;
+    assignShift: string;
+    noAssignments: string;
+    employee: string;
+    shift: string;
+    effectiveFrom: string;
+    effectiveTo: string;
+    ongoing: string;
+    dialogTitle: string;
+    dialogSubtitle: string;
+    fieldEmployee: string;
+    fieldShift: string;
+    fieldFrom: string;
+    fieldTo: string;
+    fieldToHint: string;
+    cancel: string;
+    save: string;
   };
   holidays: {
     title: string;
@@ -88,6 +120,38 @@ const ATTENDANCE_COPY: Record<Locale, AttendanceCopy> = {
     tabs: {
       overview: 'Overview',
       holidays: 'Holiday Calendar',
+      shifts: 'Shift Assignments',
+    },
+    clock: {
+      title: 'Manual Clock',
+      subtitle: 'Record a clock event on behalf of an employee.',
+      selectEmployee: 'Select employee…',
+      clockInBtn: 'Clock In',
+      clockOutBtn: 'Clock Out',
+      successIn: 'Clocked in',
+      successOut: 'Clocked out',
+      lastEvent: 'Last event',
+      noRecord: 'No record today',
+    },
+    shifts: {
+      title: 'Shift Assignments',
+      subtitle: 'Assign employees to shifts for attendance tracking.',
+      assignShift: 'Assign Shift',
+      noAssignments: 'No shift assignments found.',
+      employee: 'Employee',
+      shift: 'Shift',
+      effectiveFrom: 'From',
+      effectiveTo: 'To',
+      ongoing: 'Ongoing',
+      dialogTitle: 'Assign Shift',
+      dialogSubtitle: 'Link an employee to a shift with an effective date range.',
+      fieldEmployee: 'Employee',
+      fieldShift: 'Shift',
+      fieldFrom: 'Effective From',
+      fieldTo: 'Effective To (optional)',
+      fieldToHint: 'Leave blank for an open-ended assignment.',
+      cancel: 'Cancel',
+      save: 'Save Assignment',
     },
     holidays: {
       title: 'Holiday Calendar',
@@ -144,6 +208,38 @@ const ATTENDANCE_COPY: Record<Locale, AttendanceCopy> = {
     tabs: {
       overview: 'Ringkasan',
       holidays: 'Kalender Hari Libur',
+      shifts: 'Penugasan Shift',
+    },
+    clock: {
+      title: 'Clock Manual',
+      subtitle: 'Catat kejadian clock atas nama karyawan.',
+      selectEmployee: 'Pilih karyawan…',
+      clockInBtn: 'Clock In',
+      clockOutBtn: 'Clock Out',
+      successIn: 'Clock in berhasil',
+      successOut: 'Clock out berhasil',
+      lastEvent: 'Kejadian terakhir',
+      noRecord: 'Belum ada rekaman hari ini',
+    },
+    shifts: {
+      title: 'Penugasan Shift',
+      subtitle: 'Tugaskan karyawan ke shift untuk pemantauan absensi.',
+      assignShift: 'Tugaskan Shift',
+      noAssignments: 'Tidak ada penugasan shift.',
+      employee: 'Karyawan',
+      shift: 'Shift',
+      effectiveFrom: 'Mulai',
+      effectiveTo: 'Hingga',
+      ongoing: 'Berlanjut',
+      dialogTitle: 'Tugaskan Shift',
+      dialogSubtitle: 'Hubungkan karyawan ke shift dengan rentang tanggal berlaku.',
+      fieldEmployee: 'Karyawan',
+      fieldShift: 'Shift',
+      fieldFrom: 'Berlaku Mulai',
+      fieldTo: 'Berlaku Hingga (opsional)',
+      fieldToHint: 'Kosongkan untuk penugasan tanpa batas waktu.',
+      cancel: 'Batal',
+      save: 'Simpan Penugasan',
     },
     holidays: {
       title: 'Kalender Hari Libur',

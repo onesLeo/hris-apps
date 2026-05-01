@@ -1,8 +1,8 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
 import { RequestContext } from '../../common/context/request-context';
 import { AttendanceRepository } from './attendance.repository';
-import type { ShiftSnapshot, AttendanceRecordSnapshot, ClockEventSnapshot } from './attendance.types';
-import type { ClockEventDto } from './attendance.dto';
+import type { ShiftSnapshot, AttendanceRecordSnapshot, ClockEventSnapshot, ShiftAssignmentSnapshot } from './attendance.types';
+import type { ClockEventDto, AssignShiftDto } from './attendance.dto';
 
 @Injectable()
 export class AttendanceService {
@@ -29,6 +29,17 @@ export class AttendanceService {
 
   async clockOut(tenantId: string, dto: ClockEventDto): Promise<ClockEventSnapshot> {
     return this.clock(tenantId, { ...dto, direction: 'out' });
+  }
+
+  async listShiftAssignments(tenantId: string, employeeId?: string): Promise<ShiftAssignmentSnapshot[]> {
+    return this.repository.findShiftAssignments(tenantId, employeeId);
+  }
+
+  async assignShift(tenantId: string, dto: AssignShiftDto): Promise<ShiftAssignmentSnapshot> {
+    if (!dto.employeeId || !dto.shiftId || !dto.effectiveFrom) {
+      throw new BadRequestException('employeeId, shiftId, and effectiveFrom are required');
+    }
+    return this.repository.assignShift(tenantId, dto);
   }
 
   private async clock(tenantId: string, dto: ClockEventDto): Promise<ClockEventSnapshot> {
