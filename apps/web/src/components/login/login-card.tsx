@@ -3,12 +3,23 @@
 import { signIn } from 'next-auth/react';
 import { useState } from 'react';
 
+const DEV_LOGIN_ACCOUNTS = [
+  { label: 'HRIS Admin', username: 'hris.admin' },
+  { label: 'HR Manager', username: 'hr.manager' },
+  { label: 'Employee', username: 'john.employee' },
+] as const;
+
 export function LoginCard() {
   const [loading, setLoading] = useState(false);
 
   const handleSignIn = async () => {
     setLoading(true);
     await signIn('keycloak', { callbackUrl: '/' });
+  };
+
+  const handleDevSignIn = async (username: string) => {
+    setLoading(true);
+    await signIn('dev-login', { username, password: 'Test@1234', callbackUrl: '/' });
   };
 
   return (
@@ -84,7 +95,7 @@ export function LoginCard() {
         {loading ? (
           <>
             <Spinner />
-            Redirecting to login…
+            Redirecting to login...
           </>
         ) : (
           <>
@@ -111,21 +122,34 @@ export function LoginCard() {
           border: '1px solid rgba(139,92,246,0.12)',
         }}>
           <div style={{ fontSize: 11, fontWeight: 600, color: '#8b5cf6', marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.4px' }}>
-            Dev test accounts
+            Dev pilot login
           </div>
-          {[
-            { label: 'HRIS Admin', user: 'hris.admin' },
-            { label: 'HR Manager', user: 'hr.manager' },
-            { label: 'Employee',   user: 'john.employee' },
-          ].map(({ label, user }) => (
-            <div key={user} style={{ fontSize: 11.5, color: '#4b4563', marginBottom: 2 }}>
-              <span style={{ color: '#8b5cf6', fontWeight: 600 }}>{label}</span>
-              {' — '}
-              <span style={{ fontFamily: 'monospace' }}>{user}</span>
-              {' / '}
-              <span style={{ fontFamily: 'monospace' }}>Test@1234</span>
-            </div>
-          ))}
+          <div style={{ display: 'grid', gap: 8 }}>
+            {DEV_LOGIN_ACCOUNTS.map(({ label, username }) => (
+              <button
+                key={username}
+                type="button"
+                disabled={loading}
+                onClick={() => handleDevSignIn(username)}
+                style={{
+                  border: '1px solid rgba(139,92,246,0.18)',
+                  borderRadius: 10,
+                  background: 'rgba(255,255,255,0.84)',
+                  padding: '9px 10px',
+                  textAlign: 'left',
+                  cursor: loading ? 'not-allowed' : 'pointer',
+                  color: '#4b4563',
+                }}
+              >
+                <div style={{ fontSize: 11, fontWeight: 600, color: '#8b5cf6', marginBottom: 2 }}>
+                  {label}
+                </div>
+                <div style={{ fontSize: 11.5, fontFamily: 'monospace' }}>
+                  {username} / Test@1234
+                </div>
+              </button>
+            ))}
+          </div>
         </div>
       )}
     </div>

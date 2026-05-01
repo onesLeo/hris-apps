@@ -1,5 +1,32 @@
 import type { NextAuthOptions } from 'next-auth';
+import CredentialsProvider from 'next-auth/providers/credentials';
 import KeycloakProvider from 'next-auth/providers/keycloak';
+
+const DEV_LOGIN_ACCOUNTS = [
+  {
+    id: 'dev-hris-admin',
+    username: 'hris.admin',
+    password: 'Test@1234',
+    name: 'HRIS Admin',
+    email: 'hris.admin@example.local',
+  },
+  {
+    id: 'dev-hr-manager',
+    username: 'hr.manager',
+    password: 'Test@1234',
+    name: 'HR Manager',
+    email: 'hr.manager@example.local',
+  },
+  {
+    id: 'dev-employee',
+    username: 'john.employee',
+    password: 'Test@1234',
+    name: 'John Employee',
+    email: 'john.employee@example.local',
+  },
+] as const;
+
+const allowDevLogin = process.env['NODE_ENV'] !== 'production';
 
 async function refreshAccessToken(token: Record<string, unknown>): Promise<Record<string, unknown>> {
   try {
@@ -32,6 +59,37 @@ async function refreshAccessToken(token: Record<string, unknown>): Promise<Recor
 
 export const authOptions: NextAuthOptions = {
   providers: [
+    ...(allowDevLogin
+      ? [
+          CredentialsProvider({
+            id: 'dev-login',
+            name: 'Development Login',
+            credentials: {
+              username: { label: 'Username', type: 'text' },
+              password: { label: 'Password', type: 'password' },
+            },
+            async authorize(credentials) {
+              if (!credentials?.username || !credentials.password) {
+                return null;
+              }
+
+              const account = DEV_LOGIN_ACCOUNTS.find((entry) => (
+                entry.username === credentials.username && entry.password === credentials.password
+              ));
+
+              if (!account) {
+                return null;
+              }
+
+              return {
+                id: account.id,
+                name: account.name,
+                email: account.email,
+              };
+            },
+          }),
+        ]
+      : []),
     KeycloakProvider({
       clientId: process.env['KEYCLOAK_CLIENT_ID'] ?? '',
       clientSecret: process.env['KEYCLOAK_CLIENT_SECRET'] ?? '',
@@ -45,14 +103,17 @@ export const authOptions: NextAuthOptions = {
   session: { strategy: 'jwt' },
 
   callbacks: {
-    async jwt({ token, account }) {
+    async jwt({ token, account, user }) {
       // First sign-in: persist tokens from Keycloak into the JWT cookie
       if (account) {
         return {
           ...token,
-          accessToken: account.access_token,
-          refreshToken: account.refresh_token,
-          expiresAt: (account.expires_at ?? 0) * 1000,
+          ...(user?.name ? { name: user.name } : {}),
+          ...(user?.email ? { email: user.email } : {}),
+          ...(typeof user?.id === 'string' ? { sub: user.id } : {}),
+          ...(account.access_token ? { accessToken: account.access_token } : {}),
+          ...(account.refresh_token ? { refreshToken: account.refresh_token } : {}),
+          ...(account.expires_at ? { expiresAt: account.expires_at * 1000 } : {}),
           error: undefined,
         };
       }
@@ -71,6 +132,8 @@ export const authOptions: NextAuthOptions = {
       const err = token['error'] as string | undefined;
       if (at) session.accessToken = at;
       if (err) session.error = err;
+      if (typeof token.name === 'string' && session.user) session.user.name = token.name;
+      if (typeof token.email === 'string' && session.user) session.user.email = token.email;
       return session;
     },
   },

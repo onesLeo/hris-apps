@@ -26,7 +26,7 @@ Use this section as the launch gate before pilot or public rollout. Complete the
 ### Step 4: Finish attendance and leave
 - [ ] Validate at least one real device or middleware adapter.
 - [ ] Verify clock event ingestion, absence detection, and holiday resolution.
-- [ ] Confirm leave requests, balances, and approvals behave correctly.
+- [x] Confirm leave requests, balances, and approvals behave correctly.
 
 ### Step 5: Finish payroll for one jurisdiction
 - [ ] Complete statutory calculations and payroll components for the pilot jurisdiction.
@@ -35,6 +35,9 @@ Use this section as the launch gate before pilot or public rollout. Complete the
 
 ### Step 6: Prove the system with tests
 - [ ] Add E2E flows for onboarding, attendance, leave, approvals, and payroll.
+- [x] Add a pilot hiring-to-onboarding flow test that covers authenticated access, requisition approval, offer approval, and onboarding handoff.
+- [x] Add a pilot attendance clock-in/clock-out flow test that covers shift setup, assignment, reconciliation, and daily summary.
+- [x] Add a pilot leave-request flow test that covers submission, balance reservation, review, and approval.
 - [ ] Run integration tests against real PostgreSQL and Redis.
 - [ ] Add regression coverage for fallback and simulation paths.
 - [ ] Add audit coverage for mutating operations in the pilot scope.
