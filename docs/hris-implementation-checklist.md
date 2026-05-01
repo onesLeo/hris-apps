@@ -141,21 +141,21 @@ flowchart TD
     _(Local smoke testing path: seed or bootstrap a `Pre_Boarding` employee and verify the People screen can show real DB rows once the API is reachable.)_
 
 ## Phase 4: Attendance and Leave
-- [ ] Implement location-specific attendance policies.
-- [ ] Add shift patterns, shift assignments, and shift rosters.
-- [ ] Build clock event ingestion API.
-- [ ] Add biometric adapter framework supporting all required ingestion protocols: webhook push, polling, database-polling, file-drop, and MQTT.
-- [ ] Implement device registration and management (`devices` table).
-- [ ] Implement device-to-employee enrollment (`device_enrollments` table).
-- [ ] Add raw clock event payload storage for audit and replay.
-- [ ] Implement deduplication and offline sync handling.
-- [ ] Build absence detection jobs.
-- [ ] Seed Indonesia national public holidays for the current year (ADR 005 — required before leave and attendance calculations are correct).
-- [ ] Implement holiday calendar data model (`holiday_calendars`, `public_holidays`, `location_holiday_calendars`, `company_holidays`).
-- [ ] Implement holiday calendar assignment to locations (ADR 005).
-- [ ] Add company holiday management in HR admin UI (ADR 005).
-- [ ] Implement "is this date a holiday?" resolution with company holidays taking priority over public holidays (ADR 005).
-- [ ] Implement leave balances, accruals, and leave approvals.
+- [x] Implement location-specific attendance policies. _(`attendance_policies` table added in migration 0009; location-scoped policy rows enforced via RLS)_
+- [x] Add shift patterns, shift assignments, and shift rosters. _(`shifts`, `shift_assignments`, `shift_patterns`, `shift_pattern_slots` in migration 0009)_
+- [x] Build clock event ingestion API. _(`POST /attendance/clock` endpoint; `AttendanceRepository.insertClockEvent` + `upsertAttendanceRecord`)_
+- [x] Add biometric adapter framework supporting all required ingestion protocols: webhook push, polling, database-polling, file-drop, and MQTT. _(Five adapter classes in `apps/api/src/modules/attendance/biometric/`; `BiometricIngestionService` handles dedup + RLS-aware write)_
+- [x] Implement device registration and management (`devices` table). _(`biometric_devices` table in migration 0011)_
+- [x] Implement device-to-employee enrollment (`device_enrollments` table). _(`device_enrollments` table in migration 0011)_
+- [x] Add raw clock event payload storage for audit and replay. _(`raw_clock_payloads` table in migration 0011; `BiometricIngestionService` stores raw JSON before processing)_
+- [x] Implement deduplication and offline sync handling. _(`BiometricIngestionService.isDuplicate` checks ±2-minute window; `is_duplicate` flag on `clock_events`)_
+- [x] Build absence detection jobs. _(`AbsenceDetectionJob` BullMQ processor in `absence-detection.job.ts`; skips weekends and holiday dates)_
+- [x] Seed Indonesia national public holidays for the current year (ADR 005 — required before leave and attendance calculations are correct). _(17 official holidays seeded in migration 0010)_
+- [x] Implement holiday calendar data model (`holiday_calendars`, `public_holidays`, `location_holiday_calendars`, `company_holidays`). _(Migration 0010)_
+- [x] Implement holiday calendar assignment to locations (ADR 005). _(`location_holiday_calendars` table + `effective_from`/`effective_to` range)_
+- [ ] Add company holiday management in HR admin UI (ADR 005). _(DB table exists; admin UI screen still pending)_
+- [x] Implement "is this date a holiday?" resolution with company holidays taking priority over public holidays (ADR 005). _(`HolidayService.isHoliday` and `getHolidaysInRange` — company overrides checked first)_
+- [x] Implement leave balances, accruals, and leave approvals. _(`leave_balances` + `LeaveAccrualJob` (monthly/annual); `SubmitLeaveRequestUseCase` creates a `workflow_instance` when leave type requires approval; frontend balances wired to live API; Approve/Decline buttons call `reviewLeaveRequest()`)_
 
 ## Phase 5: Workflow and Approvals
 - [x] Build workflow template model. _(workflow_templates schema + approval module schema contracts)_

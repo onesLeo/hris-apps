@@ -10,6 +10,7 @@ export type LeaveBalance = {
 };
 
 export type LeaveRequest = {
+  id?: string;               // present when sourced from API
   employee: string;
   initials: string;
   color: string;

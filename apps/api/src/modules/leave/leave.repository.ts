@@ -156,10 +156,19 @@ export class LeaveRepository {
   }
 
   async createLeaveRequest(tenantId: string, data: CreateLeaveRequestDto): Promise<LeaveRequestSnapshot> {
+    return this.createLeaveRequestWithWorkflow(tenantId, data, null);
+  }
+
+  async createLeaveRequestWithWorkflow(
+    tenantId: string,
+    data: CreateLeaveRequestDto,
+    workflowInstanceId: string | null,
+  ): Promise<LeaveRequestSnapshot> {
     const [row] = await this.db.queryWithTenant<LeaveRequestRow>(tenantId, `
       WITH inserted AS (
-        INSERT INTO leave_requests (tenant_id, employee_id, leave_type_id, from_date, to_date, days, reason, status)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, 'pending')
+        INSERT INTO leave_requests
+          (tenant_id, employee_id, leave_type_id, workflow_instance_id, from_date, to_date, days, reason, status)
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'pending')
         RETURNING *
       )
       SELECT i.id, i.tenant_id, i.employee_id,
@@ -170,7 +179,7 @@ export class LeaveRepository {
       FROM inserted i
       JOIN employees e ON e.id = i.employee_id
       JOIN leave_types lt ON lt.id = i.leave_type_id
-    `, [tenantId, data.employeeId, data.leaveTypeId, data.fromDate, data.toDate, data.days, data.reason ?? null]);
+    `, [tenantId, data.employeeId, data.leaveTypeId, workflowInstanceId, data.fromDate, data.toDate, data.days, data.reason ?? null]);
 
     if (!row) {
       throw new Error('Failed to create leave request');
