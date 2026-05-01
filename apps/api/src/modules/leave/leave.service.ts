@@ -1,12 +1,16 @@
 import { Injectable, BadRequestException, NotFoundException } from '@nestjs/common';
 import { RequestContext } from '../../common/context/request-context';
 import { LeaveRepository } from './leave.repository';
+import { SubmitLeaveRequestUseCase } from './submit-leave-request.use-case';
 import type { LeaveTypeSnapshot, LeaveBalanceSnapshot, LeaveRequestSnapshot } from './leave.types';
 import type { CreateLeaveRequestDto, ReviewLeaveRequestDto } from './leave.dto';
 
 @Injectable()
 export class LeaveService {
-  constructor(private readonly repository: LeaveRepository) {}
+  constructor(
+    private readonly repository: LeaveRepository,
+    private readonly submitUseCase: SubmitLeaveRequestUseCase,
+  ) {}
 
   private tenantId(): string {
     return RequestContext.get()?.tenantId ?? '';
@@ -32,16 +36,7 @@ export class LeaveService {
   }
 
   async submitRequest(tenantId: string, userId: string, dto: CreateLeaveRequestDto): Promise<LeaveRequestSnapshot> {
-    if (!dto.employeeId || !dto.leaveTypeId || !dto.fromDate || !dto.toDate || dto.days < 1) {
-      throw new BadRequestException('employeeId, leaveTypeId, fromDate, toDate, and days (>=1) are required');
-    }
-
-    const request = await this.repository.createLeaveRequest(tenantId, dto);
-
-    const year = new Date(dto.fromDate).getFullYear();
-    await this.repository.adjustLeaveBalance(tenantId, dto.employeeId, dto.leaveTypeId, year, 'pending', dto.days);
-
-    return request;
+    return this.submitUseCase.execute(tenantId, userId, dto);
   }
 
   async reviewRequest(

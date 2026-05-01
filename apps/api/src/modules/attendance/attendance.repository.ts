@@ -77,7 +77,7 @@ export class AttendanceRepository {
 
   async findShiftAssignments(tenantId: string, filters: {
     employeeId?: string; shiftId?: string; activeOnly?: boolean;
-  }): Promise<ShiftAssignmentSnapshot[]> {
+  } = {}): Promise<ShiftAssignmentSnapshot[]> {
     const conditions: string[] = ['sa.tenant_id = $1'];
     const params: unknown[] = [tenantId];
     let idx = 2;

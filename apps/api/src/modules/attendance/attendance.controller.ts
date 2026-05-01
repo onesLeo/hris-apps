@@ -11,7 +11,7 @@ export class AttendanceController {
   // ─── Shifts ─────────────────────────────────────────────────────────────────
 
   @Get('shifts')
-  @Roles('hris_admin', 'hr_manager', 'hr_staff')
+  @Roles('hris_admin', 'hr_manager', 'hr_staff', 'employee')
   async listShifts() {
     return this.service.listShifts(this.tenantId());
   }

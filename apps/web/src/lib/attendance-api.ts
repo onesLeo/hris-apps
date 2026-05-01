@@ -42,6 +42,17 @@ export type ClockEvent = {
   source: string;
 };
 
+export type ShiftAssignment = {
+  id: string;
+  employeeId: string;
+  employeeName: string;
+  shiftId: string;
+  shiftName: string;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+  createdAt: string;
+};
+
 export async function fetchAttendanceShifts(): Promise<AttendanceShift[]> {
   return apiGet<AttendanceShift[]>('/attendance/shifts');
 }
@@ -74,5 +85,20 @@ export async function submitClockEvent(
     employeeId,
     direction,
     eventTime: eventTime ?? new Date().toISOString(),
+    source: 'manual',
   });
+}
+
+export async function fetchShiftAssignments(employeeId?: string): Promise<ShiftAssignment[]> {
+  const qs = employeeId ? `?employeeId=${employeeId}` : '';
+  return apiGet<ShiftAssignment[]>(`/attendance/shift-assignments${qs}`);
+}
+
+export async function createShiftAssignment(input: {
+  employeeId: string;
+  shiftId: string;
+  effectiveFrom: string;
+  effectiveTo?: string | null;
+}): Promise<ShiftAssignment> {
+  return apiPost<ShiftAssignment>('/attendance/shift-assignments', input);
 }

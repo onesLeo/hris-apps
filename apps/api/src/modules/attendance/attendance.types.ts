@@ -17,9 +17,10 @@ export type ShiftAssignmentSnapshot = {
   employeeName: string;
   shiftId: string;
   shiftName: string;
-  shiftCode: string;
+  shiftCode?: string;
   effectiveFrom: string;
   effectiveTo: string | null;
+  createdAt?: string;
 };
 
 export type AttendanceRecordSnapshot = {

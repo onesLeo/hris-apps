@@ -30,7 +30,7 @@ export class AttendanceService {
 
   async listShiftAssignments(tenantId: string, filters: {
     employeeId?: string; shiftId?: string; activeOnly?: boolean;
-  }): Promise<ShiftAssignmentSnapshot[]> {
+  } = {}): Promise<ShiftAssignmentSnapshot[]> {
     return this.repository.findShiftAssignments(tenantId, filters);
   }
 

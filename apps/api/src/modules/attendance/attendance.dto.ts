@@ -20,7 +20,7 @@ export type AssignShiftDto = {
   employeeId: string;
   shiftId: string;
   effectiveFrom: string;
-  effectiveTo?: string;
+  effectiveTo?: string | null;
 };
 
 export type CreateAttendancePolicyDto = {

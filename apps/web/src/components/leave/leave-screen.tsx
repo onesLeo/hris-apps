@@ -4,8 +4,23 @@ import { useEffect, useMemo, useState } from 'react';
 import { Badge, Avatar, Button, Icon, type Accent } from '../aurora-primitives';
 import { getLeaveCopy, useLocale } from '../../i18n';
 import { LeaveApplyDialog } from './leave-apply-dialog';
-import { addLeaveRequest, filterLeaveRequests, LEAVE_BALANCES, LEAVE_REQUESTS, LEAVE_TABS, type CreateLeaveRequestInput, type LeaveBalance, type LeaveRequest, type LeaveStatus } from './leave-data';
-import { fetchLeaveRequests, submitLeaveRequest } from '../../lib/leave-api';
+import {
+  addLeaveRequest,
+  filterLeaveRequests,
+  LEAVE_BALANCES,
+  LEAVE_REQUESTS,
+  LEAVE_TABS,
+  type CreateLeaveRequestInput,
+  type LeaveBalance,
+  type LeaveRequest,
+  type LeaveStatus,
+} from './leave-data';
+import {
+  fetchLeaveRequests,
+  fetchLeaveBalances,
+  submitLeaveRequest,
+  reviewLeaveRequest,
+} from '../../lib/leave-api';
 
 const STATUS_TONE: Record<LeaveStatus, Accent> = {
   Pending: 'warning',
@@ -20,6 +35,13 @@ const STATUS_MAP: Record<string, LeaveStatus> = {
   cancelled: 'Rejected',
 };
 
+const BALANCE_COLOR_MAP: Record<string, string> = {
+  ANNUAL: '#e8317a',
+  SICK: '#8b5cf6',
+  COMP: '#06b6d4',
+  WFH: '#10b981',
+};
+
 export function LeaveScreen() {
   const { locale } = useLocale();
   const copy = getLeaveCopy(locale);
@@ -27,12 +49,15 @@ export function LeaveScreen() {
   const [search, setSearch] = useState('');
   const [isApplyOpen, setIsApplyOpen] = useState(false);
   const [requests, setRequests] = useState<readonly LeaveRequest[]>(LEAVE_REQUESTS);
-  const [balances] = useState<readonly LeaveBalance[]>(LEAVE_BALANCES);
+  const [balances, setBalances] = useState<readonly LeaveBalance[]>(LEAVE_BALANCES);
+  const [reviewingId, setReviewingId] = useState<string | null>(null);
 
+  // Load leave requests from API
   useEffect(() => {
     fetchLeaveRequests({ limit: 100 })
       .then((apiRequests) => {
         const mapped: LeaveRequest[] = apiRequests.map((req) => ({
+          id: req.id,
           employee: req.employeeName,
           initials: req.employeeName
             .split(/\s+/)
@@ -54,6 +79,25 @@ export function LeaveScreen() {
       })
       .catch(() => {
         // Fall back to mock data if API is unavailable
+      });
+  }, []);
+
+  // Load leave balances from API
+  useEffect(() => {
+    const DEMO_EMPLOYEE_ID = '55555555-5555-5555-5555-555555555555';
+    fetchLeaveBalances(DEMO_EMPLOYEE_ID)
+      .then((apiBalances) => {
+        if (apiBalances.length === 0) return;
+        const mapped: LeaveBalance[] = apiBalances.map((b) => ({
+          label: b.leaveTypeName as LeaveBalance['label'],
+          total: b.entitledDays + b.carriedOverDays,
+          used: b.takenDays + b.pendingDays,
+          color: BALANCE_COLOR_MAP[b.leaveTypeCode] ?? '#e8317a',
+        }));
+        setBalances(mapped);
+      })
+      .catch(() => {
+        // Fall back to mock balances if API is unavailable
       });
   }, []);
 
@@ -83,6 +127,22 @@ export function LeaveScreen() {
     }).catch(() => {
       // Optimistic update already applied; API failure is non-fatal
     });
+  };
+
+  const handleReview = async (request: LeaveRequest, action: 'approve' | 'reject') => {
+    if (!request.id || reviewingId === request.id) return;
+    setReviewingId(request.id);
+    try {
+      await reviewLeaveRequest(request.id, action);
+      const newStatus: LeaveStatus = action === 'approve' ? 'Approved' : 'Rejected';
+      setRequests((current) =>
+        current.map((r) => (r.id === request.id ? { ...r, status: newStatus } : r)),
+      );
+    } catch {
+      // silently ignore — UI already shows current state
+    } finally {
+      setReviewingId(null);
+    }
   };
 
   return (
@@ -194,7 +254,26 @@ export function LeaveScreen() {
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{leave.days}d</span>
             <Badge label={copy.tabs[leave.status]} tone={STATUS_TONE[leave.status]} />
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              {leave.status === 'Pending' ? (
+              {leave.status === 'Pending' && leave.id ? (
+                <>
+                  <button
+                    type="button"
+                    disabled={reviewingId === leave.id}
+                    onClick={() => handleReview(leave, 'approve')}
+                    style={{ background: 'var(--accent)', borderRadius: 7, padding: '5px 10px', fontSize: 11, fontWeight: 600, color: '#fff', border: 'none', cursor: reviewingId === leave.id ? 'not-allowed' : 'pointer', opacity: reviewingId === leave.id ? 0.6 : 1 }}
+                  >
+                    {copy.approve}
+                  </button>
+                  <button
+                    type="button"
+                    disabled={reviewingId === leave.id}
+                    onClick={() => handleReview(leave, 'reject')}
+                    style={{ background: 'rgba(0,0,0,0.05)', borderRadius: 7, padding: '5px 10px', fontSize: 11, fontWeight: 600, color: 'var(--text-mid)', border: 'none', cursor: reviewingId === leave.id ? 'not-allowed' : 'pointer', opacity: reviewingId === leave.id ? 0.6 : 1 }}
+                  >
+                    {copy.decline}
+                  </button>
+                </>
+              ) : leave.status === 'Pending' ? (
                 <>
                   <div style={{ background: 'var(--accent)', borderRadius: 7, padding: '5px 10px', fontSize: 11, fontWeight: 600, color: '#fff' }}>
                     {copy.approve}
