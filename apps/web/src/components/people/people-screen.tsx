@@ -62,6 +62,7 @@ export function PeopleScreen() {
   const { locale } = useLocale();
   const { data: session, status: sessionStatus } = useSession();
   const localeCopy = getPeopleCopy(locale);
+  const allowMockFallback = process.env.NODE_ENV !== 'production';
   const [filter, setFilter] = useState<'All' | 'Active' | 'On Leave' | 'Terminated' | 'Remote' | 'Office'>('All');
   const [search, setSearch] = useState('');
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | null>(null);
@@ -73,41 +74,50 @@ export function PeopleScreen() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
   const [employeeHistory, setEmployeeHistory] = useState<EmployeeHistory | null>(null);
-  const [employees, setEmployees] = useState<Employee[]>(EMPLOYEES);
+  const [pageError, setPageError] = useState<string | null>(null);
+  const [employees, setEmployees] = useState<Employee[]>(allowMockFallback ? EMPLOYEES : []);
   const [employeesApiReady, setEmployeesApiReady] = useState(false);
   const [catalogReady, setCatalogReady] = useState(false);
   const fallbackOrganization = getOrganizationOverview(locale);
   const [departmentOptions, setDepartmentOptions] = useState<OrganizationCatalogDepartment[]>(
-    fallbackOrganization.departmentMap.map((department, index) => ({
-      id: `mock-dept-${index + 1}`,
-      name: department.name,
-      code: department.name.toLowerCase().replace(/\s+/g, '-'),
-      locationId: `mock-loc-${index + 1}`,
-      locationName: fallbackOrganization.locations[0]?.name ?? 'Headquarters',
-    })),
+    allowMockFallback
+      ? fallbackOrganization.departmentMap.map((department, index) => ({
+          id: `mock-dept-${index + 1}`,
+          name: department.name,
+          code: department.name.toLowerCase().replace(/\s+/g, '-'),
+          locationId: `mock-loc-${index + 1}`,
+          locationName: fallbackOrganization.locations[0]?.name ?? 'Headquarters',
+        }))
+      : [],
   );
   const [locationOptions, setLocationOptions] = useState<OrganizationCatalogLocation[]>(
-    fallbackOrganization.locations.map((location, index) => ({
-      id: `mock-loc-${index + 1}`,
-      name: location.name,
-      code: location.name.toLowerCase().replace(/\s+/g, '-'),
-    })),
+    allowMockFallback
+      ? fallbackOrganization.locations.map((location, index) => ({
+          id: `mock-loc-${index + 1}`,
+          name: location.name,
+          code: location.name.toLowerCase().replace(/\s+/g, '-'),
+        }))
+      : [],
   );
 
   // Attempt to load real data from the API once the session token is ready.
-  // Falls back silently to the mock EMPLOYEES array if the API is unavailable
-  // (e.g. no token, dev without backend running).
   useEffect(() => {
     if (sessionStatus === 'loading') {
       return;
     }
 
     let cancelled = false;
+    setPageError(null);
 
     if (!session?.accessToken) {
       setEmployeesApiReady(false);
       setCatalogReady(false);
-      setEmployees(EMPLOYEES);
+      if (allowMockFallback) {
+        setEmployees(EMPLOYEES);
+      } else {
+        setEmployees([]);
+        setPageError('Employee data requires a live API session.');
+      }
       return () => {
         cancelled = true;
       };
@@ -121,6 +131,10 @@ export function PeopleScreen() {
         setEmployeesApiReady(true);
       } else {
         setEmployeesApiReady(false);
+        if (!allowMockFallback) {
+          setEmployees([]);
+          setPageError('Failed to load employee records from the API.');
+        }
       }
 
       if (catalogResult.status === 'fulfilled' && catalogResult.value.locations.length > 0 && catalogResult.value.departments.length > 0) {
@@ -129,6 +143,9 @@ export function PeopleScreen() {
         setCatalogReady(true);
       } else {
         setCatalogReady(false);
+        if (!allowMockFallback) {
+          setPageError('Failed to load the organization catalog from the API.');
+        }
       }
     });
 
@@ -218,6 +235,10 @@ export function PeopleScreen() {
     setEmployeeHistory(null);
   };
 
+  const reportActionFailure = (message: string) => {
+    setPageError(message);
+  };
+
   const refreshEmployees = async () => {
     try {
       const freshEmployees = await fetchEmployees();
@@ -225,6 +246,9 @@ export function PeopleScreen() {
       setEmployeesApiReady(true);
     } catch {
       setEmployeesApiReady(false);
+      if (!allowMockFallback) {
+        reportActionFailure('Failed to refresh employee data from the API.');
+      }
     }
   };
 
@@ -250,8 +274,16 @@ export function PeopleScreen() {
           closeLifecycleDialog();
           return;
         } catch {
-          // fall back to local update
+          if (!allowMockFallback) {
+            reportActionFailure('Failed to transfer the employee.');
+            return;
+          }
         }
+      }
+
+      if (!allowMockFallback) {
+        reportActionFailure('Employee transfer requires a live API response.');
+        return;
       }
 
       const selectedDepartment = departmentOptions.find((department) => department.id === payload.departmentId);
@@ -293,8 +325,16 @@ export function PeopleScreen() {
           closeLifecycleDialog();
           return;
         } catch {
-          // fall back to local update
+          if (!allowMockFallback) {
+            reportActionFailure('Failed to promote the employee.');
+            return;
+          }
         }
+      }
+
+      if (!allowMockFallback) {
+        reportActionFailure('Employee promotion requires a live API response.');
+        return;
       }
 
       const selectedDepartment = payload.departmentId
@@ -335,9 +375,18 @@ export function PeopleScreen() {
           closeLifecycleDialog();
           return;
         } catch {
-          // fall through to local update
+          if (!allowMockFallback) {
+            reportActionFailure('Failed to rehire the employee.');
+            return;
+          }
         }
       }
+
+      if (!allowMockFallback) {
+        reportActionFailure('Employee rehire requires a live API response.');
+        return;
+      }
+
       const rehireDept = departmentOptions.find((d) => d.id === payload.departmentId);
       const rehireLoc = locationOptions.find((l) => l.id === payload.locationId);
       setEmployees((curr) =>
@@ -371,9 +420,18 @@ export function PeopleScreen() {
           closeLifecycleDialog();
           return;
         } catch {
-          // fall through to local update
+          if (!allowMockFallback) {
+            reportActionFailure('Failed to create the secondment.');
+            return;
+          }
         }
       }
+
+      if (!allowMockFallback) {
+        reportActionFailure('Employee secondment requires a live API response.');
+        return;
+      }
+
       const hostDept = departmentOptions.find((d) => d.id === payload.hostDepartmentId);
       const hostLoc = locationOptions.find((l) => l.id === payload.hostLocationId);
       setEmployees((curr) =>
@@ -404,8 +462,16 @@ export function PeopleScreen() {
         closeLifecycleDialog();
         return;
       } catch {
-        // fall through
+        if (!allowMockFallback) {
+          reportActionFailure('Failed to resign the employee.');
+          return;
+        }
       }
+    }
+
+    if (!allowMockFallback) {
+      reportActionFailure('Employee resignation requires a live API response.');
+      return;
     }
 
     const currentDepartment = departmentOptions.find((department) => department.name === target.dept) ?? departmentOptions[0];
@@ -441,11 +507,18 @@ export function PeopleScreen() {
           closeDialog();
           return;
         } catch {
-          // fall through to local state update
+          if (!allowMockFallback) {
+            reportActionFailure('Failed to update the employee record.');
+            return;
+          }
         }
       }
-      setEmployees((curr) => updateEmployee(curr, editingKey, input));
-      closeDialog();
+      if (allowMockFallback) {
+        setEmployees((curr) => updateEmployee(curr, editingKey, input));
+        closeDialog();
+        return;
+      }
+      reportActionFailure('Employee update could not be completed.');
       return;
     }
 
@@ -456,16 +529,27 @@ export function PeopleScreen() {
         closeDialog();
         return;
       } catch {
-        // fall through to local state
+        if (!allowMockFallback) {
+          reportActionFailure('Failed to create the employee record.');
+          return;
+        }
       }
     }
-    setEmployees((curr) => addEmployee(curr, input));
-    closeDialog();
+    if (allowMockFallback) {
+      setEmployees((curr) => addEmployee(curr, input));
+      closeDialog();
+      return;
+    }
+    reportActionFailure('Employee creation could not be completed.');
   };
 
   const toggleSuspendEmployee = async (employee: Employee) => {
     const key = getEmployeeKey(employee);
     if (employee.status === 'Suspended') {
+      if (!allowMockFallback) {
+        reportActionFailure('Employee reactivation requires a live API response.');
+        return;
+      }
       // Reactivation — no API endpoint in Phase 2, local only
       const department = departmentOptions.find((item) => item.name === employee.dept) ?? departmentOptions[0];
       const location = department
@@ -495,10 +579,18 @@ export function PeopleScreen() {
         );
         return;
       } catch {
-        // fall through
+        if (!allowMockFallback) {
+          reportActionFailure('Failed to suspend the employee.');
+          return;
+        }
       }
     }
-    setEmployees((curr) => suspendEmployee(curr, key));
+    if (allowMockFallback) {
+      setEmployees((curr) => suspendEmployee(curr, key));
+      return;
+    }
+
+    reportActionFailure('Employee suspension requires a live API response.');
   };
 
   const terminateCurrentEmployee = async (employee: Employee) => {
@@ -509,15 +601,40 @@ export function PeopleScreen() {
       try {
         await apiTerminate(employee.id);
       } catch {
+        if (!allowMockFallback) {
+          reportActionFailure('Failed to terminate the employee.');
+          return;
+        }
         // fall through — mark locally regardless
       }
     }
-    // Keep the row in state, change status to Terminated so they appear under the Terminated filter.
-    setEmployees((curr) => terminateEmployeeLocally(curr, getEmployeeKey(employee)));
+    if (allowMockFallback) {
+      // Keep the row in state, change status to Terminated so they appear under the Terminated filter.
+      setEmployees((curr) => terminateEmployeeLocally(curr, getEmployeeKey(employee)));
+      return;
+    }
+
+    reportActionFailure('Employee termination requires a live API response.');
   };
 
   return (
     <div className="aurora-screen-stack" style={{ animation: 'auroraFadeUp 0.4s ease' }}>
+      {pageError && (
+        <div
+          role="alert"
+          style={{
+            padding: '12px 14px',
+            borderRadius: 14,
+            background: 'rgba(239,68,68,0.08)',
+            border: '1px solid rgba(239,68,68,0.22)',
+            color: 'var(--text-primary)',
+            fontSize: 13,
+          }}
+        >
+          {pageError}
+        </div>
+      )}
+
       <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: 'var(--card-bg)', borderRadius: 12, padding: '9px 14px', border: '1px solid var(--border)', flex: 1, maxWidth: 320 }}>
           <Icon name="search" size={15} color="var(--text-muted)" strokeWidth={2} />

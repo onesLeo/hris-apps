@@ -23,17 +23,36 @@ export function ClockPanel({ copy }: { copy: AttendanceCopy }) {
   const [record, setRecord] = useState<AttendanceRecord | null>(null);
   const [loading, setLoading] = useState(false);
   const [flash, setFlash] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchEmployees().then(setEmployees).catch(() => {});
+    fetchEmployees()
+      .then((rows) => {
+        setEmployees(rows);
+        setError(null);
+      })
+      .catch(() => {
+        setEmployees([]);
+        setError('Failed to load employees for clocking.');
+      });
   }, []);
 
   useEffect(() => {
-    if (!selectedId) { setRecord(null); return; }
+    if (!selectedId) {
+      setRecord(null);
+      return;
+    }
+
     const today = new Date().toISOString().slice(0, 10);
     fetchAttendanceRecords({ employeeId: selectedId, fromDate: today, toDate: today, limit: 1 })
-      .then((rows) => setRecord(rows[0] ?? null))
-      .catch(() => setRecord(null));
+      .then((rows) => {
+        setRecord(rows[0] ?? null);
+        setError(null);
+      })
+      .catch(() => {
+        setRecord(null);
+        setError('Failed to load today\'s attendance record.');
+      });
   }, [selectedId]);
 
   async function handleClock(direction: 'in' | 'out') {
@@ -44,10 +63,11 @@ export function ClockPanel({ copy }: { copy: AttendanceCopy }) {
       const today = new Date().toISOString().slice(0, 10);
       const rows = await fetchAttendanceRecords({ employeeId: selectedId, fromDate: today, toDate: today, limit: 1 });
       setRecord(rows[0] ?? null);
+      setError(null);
       setFlash(direction === 'in' ? c.successIn : c.successOut);
       setTimeout(() => setFlash(null), 3000);
     } catch {
-      // silent — no fallback needed
+      setError('Failed to submit clock event.');
     } finally {
       setLoading(false);
     }
@@ -61,7 +81,22 @@ export function ClockPanel({ copy }: { copy: AttendanceCopy }) {
       <SectionHeading title={c.title} subtitle={c.subtitle} />
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {/* Employee selector */}
+        {error && (
+          <div
+            role="alert"
+            style={{
+              padding: '10px 12px',
+              borderRadius: 12,
+              background: 'rgba(239,68,68,0.08)',
+              border: '1px solid rgba(239,68,68,0.22)',
+              color: 'var(--text-primary)',
+              fontSize: 12.5,
+            }}
+          >
+            {error}
+          </div>
+        )}
+
         <select
           value={selectedId}
           onChange={(e) => setSelectedId(e.target.value)}
@@ -77,11 +112,10 @@ export function ClockPanel({ copy }: { copy: AttendanceCopy }) {
         >
           <option value="">{c.selectEmployee}</option>
           {employees.map((emp) => (
-            <option key={emp.id} value={emp.id}>{emp.name} — {emp.role}</option>
+            <option key={emp.id} value={emp.id}>{emp.name} - {emp.role}</option>
           ))}
         </select>
 
-        {/* Today's record summary */}
         {selectedId && (
           <div className="aurora-subtle-box" style={{ display: 'flex', gap: 20, alignItems: 'center', flexWrap: 'wrap' }}>
             <div style={{ flex: 1 }}>
@@ -105,7 +139,6 @@ export function ClockPanel({ copy }: { copy: AttendanceCopy }) {
           </div>
         )}
 
-        {/* Clock buttons */}
         <div style={{ display: 'flex', gap: 10 }}>
           <button
             type="button"

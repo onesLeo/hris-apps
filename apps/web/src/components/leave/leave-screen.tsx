@@ -45,17 +45,20 @@ const BALANCE_COLOR_MAP: Record<string, string> = {
 export function LeaveScreen() {
   const { locale } = useLocale();
   const copy = getLeaveCopy(locale);
+  const allowMockFallback = process.env.NODE_ENV !== 'production';
   const [tab, setTab] = useState<'All' | 'Pending' | 'Approved' | 'Rejected'>('All');
   const [search, setSearch] = useState('');
   const [isApplyOpen, setIsApplyOpen] = useState(false);
-  const [requests, setRequests] = useState<readonly LeaveRequest[]>(LEAVE_REQUESTS);
-  const [balances, setBalances] = useState<readonly LeaveBalance[]>(LEAVE_BALANCES);
+  const [requests, setRequests] = useState<readonly LeaveRequest[]>(allowMockFallback ? LEAVE_REQUESTS : []);
+  const [balances, setBalances] = useState<readonly LeaveBalance[]>(allowMockFallback ? LEAVE_BALANCES : []);
   const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   // Load leave requests from API
   useEffect(() => {
     fetchLeaveRequests({ limit: 100 })
       .then((apiRequests) => {
+        setError(null);
         const mapped: LeaveRequest[] = apiRequests.map((req) => ({
           id: req.id,
           employee: req.employeeName,
@@ -77,16 +80,19 @@ export function LeaveScreen() {
         }));
         setRequests(mapped);
       })
-      .catch(() => {
-        // Fall back to mock data if API is unavailable
+      .catch((err) => {
+        if (!allowMockFallback) {
+          setError(err instanceof Error ? err.message : 'Failed to load live leave requests.');
+        }
       });
-  }, []);
+  }, [allowMockFallback]);
 
   // Load leave balances from API
   useEffect(() => {
     const DEMO_EMPLOYEE_ID = '55555555-5555-5555-5555-555555555555';
     fetchLeaveBalances(DEMO_EMPLOYEE_ID)
       .then((apiBalances) => {
+        setError(null);
         if (apiBalances.length === 0) return;
         const mapped: LeaveBalance[] = apiBalances.map((b) => ({
           label: b.leaveTypeName as LeaveBalance['label'],
@@ -96,10 +102,12 @@ export function LeaveScreen() {
         }));
         setBalances(mapped);
       })
-      .catch(() => {
-        // Fall back to mock balances if API is unavailable
+      .catch((err) => {
+        if (!allowMockFallback) {
+          setError(err instanceof Error ? err.message : 'Failed to load leave balances.');
+        }
       });
-  }, []);
+  }, [allowMockFallback]);
 
   const filtered = useMemo(() => filterLeaveRequests(requests, tab, search), [requests, search, tab]);
   const statusCounts = useMemo(
@@ -115,7 +123,10 @@ export function LeaveScreen() {
   );
 
   const submitRequest = (input: CreateLeaveRequestInput) => {
-    setRequests((current) => addLeaveRequest(current, input));
+    setError(null);
+    const previousRequests = requests;
+    const nextRequests = addLeaveRequest(previousRequests, input);
+    setRequests(nextRequests);
 
     submitLeaveRequest({
       employeeId: '55555555-5555-5555-5555-555555555555',
@@ -124,8 +135,11 @@ export function LeaveScreen() {
       toDate: input.to,
       days: input.days,
       reason: input.reason,
-    }).catch(() => {
-      // Optimistic update already applied; API failure is non-fatal
+    }).catch((err) => {
+      if (!allowMockFallback) {
+        setRequests(previousRequests);
+        setError(err instanceof Error ? err.message : 'Failed to submit leave request.');
+      }
     });
   };
 
@@ -138,8 +152,11 @@ export function LeaveScreen() {
       setRequests((current) =>
         current.map((r) => (r.id === request.id ? { ...r, status: newStatus } : r)),
       );
-    } catch {
-      // silently ignore — UI already shows current state
+      setError(null);
+    } catch (err) {
+      if (!allowMockFallback) {
+        setError(err instanceof Error ? err.message : 'Failed to update leave request.');
+      }
     } finally {
       setReviewingId(null);
     }
@@ -218,6 +235,22 @@ export function LeaveScreen() {
           </Button>
         </div>
       </div>
+
+      {error && (
+        <div
+          role="alert"
+          style={{
+            padding: '12px 14px',
+            borderRadius: 14,
+            background: 'rgba(239,68,68,0.08)',
+            border: '1px solid rgba(239,68,68,0.22)',
+            color: 'var(--text-primary)',
+            fontSize: 13,
+          }}
+        >
+          {error}
+        </div>
+      )}
 
       <div className="aurora-card aurora-table aurora-card-lift">
         <div className="aurora-table-head" style={{ gridTemplateColumns: '2fr 1.2fr 1.2fr 1fr 0.8fr 1fr' }}>

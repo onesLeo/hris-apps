@@ -7,6 +7,7 @@ import type { JobOfferSnapshot } from '../types/offer.types';
 import { RequestContext } from '../../../common/context/request-context';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DATABASE_SERVICE, type IDatabaseService } from '../../../common/database/database.types';
+import { WorkflowInstanceService } from '../../approval/workflow-instance.service';
 
 @Injectable()
 export class OfferService {
@@ -18,6 +19,7 @@ export class OfferService {
     private readonly applicationRepo: ApplicationRepository,
     private readonly eventEmitter: EventEmitter2,
     @Inject(DATABASE_SERVICE) private readonly db: IDatabaseService,
+    private readonly workflowInstances: WorkflowInstanceService,
   ) {}
 
   private tenantId(): string {
@@ -58,10 +60,57 @@ export class OfferService {
       throw new BadRequestException('Only draft offers can be submitted for approval');
     }
 
-    // Since the approval workflow engine is not fully exposed to create instances directly yet,
-    // we bypass it and update to 'approved' to simulate approval for now.
-    // In Phase 5 completion, this would create `workflow_instances` and set status to 'pending_approval'.
-    const updated = await this.repository.update(this.tenantId(), id, { status: 'approved' });
+    const application = await this.applicationRepo.findById(this.tenantId(), existing.applicationId);
+    if (!application) {
+      throw new NotFoundException(`Application ${existing.applicationId} not found`);
+    }
+
+    const requisition = await this.db.queryWithTenant<{
+      id: string;
+      hiring_manager_id: string;
+    }>(this.tenantId(), `
+      SELECT id, hiring_manager_id
+      FROM job_requisitions
+      WHERE id = $1 AND tenant_id = $2
+      LIMIT 1
+    `, [application.requisitionId, this.tenantId()]);
+
+    const requisitionRow = requisition[0];
+    if (!requisitionRow) {
+      throw new NotFoundException(`Requisition ${application.requisitionId} not found`);
+    }
+
+    await this.workflowInstances.startWorkflowInstance(this.tenantId(), {
+      templateCode: 'recruitment-offer-approval',
+      templateName: 'Recruitment Offer Approval',
+      requestType: 'offer_approval',
+      entityType: 'job_offer',
+      entityId: id,
+      requestorId: this.userId(),
+      triggerEvent: 'recruitment.offer.submitted',
+      defaultSteps: [
+        {
+          stepOrder: 1,
+          name: 'Hiring manager review',
+          assigneeRule: 'direct_manager',
+        },
+        {
+          stepOrder: 2,
+          name: 'HR review',
+          assigneeRule: 'hr_manager',
+        },
+      ],
+      assigneeContext: {
+        directManagerId: requisitionRow.hiring_manager_id,
+      },
+      contextJson: {
+        offerId: id,
+        applicationId: existing.applicationId,
+        requisitionId: application.requisitionId,
+      },
+    });
+
+    const updated = await this.repository.update(this.tenantId(), id, { status: 'pending_approval' });
 
     return updated!;
   }

@@ -160,3 +160,4 @@ flowchart TD
 ## Supporting Documents
 - Technical requirements: [docs/hris-technical-requirements.md](C:\Users\onesa\Documents\Personal\programming\claude\hris-apps\docs\hris-technical-requirements.md)
 - Implementation checklist: [docs/hris-implementation-checklist.md](C:\Users\onesa\Documents\Personal\programming\claude\hris-apps\docs\hris-implementation-checklist.md)
+- Release readiness plan: [docs/hris-release-readiness-plan.md](C:\Users\onesa\Documents\Personal\programming\claude\hris-apps\docs\hris-release-readiness-plan.md)

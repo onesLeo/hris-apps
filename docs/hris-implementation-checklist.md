@@ -4,6 +4,53 @@ Use this checklist as the execution order for `docs/hris-system-plan.md`. Comple
 
 Implementation rule for every phase: keep the work SOLID, with separate responsibilities, dependency inversion through providers or interfaces, and translation/config/data split into dedicated modules instead of mixed inside screen or service classes.
 
+## Release Readiness
+Use this section as the launch gate before pilot or public rollout. Complete the steps in order, and use [docs/hris-release-readiness-plan.md](C:\Users\onesa\Documents\Personal\programming\claude\hris-apps\docs\hris-release-readiness-plan.md) for the expanded version.
+
+### Step 1: Lock the pilot scope
+- [ ] Choose one tenant, one country, one attendance ingestion path, and one payroll jurisdiction.
+- [ ] Freeze the initial role matrix and approval chains for the pilot.
+- [ ] Decide which workflows are in scope for launch and which are deferred.
+
+### Step 2: Remove production fallbacks
+- [ ] Disable `DEV_AUTH_BYPASS` in non-development environments.
+- [ ] Remove silent mock-data fallback behavior from production paths.
+- [x] Replace simulated offer approval with real workflow instance creation.
+
+### Step 3: Finish hiring and onboarding
+- [x] Make requisition approval use the workflow engine.
+- [ ] Make offer acceptance emit `recruitment.offer.accepted` end to end.
+- [ ] Verify onboarding case creation, task completion, attachments, approvals, and activation.
+- [ ] Confirm activation hooks succeed or fail loudly with audit events.
+
+### Step 4: Finish attendance and leave
+- [ ] Validate at least one real device or middleware adapter.
+- [ ] Verify clock event ingestion, absence detection, and holiday resolution.
+- [ ] Confirm leave requests, balances, and approvals behave correctly.
+
+### Step 5: Finish payroll for one jurisdiction
+- [ ] Complete statutory calculations and payroll components for the pilot jurisdiction.
+- [ ] Generate payslips and verify payroll finalization locks the run.
+- [ ] Confirm the payroll output matches the pilot fixtures and audit history.
+
+### Step 6: Prove the system with tests
+- [ ] Add E2E flows for onboarding, attendance, leave, approvals, and payroll.
+- [ ] Run integration tests against real PostgreSQL and Redis.
+- [ ] Add regression coverage for fallback and simulation paths.
+- [ ] Add audit coverage for mutating operations in the pilot scope.
+
+### Step 7: Harden operations
+- [ ] Prove backup and restore in a clean environment.
+- [ ] Verify migration and rollback procedures.
+- [ ] Add health checks and smoke checks for the full stack.
+- [ ] Add actionable logging or alerting for failed jobs and domain events.
+
+### Step 8: Finish public-launch hardening
+- [ ] Complete directory sync and external identity linkage.
+- [ ] Finish delegation, escalation, and conditional routing.
+- [ ] Add audit search and export, reporting, and deployment packaging.
+- [ ] Verify upgrade and rollback on a staged environment.
+
 ## Phase 0: Project Setup
 - [ ] Confirm the first release scope and jurisdictions.
 - [ ] Confirm tenant model, initial roles, and required biometric vendors.

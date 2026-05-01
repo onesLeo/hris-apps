@@ -15,9 +15,11 @@ import { OfferController } from './controllers/offer.controller';
 import { OfferService } from './services/offer.service';
 import { OfferRepository } from './repositories/offer.repository';
 import { OnboardingHandlerService } from './services/onboarding-handler.service';
+import { RecruitmentApprovalListener } from './services/recruitment-approval.listener';
+import { ApprovalModule } from '../approval/approval.module';
 
 @Module({
-  imports: [],
+  imports: [ApprovalModule],
   controllers: [
     RequisitionController, CandidateController, ApplicationController, 
     InterviewController, OfferController
@@ -28,7 +30,8 @@ import { OnboardingHandlerService } from './services/onboarding-handler.service'
     ApplicationService, ApplicationRepository,
     InterviewService, InterviewRepository,
     OfferService, OfferRepository,
-    OnboardingHandlerService
+    OnboardingHandlerService,
+    RecruitmentApprovalListener,
   ],
   exports: [
     RequisitionService, CandidateService, ApplicationService, 

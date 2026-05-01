@@ -3,7 +3,7 @@
 //   1. NEXT_PUBLIC_DEV_AUTH_TOKEN env var  (dev only — never set in production)
 //   2. window.__hrisAuthToken              (set by AuroraAppShell from NextAuth session)
 // If neither is available the request is sent without Authorization and the
-// API will return 401, which callers handle by falling back to mock data.
+// API will return 401, which callers should surface as an explicit error.
 
 declare global {
   interface Window { __hrisAuthToken?: string }
@@ -118,13 +118,18 @@ export async function apiGetBlob(path: string): Promise<{ blob: Blob; contentTyp
 }
 
 export class ApiError extends Error {
+  public readonly status: number;
+  public readonly body: unknown;
+
   constructor(
-    public readonly status: number,
+    status: number,
     message: string,
-    public readonly body: unknown = null,
+    body: unknown = null,
   ) {
     super(message);
     this.name = 'ApiError';
+    this.status = status;
+    this.body = body;
   }
 }
 

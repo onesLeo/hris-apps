@@ -5,7 +5,6 @@ import { Avatar, Badge, Button, Icon, SectionHeading } from '../aurora-primitive
 import { getRecruitmentCopy, useLocale } from '../../i18n';
 import { RecruitmentCreateDialog } from './recruitment-create-dialog';
 import {
-  addRecruitmentRequisition,
   createRequisitionRemote,
   filterRecruitmentCandidates,
   getRecruitmentOverview,
@@ -15,7 +14,7 @@ import {
   PIPELINE_ORDER,
   RECRUITMENT_FILTERS,
   removeRecruitmentRequisition,
-  updateRecruitmentRequisition,
+  updateRequisitionRemote,
   type CreateRequisitionInput,
   type RecruitmentFilter,
   type RecruitmentRequisitionKey,
@@ -39,6 +38,7 @@ export function RecruitmentScreen() {
   const { locale } = useLocale();
   const copy = getRecruitmentCopy(locale);
   const overview = getRecruitmentOverview();
+  const allowMockFallback = process.env.NODE_ENV !== 'production';
   const [filter, setFilter] = useState<RecruitmentFilter>('All');
   const [search, setSearch] = useState('');
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | null>(null);
@@ -46,17 +46,28 @@ export function RecruitmentScreen() {
   const [requisitions, setRequisitions] = useState(overview.requisitions);
   const [candidates, setCandidates] = useState(overview.candidates);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   // Load real data from API on mount
   useEffect(() => {
     let cancelled = false;
     async function load() {
       setLoading(true);
-      const [reqs, cands] = await Promise.all([loadRequisitions(), loadCandidates()]);
-      if (!cancelled) {
-        setRequisitions(reqs);
-        setCandidates(cands);
-        setLoading(false);
+      setError(null);
+      try {
+        const [reqs, cands] = await Promise.all([loadRequisitions(), loadCandidates()]);
+        if (!cancelled) {
+          setRequisitions(reqs);
+          setCandidates(cands);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setError(err instanceof Error ? err.message : 'Failed to load live recruitment data.');
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
     load();
@@ -89,20 +100,35 @@ export function RecruitmentScreen() {
 
   const submitDialog = async (input: CreateRequisitionInput) => {
     if (dialogMode === 'edit' && editingKey) {
-      setRequisitions((current) => updateRecruitmentRequisition(current, editingKey, input));
-      closeDialog();
+      try {
+        const updated = await updateRequisitionRemote(editingKey, input);
+        setRequisitions((current) =>
+          current.map((item) => (getRecruitmentRequisitionKey(item) === editingKey ? updated : item)),
+        );
+        closeDialog();
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Failed to update the requisition.');
+      }
       return;
     }
 
-    // Try API first, falls back to local-only inside createRequisitionRemote
-    const created = await createRequisitionRemote(input);
-    setRequisitions((current) => [created, ...current]);
-    closeDialog();
+    try {
+      const created = await createRequisitionRemote(input);
+      setRequisitions((current) => [created, ...current]);
+      closeDialog();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create the requisition.');
+    }
   };
 
   const deleteRequisition = (requisition: (typeof requisitions)[number]) => {
     const confirmed = window.confirm(copy.deleteConfirm);
     if (!confirmed) {
+      return;
+    }
+
+    if (!allowMockFallback) {
+      setError('Deleting requisitions requires a live recruitment API.');
       return;
     }
 
@@ -165,6 +191,37 @@ export function RecruitmentScreen() {
           </Button>
         </div>
       </div>
+
+      {loading && (
+        <div
+          style={{
+            padding: '11px 14px',
+            borderRadius: 14,
+            background: 'rgba(14,165,233,0.08)',
+            border: '1px solid rgba(14,165,233,0.18)',
+            color: 'var(--text-muted)',
+            fontSize: 13,
+          }}
+        >
+          Loading live recruitment data...
+        </div>
+      )}
+
+      {error && (
+        <div
+          role="alert"
+          style={{
+            padding: '12px 14px',
+            borderRadius: 14,
+            background: 'rgba(239,68,68,0.08)',
+            border: '1px solid rgba(239,68,68,0.22)',
+            color: 'var(--text-primary)',
+            fontSize: 13,
+          }}
+        >
+          {error}
+        </div>
+      )}
 
       <div className="aurora-dual-grid">
         <div className="aurora-card aurora-card-padding aurora-card-lift">

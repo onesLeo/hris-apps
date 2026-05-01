@@ -5,7 +5,7 @@ import {
   updateRequisition as apiUpdateRequisition,
   type RequisitionResponse,
   type CandidateResponse,
-} from './recruitment-api';
+} from './recruitment-api.ts';
 
 export type RecruitmentStage = 'Sourcing' | 'Screening' | 'Interview' | 'Offer';
 export type RecruitmentFilter = 'All' | RecruitmentStage;
@@ -26,7 +26,10 @@ export type OpenRequisition = {
   status?: string;
 };
 
-export type CreateRequisitionInput = Omit<OpenRequisition, 'accent' | 'id' | 'status' | 'departmentId' | 'locationId' | 'hiringManagerId'>;
+export type CreateRequisitionInput = Omit<
+  OpenRequisition,
+  'accent' | 'id' | 'status' | 'departmentId' | 'locationId' | 'hiringManagerId'
+>;
 export type RecruitmentRequisitionKey = string;
 
 export type RecruitmentCandidate = {
@@ -58,7 +61,6 @@ export type RecruitmentOverview = {
 };
 
 export const RECRUITMENT_FILTERS: readonly RecruitmentFilter[] = ['All', 'Sourcing', 'Screening', 'Interview', 'Offer'] as const;
-
 export const PIPELINE_ORDER: readonly RecruitmentStage[] = ['Sourcing', 'Screening', 'Interview', 'Offer'] as const;
 
 export const RECRUITMENT_STAGE_ACCOUNTS: Record<RecruitmentStage, string> = {
@@ -68,7 +70,8 @@ export const RECRUITMENT_STAGE_ACCOUNTS: Record<RecruitmentStage, string> = {
   Offer: '#10b981',
 };
 
-// ─── Mock Data (fallback when API is unavailable) ──────────────────────────────
+const USE_MOCK_DATA = process.env.NODE_ENV !== 'production';
+const RECRUITMENT_DATA_ERROR = 'Live recruitment data is unavailable. Check the API connection and retry.';
 
 const MOCK_REQUISITIONS: readonly OpenRequisition[] = [
   { title: 'Senior Backend Engineer', department: 'Engineering', location: 'Jakarta', openings: 2, stage: 'Interview', recruiter: 'Alya Putri', priority: 'High', accent: '#e8317a' },
@@ -100,15 +103,33 @@ const MOCK_OVERVIEW: RecruitmentOverview = {
   candidates: MOCK_CANDIDATES,
 };
 
-// ─── API → UI Mapping ─────────────────────────────────────────────────────────
+const EMPTY_OVERVIEW: RecruitmentOverview = {
+  openRoles: 0,
+  activeCandidates: 0,
+  interviewsThisWeek: 0,
+  offersOut: 0,
+  requisitions: [],
+  pipeline: [
+    { stage: 'Sourcing', count: 0, accent: '#e8317a' },
+    { stage: 'Screening', count: 0, accent: '#8b5cf6' },
+    { stage: 'Interview', count: 0, accent: '#0ea5e9' },
+    { stage: 'Offer', count: 0, accent: '#10b981' },
+  ],
+  candidates: [],
+};
 
 function mapRequisitionStatusToStage(status: string): RecruitmentStage {
   switch (status) {
-    case 'draft': return 'Sourcing';
-    case 'pending_approval': return 'Screening';
-    case 'open': return 'Interview';
-    case 'closed': return 'Offer';
-    default: return 'Sourcing';
+    case 'draft':
+      return 'Sourcing';
+    case 'pending_approval':
+      return 'Screening';
+    case 'open':
+      return 'Interview';
+    case 'closed':
+      return 'Offer';
+    default:
+      return 'Sourcing';
   }
 }
 
@@ -152,43 +173,45 @@ function mapApiCandidate(c: CandidateResponse): RecruitmentCandidate {
   };
 }
 
-// ─── Public Data API ───────────────────────────────────────────────────────────
-
 /**
- * Returns synchronous mock data (used as the initial state).
+ * Returns synchronous data for the initial state.
  */
 export function getRecruitmentOverview(): RecruitmentOverview {
-  return MOCK_OVERVIEW;
+  return USE_MOCK_DATA ? MOCK_OVERVIEW : EMPTY_OVERVIEW;
 }
 
 /**
- * Fetches live requisitions from the API. Falls back to mock data on failure.
+ * Fetches live requisitions from the API.
  */
 export async function loadRequisitions(): Promise<OpenRequisition[]> {
   try {
     const data = await fetchRequisitions();
-    if (data.length === 0) return [...MOCK_REQUISITIONS];
     return data.map(mapApiRequisition);
   } catch {
-    return [...MOCK_REQUISITIONS];
+    if (USE_MOCK_DATA) {
+      return [...MOCK_REQUISITIONS];
+    }
+    throw new Error(RECRUITMENT_DATA_ERROR);
   }
 }
 
 /**
- * Fetches live candidates from the API. Falls back to mock data on failure.
+ * Fetches live candidates from the API.
  */
 export async function loadCandidates(): Promise<RecruitmentCandidate[]> {
   try {
     const data = await fetchCandidates();
-    if (data.length === 0) return [...MOCK_CANDIDATES];
     return data.map(mapApiCandidate);
   } catch {
-    return [...MOCK_CANDIDATES];
+    if (USE_MOCK_DATA) {
+      return [...MOCK_CANDIDATES];
+    }
+    throw new Error(RECRUITMENT_DATA_ERROR);
   }
 }
 
 /**
- * Creates a new requisition via the API. Falls back to local-only creation.
+ * Creates a new requisition via the API.
  */
 export async function createRequisitionRemote(input: CreateRequisitionInput): Promise<OpenRequisition> {
   try {
@@ -201,16 +224,18 @@ export async function createRequisitionRemote(input: CreateRequisitionInput): Pr
     });
     return mapApiRequisition(result);
   } catch {
-    // Fallback to local-only
-    return {
-      ...input,
-      accent: accentForPriority(input.priority),
-    };
+    if (USE_MOCK_DATA) {
+      return {
+        ...input,
+        accent: accentForPriority(input.priority),
+      };
+    }
+    throw new Error(RECRUITMENT_DATA_ERROR);
   }
 }
 
 /**
- * Updates an existing requisition via the API. Falls back to local-only update.
+ * Updates an existing requisition via the API.
  */
 export async function updateRequisitionRemote(id: string, input: CreateRequisitionInput): Promise<OpenRequisition> {
   try {
@@ -220,14 +245,15 @@ export async function updateRequisitionRemote(id: string, input: CreateRequisiti
     });
     return mapApiRequisition(result);
   } catch {
-    return {
-      ...input,
-      accent: accentForPriority(input.priority),
-    };
+    if (USE_MOCK_DATA) {
+      return {
+        ...input,
+        accent: accentForPriority(input.priority),
+      };
+    }
+    throw new Error(RECRUITMENT_DATA_ERROR);
   }
 }
-
-// ─── Pure Helpers (unchanged from original) ────────────────────────────────────
 
 export function filterRecruitmentCandidates(
   candidates: readonly RecruitmentCandidate[],
@@ -270,7 +296,7 @@ export function updateRecruitmentRequisition(
   requisitions: readonly OpenRequisition[],
   key: RecruitmentRequisitionKey,
   input: CreateRequisitionInput,
-): readonly OpenRequisition[] {
+): OpenRequisition[] {
   return requisitions.map((requisition) =>
     getRecruitmentRequisitionKey(requisition) === key
       ? {

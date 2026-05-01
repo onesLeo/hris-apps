@@ -37,6 +37,7 @@ export class JwtAuthGuard implements CanActivate {
 
     const req = context.switchToHttp().getRequest<Request>();
     const token = this.extractToken(req);
+    const isDevelopment = this.config.get<string>('NODE_ENV') === 'development';
     const devAuthBypass = this.config.get<string>('DEV_AUTH_BYPASS') === 'true';
     const defaultTenantId = this.config.get<string>('DEFAULT_TENANT_ID');
     const defaultUserId = this.config.get<string>('DEFAULT_USER_ID');
@@ -46,7 +47,7 @@ export class JwtAuthGuard implements CanActivate {
       .filter(Boolean);
 
     if (!token) {
-      if (devAuthBypass && defaultTenantId && defaultUserId) {
+      if (isDevelopment && devAuthBypass && defaultTenantId && defaultUserId) {
         this.logger.warn(`dev auth bypass enabled for ${req.method} ${req.url}`);
         req.user = {
           userId: defaultUserId,

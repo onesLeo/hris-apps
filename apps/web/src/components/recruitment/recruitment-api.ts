@@ -1,4 +1,4 @@
-import { apiGet, apiPost, apiPatch } from '../../lib/api-client';
+import { apiGet, apiPost, apiPatch } from '../../lib/api-client.ts';
 
 // ─── API Response Types ────────────────────────────────────────────────────────
 

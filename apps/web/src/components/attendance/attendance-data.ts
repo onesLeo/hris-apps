@@ -27,6 +27,21 @@ export type AttendanceOverview = {
   notes: string[];
 };
 
+export function createEmptyAttendanceOverview(locale: Locale): AttendanceOverview {
+  return {
+    dateLabel: locale === 'id' ? 'Belum ada data langsung' : 'No live data available',
+    metrics: [
+      { label: 'Present', value: '0', accent: '#10b981', delta: 'Waiting for live API data', icon: 'users' },
+      { label: 'Late Arrivals', value: '0', accent: '#f59e0b', delta: 'Waiting for live API data', icon: 'clock' },
+      { label: 'Remote Today', value: '0', accent: '#8b5cf6', delta: 'Waiting for live API data', icon: 'mapPin' },
+      { label: 'Watchlist', value: '0', accent: '#ef4444', delta: 'Waiting for live API data', icon: 'trending' },
+    ],
+    shifts: [],
+    events: [],
+    notes: [],
+  };
+}
+
 const OVERVIEW: Record<Locale, AttendanceOverview> = {
   en: {
     dateLabel: 'Tuesday, 28 Apr 2026',

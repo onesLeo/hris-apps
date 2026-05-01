@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { Badge, Avatar, Icon, SectionHeading } from '../aurora-primitives';
 import { useLocale, getAttendanceCopy } from '../../i18n';
-import { getAttendanceOverview, type AttendanceOverview } from './attendance-data';
+import { createEmptyAttendanceOverview, getAttendanceOverview, type AttendanceOverview } from './attendance-data';
 import { fetchAttendanceSummary } from '../../lib/attendance-api';
 import { HolidayPanel } from './holiday-panel';
 import { ShiftPanel } from './shift-panel';
@@ -26,13 +26,17 @@ const TAB_ICONS: Record<Tab, 'clock' | 'briefcase' | 'calendar'> = {
 export function AttendanceScreen() {
   const { locale } = useLocale();
   const copy = getAttendanceCopy(locale);
-  const mockOverview = getAttendanceOverview(locale);
-  const [overview, setOverview] = useState<AttendanceOverview>(mockOverview);
+  const allowMockFallback = process.env.NODE_ENV !== 'production';
+  const [overview, setOverview] = useState<AttendanceOverview>(
+    allowMockFallback ? getAttendanceOverview(locale) : createEmptyAttendanceOverview(locale),
+  );
   const [tab, setTab] = useState<Tab>('overview');
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     fetchAttendanceSummary()
       .then((summary) => {
+        setError(null);
         setOverview((current) => ({
           ...current,
           metrics: current.metrics.map((metric, index) => {
@@ -42,10 +46,12 @@ export function AttendanceScreen() {
           }),
         }));
       })
-      .catch(() => {
-        // Fall back to mock data if API is unavailable
+      .catch((err) => {
+        if (!allowMockFallback) {
+          setError(err instanceof Error ? err.message : 'Failed to load live attendance data.');
+        }
       });
-  }, []);
+  }, [allowMockFallback]);
 
   const tabLabels: Record<Tab, string> = {
     overview: copy.tabs.overview,
@@ -73,6 +79,22 @@ export function AttendanceScreen() {
           </div>
         </div>
       </div>
+
+      {error && (
+        <div
+          role="alert"
+          style={{
+            padding: '12px 14px',
+            borderRadius: 14,
+            background: 'rgba(239,68,68,0.08)',
+            border: '1px solid rgba(239,68,68,0.22)',
+            color: 'var(--text-primary)',
+            fontSize: 13,
+          }}
+        >
+          {error}
+        </div>
+      )}
 
       {/* Tab switcher */}
       <div className="aurora-pill-row">

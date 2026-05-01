@@ -4,12 +4,14 @@ import type { CreateRequisitionDto, UpdateRequisitionDto } from '../dto/requisit
 import type { RequisitionSnapshot } from '../types/requisition.types';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { RequestContext } from '../../../common/context/request-context';
+import { WorkflowInstanceService } from '../../approval/workflow-instance.service';
 
 @Injectable()
 export class RequisitionService {
   constructor(
     private readonly repository: RequisitionRepository,
-    private readonly eventEmitter: EventEmitter2
+    private readonly eventEmitter: EventEmitter2,
+    private readonly workflowInstances: WorkflowInstanceService,
   ) {}
 
   private tenantId(): string {
@@ -53,16 +55,36 @@ export class RequisitionService {
       throw new BadRequestException('Only draft requisitions can be submitted for approval');
     }
 
-    // Since the approval workflow engine is not fully exposed to create instances directly yet,
-    // we bypass it and update to 'open' to simulate approval and emit the required event.
-    // In Phase 5 completion, this would create `workflow_instances` and set status to 'pending_approval'.
-    const updated = await this.repository.update(this.tenantId(), id, { status: 'open' });
-    
-    this.eventEmitter.emit('recruitment.requisition.opened', {
-      tenantId: this.tenantId(),
-      requisitionId: id,
-      timestamp: new Date().toISOString()
+    await this.workflowInstances.startWorkflowInstance(this.tenantId(), {
+      templateCode: 'recruitment-requisition-approval',
+      templateName: 'Recruitment Requisition Approval',
+      requestType: 'requisition_approval',
+      entityType: 'job_requisition',
+      entityId: id,
+      requestorId: this.userId(),
+      triggerEvent: 'recruitment.requisition.submitted',
+      defaultSteps: [
+        {
+          stepOrder: 1,
+          name: 'Hiring manager review',
+          assigneeRule: 'direct_manager',
+        },
+        {
+          stepOrder: 2,
+          name: 'HR review',
+          assigneeRule: 'hr_manager',
+        },
+      ],
+      assigneeContext: {
+        directManagerId: existing.hiringManagerId,
+      },
+      contextJson: {
+        requisitionId: id,
+        hiringManagerId: existing.hiringManagerId,
+      },
     });
+
+    const updated = await this.repository.update(this.tenantId(), id, { status: 'pending_approval' });
 
     return updated!;
   }

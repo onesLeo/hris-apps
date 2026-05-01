@@ -123,7 +123,7 @@ test('skips duplicate approver and finalises the workflow when no more steps rem
   assert.equal(result.workflowInstance.currentStepOrder, null);
   assert.equal(result.workflowInstance.completedAt !== null, true);
   assert.equal(result.steps[1].status, 'skipped');
-  assert.equal(result.skippedStepIds, ['step-2']);
+  assert.deepEqual(result.skippedStepIds, ['step-2']);
   assert.equal(result.events.some((event) => event.type === 'approval.step.completed' && event.payload.decision === 'skipped'), true);
 });
 

@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useRef, useState } from 'react';
-import { Icon, Badge, SectionHeading, Button } from '../aurora-primitives';
+import { Badge, Button, Icon, SectionHeading } from '../aurora-primitives';
 import type { AttendanceCopy } from '../../i18n/attendance-copy';
 import {
   fetchAttendanceShifts,
@@ -31,16 +31,23 @@ export function ShiftPanel({ copy }: { copy: AttendanceCopy }) {
   const [showDialog, setShowDialog] = useState(false);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState<Form>(EMPTY_FORM);
+  const [error, setError] = useState<string | null>(null);
   const dialogRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    Promise.all([
-      fetchShiftAssignments(),
-      fetchAttendanceShifts(),
-      fetchEmployees(),
-    ])
-      .then(([a, s, e]) => { setAssignments(a); setShifts(s); setEmployees(e); })
-      .catch(() => {})
+    Promise.all([fetchShiftAssignments(), fetchAttendanceShifts(), fetchEmployees()])
+      .then(([a, s, e]) => {
+        setAssignments(a);
+        setShifts(s);
+        setEmployees(e);
+        setError(null);
+      })
+      .catch(() => {
+        setAssignments([]);
+        setShifts([]);
+        setEmployees([]);
+        setError('Failed to load shift data.');
+      })
       .finally(() => setLoading(false));
   }, []);
 
@@ -60,9 +67,10 @@ export function ShiftPanel({ copy }: { copy: AttendanceCopy }) {
         effectiveTo: form.effectiveTo || null,
       });
       setAssignments((prev) => [assignment, ...prev]);
+      setError(null);
       setShowDialog(false);
     } catch {
-      // silent
+      setError('Failed to assign the shift.');
     } finally {
       setSaving(false);
     }
@@ -92,8 +100,25 @@ export function ShiftPanel({ copy }: { copy: AttendanceCopy }) {
         }
       />
 
+      {error && (
+        <div
+          role="alert"
+          style={{
+            marginBottom: 12,
+            padding: '10px 12px',
+            borderRadius: 12,
+            background: 'rgba(239,68,68,0.08)',
+            border: '1px solid rgba(239,68,68,0.22)',
+            color: 'var(--text-primary)',
+            fontSize: 12.5,
+          }}
+        >
+          {error}
+        </div>
+      )}
+
       {loading ? (
-        <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>…</div>
+        <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--text-muted)', fontSize: 13 }}>...</div>
       ) : assignments.length === 0 ? (
         <div className="aurora-subtle-box" style={{ textAlign: 'center', padding: '24px 0', color: 'var(--text-muted)', fontSize: 13 }}>
           {sc.noAssignments}
@@ -119,9 +144,7 @@ export function ShiftPanel({ copy }: { copy: AttendanceCopy }) {
                   </td>
                   <td style={{ padding: '10px 10px', color: 'var(--text-muted)' }}>{fmtDate(a.effectiveFrom)}</td>
                   <td style={{ padding: '10px 10px' }}>
-                    {a.effectiveTo
-                      ? <span style={{ color: 'var(--text-muted)' }}>{fmtDate(a.effectiveTo)}</span>
-                      : <Badge label={sc.ongoing} tone="success" />}
+                    {a.effectiveTo ? <span style={{ color: 'var(--text-muted)' }}>{fmtDate(a.effectiveTo)}</span> : <Badge label={sc.ongoing} tone="success" />}
                   </td>
                 </tr>
               ))}
@@ -130,15 +153,21 @@ export function ShiftPanel({ copy }: { copy: AttendanceCopy }) {
         </div>
       )}
 
-      {/* Assign Shift Dialog */}
       {showDialog && (
         <div
           style={{
-            position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            zIndex: 1000, padding: 16,
+            position: 'fixed',
+            inset: 0,
+            background: 'rgba(0,0,0,0.45)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 1000,
+            padding: 16,
           }}
-          onClick={(e) => { if (e.target === e.currentTarget) setShowDialog(false); }}
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowDialog(false);
+          }}
         >
           <div
             ref={dialogRef}
@@ -156,7 +185,6 @@ export function ShiftPanel({ copy }: { copy: AttendanceCopy }) {
             </div>
 
             <div className="aurora-screen-stack" style={{ gap: 14 }}>
-              {/* Employee */}
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-mid)', display: 'block', marginBottom: 6 }}>
                   {sc.fieldEmployee} *
@@ -164,12 +192,11 @@ export function ShiftPanel({ copy }: { copy: AttendanceCopy }) {
                 <select value={form.employeeId} onChange={(e) => setForm((f) => ({ ...f, employeeId: e.target.value }))} style={inputStyle}>
                   <option value="">—</option>
                   {employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>{emp.name} — {emp.role}</option>
+                    <option key={emp.id} value={emp.id}>{emp.name} - {emp.role}</option>
                   ))}
                 </select>
               </div>
 
-              {/* Shift */}
               <div>
                 <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-mid)', display: 'block', marginBottom: 6 }}>
                   {sc.fieldShift} *
@@ -177,37 +204,32 @@ export function ShiftPanel({ copy }: { copy: AttendanceCopy }) {
                 <select value={form.shiftId} onChange={(e) => setForm((f) => ({ ...f, shiftId: e.target.value }))} style={inputStyle}>
                   <option value="">—</option>
                   {shifts.map((s) => (
-                    <option key={s.id} value={s.id}>{s.name} ({s.startTime}–{s.endTime})</option>
+                    <option key={s.id} value={s.id}>{s.name} ({s.startTime}-{s.endTime})</option>
                   ))}
                 </select>
               </div>
 
-              {/* Effective From */}
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-mid)', display: 'block', marginBottom: 6 }}>
-                  {sc.fieldFrom} *
-                </label>
-                <input type="date" value={form.effectiveFrom} onChange={(e) => setForm((f) => ({ ...f, effectiveFrom: e.target.value }))} style={inputStyle} />
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-mid)', display: 'block', marginBottom: 6 }}>
+                    {sc.fieldFrom} *
+                  </label>
+                  <input type="date" value={form.effectiveFrom} onChange={(e) => setForm((f) => ({ ...f, effectiveFrom: e.target.value }))} style={inputStyle} />
+                </div>
+                <div>
+                  <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-mid)', display: 'block', marginBottom: 6 }}>
+                    {sc.fieldTo}
+                  </label>
+                  <input type="date" value={form.effectiveTo} onChange={(e) => setForm((f) => ({ ...f, effectiveTo: e.target.value }))} style={inputStyle} />
+                </div>
               </div>
 
-              {/* Effective To */}
-              <div>
-                <label style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-mid)', display: 'block', marginBottom: 6 }}>
-                  {sc.fieldTo}
-                </label>
-                <input type="date" value={form.effectiveTo} onChange={(e) => setForm((f) => ({ ...f, effectiveTo: e.target.value }))} style={inputStyle} />
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 4 }}>{sc.fieldToHint}</div>
-              </div>
-
-              {/* Actions */}
-              <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', paddingTop: 4 }}>
-                <Button variant="ghost" onClick={() => setShowDialog(false)}>{sc.cancel}</Button>
-                <Button
-                  variant="primary"
-                  disabled={!form.employeeId || !form.shiftId || !form.effectiveFrom || saving}
-                  onClick={handleSave}
-                >
-                  {saving ? '…' : sc.save}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 6 }}>
+                <Button variant="ghost" onClick={() => setShowDialog(false)}>
+                  {sc.cancel}
+                </Button>
+                <Button variant="primary" onClick={handleSave} disabled={saving}>
+                  {sc.save}
                 </Button>
               </div>
             </div>
