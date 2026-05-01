@@ -10,3 +10,4 @@ export * from './employee.schema';
 export * from './attendance.schema';
 export * from './onboarding.schema';
 export * from './recruitment.schema';
+export * from './holiday.schema';

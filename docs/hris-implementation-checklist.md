@@ -141,21 +141,21 @@ flowchart TD
     _(Local smoke testing path: seed or bootstrap a `Pre_Boarding` employee and verify the People screen can show real DB rows once the API is reachable.)_
 
 ## Phase 4: Attendance and Leave
-- [ ] Implement location-specific attendance policies.
-- [ ] Add shift patterns, shift assignments, and shift rosters.
-- [ ] Build clock event ingestion API.
+- [x] Implement location-specific attendance policies. _(attendance_policies table with JSONB rules: grace, absent threshold, overtime limits, working days, break deduction; GET/PUT /attendance/policies; seeded default for Head Office)_
+- [x] Add shift patterns, shift assignments, and shift rosters. _(POST /attendance/shifts for CRUD; POST /attendance/shift-assignments for assignment; GET current shift per employee; shift_assignments table with effective date range)_
+- [x] Build clock event ingestion API. _(POST /attendance/clock with automatic attendance_record upsert, worked_minutes calculation on clock-out, raw_payload JSONB storage)_
 - [ ] Add biometric adapter framework supporting all required ingestion protocols: webhook push, polling, database-polling, file-drop, and MQTT.
 - [ ] Implement device registration and management (`devices` table).
 - [ ] Implement device-to-employee enrollment (`device_enrollments` table).
-- [ ] Add raw clock event payload storage for audit and replay.
-- [ ] Implement deduplication and offline sync handling.
+- [x] Add raw clock event payload storage for audit and replay. _(raw_payload JSONB column on clock_events; passed through ClockEventDto.rawPayload)_
+- [x] Implement deduplication and offline sync handling. _(isDuplicateClockEvent() checks 2-minute window; ConflictException thrown on duplicate same-direction events)_
 - [ ] Build absence detection jobs.
-- [ ] Seed Indonesia national public holidays for the current year (ADR 005 — required before leave and attendance calculations are correct).
-- [ ] Implement holiday calendar data model (`holiday_calendars`, `public_holidays`, `location_holiday_calendars`, `company_holidays`).
-- [ ] Implement holiday calendar assignment to locations (ADR 005).
-- [ ] Add company holiday management in HR admin UI (ADR 005).
-- [ ] Implement "is this date a holiday?" resolution with company holidays taking priority over public holidays (ADR 005).
-- [ ] Implement leave balances, accruals, and leave approvals.
+- [x] Seed Indonesia national public holidays for the current year (ADR 005 — required before leave and attendance calculations are correct). _(20 holidays seeded for 2026 including cuti bersama; system calendar ID = cc000000-...-000000002026)_
+- [x] Implement holiday calendar data model (`holiday_calendars`, `public_holidays`, `location_holiday_calendars`, `company_holidays`). _(Drizzle schema in holiday.schema.ts + SQL in dev-bootstrap.sql; RLS enabled for tenant-scoped tables)_
+- [x] Implement holiday calendar assignment to locations (ADR 005). _(POST /holidays/locations/:locationId/calendar + GET; dev tenant Head Office auto-assigned to ID 2026 calendar)_
+- [ ] Add company holiday management in HR admin UI (ADR 005). _(Backend CRUD ready: POST/DELETE /holidays/company; frontend UI pending)_
+- [x] Implement "is this date a holiday?" resolution with company holidays taking priority over public holidays (ADR 005). _(GET /holidays/resolve?locationId=...&date=...; GET /holidays/range for bulk range; HolidayService.isHoliday() exported for leave/attendance/payroll modules)_
+- [x] Implement leave balances, accruals, and leave approvals. _(LeaveAccrualService: annual bulk accrual with carry-over + proration for mid-year hires; POST /leave/accrual/run and POST /leave/accrual/employee/:id; leave request submit/review with balance adjustment already existed)_
 
 ## Phase 5: Workflow and Approvals
 - [x] Build workflow template model. _(workflow_templates schema + approval module schema contracts)_

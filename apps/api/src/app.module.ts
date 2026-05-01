@@ -26,6 +26,7 @@ import { PayrollModule } from './modules/payroll/payroll.module';
 import { TenantMiddleware } from './modules/tenant/tenant.middleware';
 import { TenantModule } from './modules/tenant/tenant.module';
 import { RecruitmentModule } from './modules/recruitment/recruitment.module';
+import { HolidayModule } from './modules/holiday/holiday.module';
 
 @Module({
   imports: [
@@ -60,6 +61,7 @@ import { RecruitmentModule } from './modules/recruitment/recruitment.module';
     LeaveModule,
     PayrollModule,
     RecruitmentModule,
+    HolidayModule,
   ],
   providers: [
     I18nService,

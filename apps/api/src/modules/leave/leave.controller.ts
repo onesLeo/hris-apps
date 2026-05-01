@@ -2,11 +2,15 @@ import { Body, Controller, Get, NotFoundException, Param, Post, Query } from '@n
 import { RequestContext } from '../../common/context/request-context';
 import { Roles } from '../../common/guards/roles.decorator';
 import { LeaveService } from './leave.service';
+import { LeaveAccrualService } from './leave-accrual.service';
 import type { CreateLeaveRequestDto, ReviewLeaveRequestDto } from './leave.dto';
 
 @Controller('leave')
 export class LeaveController {
-  constructor(private readonly service: LeaveService) {}
+  constructor(
+    private readonly service: LeaveService,
+    private readonly accrualService: LeaveAccrualService,
+  ) {}
 
   @Get('types')
   @Roles('hris_admin', 'hr_manager', 'hr_staff', 'employee')
@@ -49,6 +53,38 @@ export class LeaveController {
   async reviewRequest(@Param('id') id: string, @Body() dto: ReviewLeaveRequestDto) {
     return this.service.reviewRequest(this.tenantId(), this.userId(), id, dto);
   }
+
+  // ─── Accrual ──────────────────────────────────────────────────────────────────
+
+  /**
+   * POST /leave/accrual/run
+   * Run annual accrual for all active employees.
+   * Body: { year: number, enableCarryOver?: boolean }
+   */
+  @Post('accrual/run')
+  @Roles('hris_admin', 'hr_manager')
+  async runAnnualAccrual(@Body() body: { year: number; enableCarryOver?: boolean }) {
+    const year = body.year ?? new Date().getFullYear();
+    const enableCarryOver = body.enableCarryOver ?? true;
+    return this.accrualService.runAnnualAccrual(this.tenantId(), year, enableCarryOver);
+  }
+
+  /**
+   * POST /leave/accrual/employee/:employeeId
+   * Run accrual for a single employee (e.g., on mid-year hire).
+   * Body: { year: number }
+   */
+  @Post('accrual/employee/:employeeId')
+  @Roles('hris_admin', 'hr_manager')
+  async runEmployeeAccrual(
+    @Param('employeeId') employeeId: string,
+    @Body() body: { year: number },
+  ) {
+    const year = body.year ?? new Date().getFullYear();
+    return this.accrualService.runAccrualForEmployee(this.tenantId(), employeeId, year);
+  }
+
+  // ─── Helpers ──────────────────────────────────────────────────────────────────
 
   private tenantId(): string {
     return RequestContext.get()?.tenantId ?? '';

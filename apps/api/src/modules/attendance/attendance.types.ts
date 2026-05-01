@@ -10,6 +10,18 @@ export type ShiftSnapshot = {
   isActive: boolean;
 };
 
+export type ShiftAssignmentSnapshot = {
+  id: string;
+  tenantId: string;
+  employeeId: string;
+  employeeName: string;
+  shiftId: string;
+  shiftName: string;
+  shiftCode: string;
+  effectiveFrom: string;
+  effectiveTo: string | null;
+};
+
 export type AttendanceRecordSnapshot = {
   id: string;
   tenantId: string;
@@ -34,4 +46,23 @@ export type ClockEventSnapshot = {
   eventTime: string;
   direction: 'in' | 'out';
   source: string;
+};
+
+export type AttendancePolicySnapshot = {
+  id: string;
+  tenantId: string;
+  locationId: string;
+  locationName: string;
+  name: string;
+  rules: {
+    graceLateMinutes: number;
+    absentAfterMinutes: number;
+    overtimeAllowed: boolean;
+    maxOvertimeMinutes: number;
+    minWorkedMinutesFullDay: number;
+    autoDeductBreak: boolean;
+    breakMinutes: number;
+    workingDays: number[];
+  };
+  isActive: boolean;
 };

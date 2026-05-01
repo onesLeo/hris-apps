@@ -880,7 +880,52 @@ VALUES
   ('11111111-1111-1111-1111-111111111111', '55555555-5555-5555-5555-555555555555', CURRENT_DATE - 1, 'aaaa0001-0000-0000-0000-000000000001', NOW() - INTERVAL '1 day' + INTERVAL '8 hours 35 minutes', NOW() - INTERVAL '1 day' + INTERVAL '17 hours', 445, 35, 0, FALSE, FALSE)
 ON CONFLICT (employee_id, work_date) DO NOTHING;
 
--- Row-level security for tenant-scoped tables
+-- Attendance policies (location-specific)
+CREATE TABLE IF NOT EXISTS attendance_policies (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id),
+  location_id UUID NOT NULL REFERENCES locations(id),
+  name VARCHAR(255) NOT NULL,
+  rules JSONB NOT NULL DEFAULT '{}'::jsonb,
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  CONSTRAINT attendance_policies_location_uniq UNIQUE (tenant_id, location_id)
+);
+CREATE INDEX IF NOT EXISTS attendance_policies_tenant_idx ON attendance_policies (tenant_id);
+CREATE INDEX IF NOT EXISTS attendance_policies_location_idx ON attendance_policies (location_id);
+
+-- Seed a default attendance policy for Head Office
+INSERT INTO attendance_policies (id, tenant_id, location_id, name, rules, is_active)
+VALUES (
+  'dddd0001-0000-0000-0000-000000000001',
+  '11111111-1111-1111-1111-111111111111',
+  '33333333-3333-3333-3333-333333333333',
+  'Head Office Standard Policy',
+  '{
+    "graceLateMinutes": 15,
+    "absentAfterMinutes": 240,
+    "overtimeAllowed": true,
+    "maxOvertimeMinutes": 180,
+    "minWorkedMinutesFullDay": 420,
+    "autoDeductBreak": true,
+    "breakMinutes": 60,
+    "workingDays": [1, 2, 3, 4, 5]
+  }'::jsonb,
+  TRUE
+) ON CONFLICT (tenant_id, location_id) DO NOTHING;
+
+-- Seed shift assignment for Sarah Chen → Morning Shift
+INSERT INTO shift_assignments (tenant_id, employee_id, shift_id, effective_from, effective_to)
+VALUES (
+  '11111111-1111-1111-1111-111111111111',
+  '55555555-5555-5555-5555-555555555555',
+  'aaaa0001-0000-0000-0000-000000000001',
+  (CURRENT_DATE - INTERVAL '365 days')::date,
+  NULL
+) ON CONFLICT DO NOTHING;
+
+
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE user_roles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE locations ENABLE ROW LEVEL SECURITY;
@@ -962,3 +1007,142 @@ CREATE POLICY tenant_isolation ON attendance_records USING (tenant_id = current_
 CREATE POLICY tenant_isolation ON leave_types USING (tenant_id = current_tenant_id()) WITH CHECK (tenant_id = current_tenant_id());
 CREATE POLICY tenant_isolation ON leave_balances USING (tenant_id = current_tenant_id()) WITH CHECK (tenant_id = current_tenant_id());
 CREATE POLICY tenant_isolation ON leave_requests USING (tenant_id = current_tenant_id()) WITH CHECK (tenant_id = current_tenant_id());
+
+ALTER TABLE attendance_policies ENABLE ROW LEVEL SECURITY;
+CREATE POLICY tenant_isolation ON attendance_policies USING (tenant_id = current_tenant_id()) WITH CHECK (tenant_id = current_tenant_id());
+
+-- ═══════════════════════════════════════════════════════════════════
+-- ADR 005 — Holiday Calendar tables
+-- ═══════════════════════════════════════════════════════════════════
+
+-- Master calendar per country and year (tenant_id NULL = system-provided)
+CREATE TABLE IF NOT EXISTS holiday_calendars (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID REFERENCES tenants(id),
+  country_code VARCHAR(5) NOT NULL,
+  year INT NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  is_system BOOLEAN NOT NULL DEFAULT FALSE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS holiday_calendars_country_year_idx ON holiday_calendars (country_code, year);
+CREATE INDEX IF NOT EXISTS holiday_calendars_tenant_idx ON holiday_calendars (tenant_id);
+
+-- Individual holiday dates within a calendar
+CREATE TABLE IF NOT EXISTS public_holidays (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  calendar_id UUID NOT NULL REFERENCES holiday_calendars(id) ON DELETE CASCADE,
+  date DATE NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  name_local VARCHAR(255),
+  substitute BOOLEAN NOT NULL DEFAULT FALSE,
+  original_date DATE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS public_holidays_calendar_idx ON public_holidays (calendar_id);
+CREATE INDEX IF NOT EXISTS public_holidays_date_idx ON public_holidays (date);
+
+-- Tenant-scoped company holidays (optional location scope)
+CREATE TABLE IF NOT EXISTS company_holidays (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id),
+  location_id UUID REFERENCES locations(id),
+  date DATE NOT NULL,
+  name VARCHAR(255) NOT NULL,
+  description TEXT,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS company_holidays_tenant_idx ON company_holidays (tenant_id);
+CREATE INDEX IF NOT EXISTS company_holidays_date_idx ON company_holidays (tenant_id, date);
+CREATE INDEX IF NOT EXISTS company_holidays_location_idx ON company_holidays (location_id);
+
+-- Junction: location → master calendar
+CREATE TABLE IF NOT EXISTS location_holiday_calendars (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id),
+  location_id UUID NOT NULL REFERENCES locations(id),
+  calendar_id UUID NOT NULL REFERENCES holiday_calendars(id),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+CREATE INDEX IF NOT EXISTS location_holiday_calendars_tenant_idx ON location_holiday_calendars (tenant_id);
+CREATE INDEX IF NOT EXISTS location_holiday_calendars_location_idx ON location_holiday_calendars (location_id);
+
+-- RLS for holiday tables
+ALTER TABLE holiday_calendars ENABLE ROW LEVEL SECURITY;
+ALTER TABLE company_holidays ENABLE ROW LEVEL SECURITY;
+ALTER TABLE location_holiday_calendars ENABLE ROW LEVEL SECURITY;
+-- public_holidays uses calendar_id FK, no tenant_id column — no RLS needed
+
+CREATE POLICY tenant_or_system_isolation ON holiday_calendars
+  USING (tenant_id = current_tenant_id() OR tenant_id IS NULL)
+  WITH CHECK (tenant_id = current_tenant_id() OR tenant_id IS NULL);
+CREATE POLICY tenant_isolation ON company_holidays
+  USING (tenant_id = current_tenant_id())
+  WITH CHECK (tenant_id = current_tenant_id());
+CREATE POLICY tenant_isolation ON location_holiday_calendars
+  USING (tenant_id = current_tenant_id())
+  WITH CHECK (tenant_id = current_tenant_id());
+
+-- ═══════════════════════════════════════════════════════════════════
+-- Seed: Indonesia National Public Holidays 2026
+-- Source: Government official calendar (Keputusan Bersama Menteri)
+-- Note: Substitute holidays (cuti bersama) are marked with substitute=TRUE
+-- ═══════════════════════════════════════════════════════════════════
+
+INSERT INTO holiday_calendars (id, tenant_id, country_code, year, name, is_system)
+VALUES (
+  'cc000000-0000-0000-0000-000000002026',
+  NULL,
+  'ID',
+  2026,
+  'Indonesia National Holidays 2026',
+  TRUE
+) ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO public_holidays (calendar_id, date, name, name_local, substitute, original_date) VALUES
+  -- Fixed national holidays
+  ('cc000000-0000-0000-0000-000000002026', '2026-01-01', 'New Year',                              'Tahun Baru Masehi',              FALSE, NULL),
+  ('cc000000-0000-0000-0000-000000002026', '2026-02-17', 'Lunar New Year',                         'Tahun Baru Imlek',                FALSE, NULL),
+  ('cc000000-0000-0000-0000-000000002026', '2026-03-20', 'Isra Mi''raj',                           'Isra Mi''raj Nabi Muhammad SAW',  FALSE, NULL),
+  ('cc000000-0000-0000-0000-000000002026', '2026-03-22', 'Nyepi',                                  'Hari Raya Nyepi',                 FALSE, NULL),
+  ('cc000000-0000-0000-0000-000000002026', '2026-04-03', 'Good Friday',                            'Wafat Isa Al-Masih',              FALSE, NULL),
+  ('cc000000-0000-0000-0000-000000002026', '2026-05-01', 'Labour Day',                             'Hari Buruh Internasional',        FALSE, NULL),
+  ('cc000000-0000-0000-0000-000000002026', '2026-05-14', 'Ascension Day',                          'Kenaikan Isa Al-Masih',           FALSE, NULL),
+  ('cc000000-0000-0000-0000-000000002026', '2026-05-16', 'Vesak Day',                              'Hari Raya Waisak',                FALSE, NULL),
+  ('cc000000-0000-0000-0000-000000002026', '2026-06-01', 'Pancasila Day',                          'Hari Lahir Pancasila',            FALSE, NULL),
+  ('cc000000-0000-0000-0000-000000002026', '2026-08-17', 'Independence Day',                       'Hari Kemerdekaan RI',             FALSE, NULL),
+  ('cc000000-0000-0000-0000-000000002026', '2026-12-25', 'Christmas Day',                          'Hari Raya Natal',                 FALSE, NULL),
+
+  -- Islamic holidays (approximate dates — confirmed by government decree)
+  ('cc000000-0000-0000-0000-000000002026', '2026-01-27', 'Maulid Nabi Muhammad SAW',               'Maulid Nabi Muhammad SAW',        FALSE, NULL),
+  ('cc000000-0000-0000-0000-000000002026', '2026-06-17', 'Eid al-Fitr Day 1',                      'Hari Raya Idul Fitri 1',          FALSE, NULL),
+  ('cc000000-0000-0000-0000-000000002026', '2026-06-18', 'Eid al-Fitr Day 2',                      'Hari Raya Idul Fitri 2',          FALSE, NULL),
+  ('cc000000-0000-0000-0000-000000002026', '2026-08-24', 'Eid al-Adha',                            'Hari Raya Idul Adha',             FALSE, NULL),
+  ('cc000000-0000-0000-0000-000000002026', '2026-09-14', 'Islamic New Year',                       'Tahun Baru Islam 1448H',          FALSE, NULL),
+
+  -- Cuti Bersama (joint leave / substitute holidays — announced by government)
+  ('cc000000-0000-0000-0000-000000002026', '2026-06-15', 'Joint Leave (Eid al-Fitr)',              'Cuti Bersama Idul Fitri',         TRUE, '2026-06-17'),
+  ('cc000000-0000-0000-0000-000000002026', '2026-06-16', 'Joint Leave (Eid al-Fitr)',              'Cuti Bersama Idul Fitri',         TRUE, '2026-06-17'),
+  ('cc000000-0000-0000-0000-000000002026', '2026-06-19', 'Joint Leave (Eid al-Fitr)',              'Cuti Bersama Idul Fitri',         TRUE, '2026-06-18'),
+  ('cc000000-0000-0000-0000-000000002026', '2026-12-24', 'Joint Leave (Christmas)',                'Cuti Bersama Natal',              TRUE, '2026-12-25')
+ON CONFLICT DO NOTHING;
+
+-- Assign the Indonesia 2026 calendar to the dev tenant Head Office location
+INSERT INTO location_holiday_calendars (tenant_id, location_id, calendar_id)
+VALUES (
+  '11111111-1111-1111-1111-111111111111',
+  '33333333-3333-3333-3333-333333333333',
+  'cc000000-0000-0000-0000-000000002026'
+) ON CONFLICT DO NOTHING;
+
+-- Seed a company holiday for the dev tenant (company anniversary)
+INSERT INTO company_holidays (tenant_id, location_id, date, name, description)
+VALUES (
+  '11111111-1111-1111-1111-111111111111',
+  NULL,
+  '2026-10-10',
+  'PeopleOS Anniversary',
+  'Annual company anniversary day off — applies to all locations.'
+) ON CONFLICT DO NOTHING;
