@@ -23,6 +23,7 @@ import {
   type RecruitmentRequisitionDetail,
   type RecruitmentStage,
 } from './recruitment-data';
+import { acceptOffer, fetchOffers, type OfferResponse } from './recruitment-api';
 
 const BADGE_TONE: Record<RecruitmentStage, 'accent' | 'violet' | 'warning' | 'info' | 'success' | 'danger' | 'ghost'> = {
   Sourcing: 'accent',
@@ -79,6 +80,8 @@ export function RecruitmentScreen() {
   const [detailError, setDetailError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [offersByApplicationId, setOffersByApplicationId] = useState<Record<string, OfferResponse[]>>({});
+  const [acceptingOfferId, setAcceptingOfferId] = useState<string | null>(null);
 
   // Load real data from API on mount
   useEffect(() => {
@@ -156,6 +159,22 @@ export function RecruitmentScreen() {
         const next = await loadRequisitionDetail(requisitionId);
         if (!cancelled) {
           setDetail(next);
+          // Fetch offers for any application at the offered stage
+          const offeredApps = next.applications.filter((a) => a.stage === 'offered');
+          if (offeredApps.length > 0) {
+            const offerResults = await Promise.allSettled(
+              offeredApps.map((a) => fetchOffers(a.id).then((offers) => ({ id: a.id, offers }))),
+            );
+            if (!cancelled) {
+              const map: Record<string, OfferResponse[]> = {};
+              for (const result of offerResults) {
+                if (result.status === 'fulfilled') {
+                  map[result.value.id] = result.value.offers;
+                }
+              }
+              setOffersByApplicationId(map);
+            }
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -247,6 +266,21 @@ export function RecruitmentScreen() {
     }
 
     setRequisitions((current) => removeRecruitmentRequisition(current, getRecruitmentRequisitionKey(requisition)));
+  };
+
+  const handleAcceptOffer = async (applicationId: string, offerId: string) => {
+    setAcceptingOfferId(offerId);
+    try {
+      const updated = await acceptOffer(offerId);
+      setOffersByApplicationId((current) => ({
+        ...current,
+        [applicationId]: (current[applicationId] ?? []).map((o) => (o.id === offerId ? updated : o)),
+      }));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to accept offer.');
+    } finally {
+      setAcceptingOfferId(null);
+    }
   };
 
   return (
@@ -535,6 +569,9 @@ export function RecruitmentScreen() {
                   ) : detail.applications.map((application) => {
                     const candidateName = candidateNameById.get(application.candidateId) ?? application.candidateId;
                     const tone = APPLICATION_STAGE_TONE[application.stage] ?? 'ghost';
+                    const offers = offersByApplicationId[application.id] ?? [];
+                    const approvedOffer = offers.find((o) => o.status === 'approved');
+                    const acceptedOffer = offers.find((o) => o.status === 'accepted');
 
                     return (
                       <div key={application.id} style={{ padding: 12, borderRadius: 14, border: '1px solid rgba(15,23,42,0.08)', background: 'rgba(255,255,255,0.78)' }}>
@@ -550,6 +587,35 @@ export function RecruitmentScreen() {
                         <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
                           Created {new Date(application.createdAt).toLocaleString()}
                         </div>
+                        {acceptedOffer && (
+                          <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 10, background: 'rgba(34,197,94,0.08)', border: '1px solid rgba(34,197,94,0.22)', display: 'flex', alignItems: 'center', gap: 8 }}>
+                            <Badge label="Offer Accepted" tone="success" />
+                            {acceptedOffer.baseSalary != null && (
+                              <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                                Base: {acceptedOffer.baseSalary.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 })}
+                              </span>
+                            )}
+                          </div>
+                        )}
+                        {approvedOffer && !acceptedOffer && (
+                          <div style={{ marginTop: 10, padding: '8px 12px', borderRadius: 10, background: 'rgba(14,165,233,0.06)', border: '1px solid rgba(14,165,233,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                            <div>
+                              <span style={{ fontSize: 12, fontWeight: 600, color: 'var(--text-primary)' }}>Offer approved</span>
+                              {approvedOffer.baseSalary != null && (
+                                <span style={{ fontSize: 12, color: 'var(--text-muted)', marginLeft: 8 }}>
+                                  Base: {approvedOffer.baseSalary.toLocaleString('id-ID', { style: 'currency', currency: 'IDR', maximumFractionDigits: 0 })}
+                                </span>
+                              )}
+                            </div>
+                            <Button
+                              variant="primary"
+                              onClick={() => handleAcceptOffer(application.id, approvedOffer.id)}
+                              disabled={acceptingOfferId === approvedOffer.id}
+                            >
+                              {acceptingOfferId === approvedOffer.id ? 'Accepting…' : 'Mark as Accepted'}
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     );
                   })}

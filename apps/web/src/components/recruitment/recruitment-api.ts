@@ -208,3 +208,7 @@ export async function updateOffer(id: string, data: Partial<{
 export async function submitOffer(id: string): Promise<OfferResponse> {
   return apiPost<OfferResponse>(`/recruitment/offers/${id}/submit`, {});
 }
+
+export async function acceptOffer(id: string): Promise<OfferResponse> {
+  return apiPost<OfferResponse>(`/recruitment/offers/${id}/accept`, {});
+}

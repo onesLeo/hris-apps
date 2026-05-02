@@ -32,4 +32,9 @@ export class OfferController {
   async submitForApproval(@Param('id') id: string) {
     return this.service.submitForApproval(id);
   }
+
+  @Post(':id/accept')
+  async accept(@Param('id') id: string) {
+    return this.service.acceptOffer(id);
+  }
 }

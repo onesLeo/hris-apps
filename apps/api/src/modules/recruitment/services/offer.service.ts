@@ -123,6 +123,21 @@ export class OfferService {
     return existing;
   }
 
+  async acceptOffer(id: string): Promise<JobOfferSnapshot> {
+    const existing = await this.repository.findById(this.tenantId(), id);
+    if (!existing) {
+      throw new NotFoundException(`Offer ${id} not found`);
+    }
+
+    if (existing.status !== 'approved') {
+      throw new BadRequestException('Only approved offers can be marked as accepted');
+    }
+
+    const updated = await this.repository.update(this.tenantId(), id, { status: 'accepted' });
+    await this.emitOfferAccepted(id, updated!);
+    return updated!;
+  }
+
   async findAllByApplication(applicationId: string): Promise<JobOfferSnapshot[]> {
     return this.repository.findAllByApplication(this.tenantId(), applicationId);
   }
