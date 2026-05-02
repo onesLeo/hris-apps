@@ -1,4 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DatabaseService } from '../../common/database/database.service';
 import { ApprovalService } from './approval.service';
 import type { WorkflowAssigneeContext, WorkflowStepDefinition } from './approval.workflow';
@@ -39,6 +40,7 @@ export class WorkflowInstanceService {
   constructor(
     private readonly db: DatabaseService,
     private readonly approvalService: ApprovalService,
+    private readonly events: EventEmitter2,
   ) {}
 
   async startWorkflowInstance(tenantId: string, input: StartWorkflowInstanceInput): Promise<string> {
@@ -89,6 +91,15 @@ export class WorkflowInstanceService {
         step.dueAt,
       ]);
     }
+
+    this.events.emit('workflow.instance.created', {
+      tenantId,
+      workflowInstanceId: instance.id,
+      templateCode: input.templateCode,
+      templateName: input.templateName,
+      entityId: input.entityId,
+      contextJson: input.contextJson,
+    });
 
     return instance.id;
   }

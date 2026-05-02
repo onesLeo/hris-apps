@@ -27,6 +27,7 @@ import { TenantMiddleware } from './modules/tenant/tenant.middleware';
 import { TenantModule } from './modules/tenant/tenant.module';
 import { RecruitmentModule } from './modules/recruitment/recruitment.module';
 import { HolidayModule } from './modules/holiday/holiday.module';
+import { NotificationModule } from './modules/notifications/notification.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { HolidayModule } from './modules/holiday/holiday.module';
     TenantModule,
     AuditModule,
     ApprovalModule,
+    NotificationModule,
     PolicyModule,
     HealthModule,
     OrganizationModule,
