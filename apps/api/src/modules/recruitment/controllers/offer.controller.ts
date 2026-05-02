@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Put, Body, Param, UseGuards, Query } from '@nestjs/common';
 import { OfferService } from '../services/offer.service';
 import { CreateOfferDto, UpdateOfferDto } from '../dto/offer.dto';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../auth/jwt.guard';
 
 @Controller('recruitment/offers')
 @UseGuards(JwtAuthGuard)

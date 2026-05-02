@@ -31,11 +31,12 @@ export class AttendanceController {
     @Query('shiftId') shiftId?: string,
     @Query('activeOnly') activeOnly?: string,
   ) {
-    return this.service.listShiftAssignments(this.tenantId(), {
-      employeeId,
-      shiftId,
+    const filters: { employeeId?: string; shiftId?: string; activeOnly?: boolean } = {
       activeOnly: activeOnly === 'true',
-    });
+    };
+    if (employeeId) filters.employeeId = employeeId;
+    if (shiftId) filters.shiftId = shiftId;
+    return this.service.listShiftAssignments(this.tenantId(), filters);
   }
 
   @Get('shift-assignments/employee/:employeeId/current')

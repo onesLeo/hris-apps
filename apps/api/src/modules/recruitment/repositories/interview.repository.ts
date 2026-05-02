@@ -8,33 +8,31 @@ export class InterviewRepository {
   constructor(@Inject(DATABASE_SERVICE) private readonly db: IDatabaseService) {}
 
   async createInterview(tenantId: string, data: CreateInterviewDto): Promise<InterviewSnapshot> {
-    return this.db.transaction(async (tx) => {
-      const [interview] = await tx.queryWithTenant<InterviewSnapshot>(tenantId, `
-        INSERT INTO interviews (
-          tenant_id, application_id, round_name, scheduled_at, duration_minutes, status
-        ) VALUES ($1, $2, $3, $4, $5, 'scheduled')
-        RETURNING 
-          id, tenant_id as "tenantId", application_id as "applicationId", round_name as "roundName",
-          scheduled_at as "scheduledAt", duration_minutes as "durationMinutes", status,
-          overall_recommendation as "overallRecommendation", created_at as "createdAt", updated_at as "updatedAt"
-      `, [tenantId, data.applicationId, data.roundName, data.scheduledAt, data.durationMinutes]);
+    const [interview] = await this.db.queryWithTenant<InterviewSnapshot>(tenantId, `
+      INSERT INTO interviews (
+        tenant_id, application_id, round_name, scheduled_at, duration_minutes, status
+      ) VALUES ($1, $2, $3, $4, $5, 'scheduled')
+      RETURNING 
+        id, tenant_id as "tenantId", application_id as "applicationId", round_name as "roundName",
+        scheduled_at as "scheduledAt", duration_minutes as "durationMinutes", status,
+        overall_recommendation as "overallRecommendation", created_at as "createdAt", updated_at as "updatedAt"
+    `, [tenantId, data.applicationId, data.roundName, data.scheduledAt, data.durationMinutes]);
 
-      if (!interview) throw new Error('Failed to create interview');
+    if (!interview) throw new Error('Failed to create interview');
 
-      for (const employeeId of data.interviewerIds) {
-        await tx.queryWithTenant(tenantId, `
-          INSERT INTO interview_interviewers (tenant_id, interview_id, employee_id)
-          VALUES ($1, $2, $3)
-        `, [tenantId, interview.id, employeeId]);
+    for (const employeeId of data.interviewerIds) {
+      await this.db.queryWithTenant(tenantId, `
+        INSERT INTO interview_interviewers (tenant_id, interview_id, employee_id)
+        VALUES ($1, $2, $3)
+      `, [tenantId, interview.id, employeeId]);
 
-        await tx.queryWithTenant(tenantId, `
-          INSERT INTO interview_scorecards (tenant_id, interview_id, interviewer_id)
-          VALUES ($1, $2, $3)
-        `, [tenantId, interview.id, employeeId]);
-      }
+      await this.db.queryWithTenant(tenantId, `
+        INSERT INTO interview_scorecards (tenant_id, interview_id, interviewer_id)
+        VALUES ($1, $2, $3)
+      `, [tenantId, interview.id, employeeId]);
+    }
 
-      return interview;
-    });
+    return interview;
   }
 
   async findInterviewById(tenantId: string, id: string): Promise<InterviewSnapshot | null> {

@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Put, Body, Param, UseGuards, Query } from '@nestjs/common';
 import { InterviewService } from '../services/interview.service';
 import { CreateInterviewDto, SubmitScorecardDto } from '../dto/interview.dto';
-import { JwtAuthGuard } from '../../auth/guards/jwt-auth.guard';
+import { JwtAuthGuard } from '../../auth/jwt.guard';
 
 @Controller('recruitment/interviews')
 @UseGuards(JwtAuthGuard)
