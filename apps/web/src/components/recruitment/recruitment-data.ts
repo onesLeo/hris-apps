@@ -1,8 +1,11 @@
 import {
   fetchRequisitions,
   fetchCandidates,
+  fetchRequisition,
+  fetchApplications,
   createRequisition as apiCreateRequisition,
   updateRequisition as apiUpdateRequisition,
+  type ApplicationResponse,
   type RequisitionResponse,
   type CandidateResponse,
 } from './recruitment-api.ts';
@@ -21,9 +24,12 @@ export type OpenRequisition = {
   stage: RecruitmentStage;
   recruiter: string;
   hiringManagerId?: string;
+  workflowInstanceId?: string | null;
   priority: 'High' | 'Medium' | 'Low';
   accent: string;
   status?: string;
+  description?: string | null;
+  requirements?: string | null;
 };
 
 export type CreateRequisitionInput = Omit<
@@ -58,6 +64,13 @@ export type RecruitmentOverview = {
   requisitions: readonly OpenRequisition[];
   pipeline: readonly PipelineStage[];
   candidates: readonly RecruitmentCandidate[];
+};
+
+export type RecruitmentApplicationDetail = ApplicationResponse;
+
+export type RecruitmentRequisitionDetail = {
+  requisition: OpenRequisition;
+  applications: readonly RecruitmentApplicationDetail[];
 };
 
 export const RECRUITMENT_FILTERS: readonly RecruitmentFilter[] = ['All', 'Sourcing', 'Screening', 'Interview', 'Offer'] as const;
@@ -153,17 +166,20 @@ function mapApiRequisition(r: RequisitionResponse): OpenRequisition {
   return {
     id: r.id,
     title: r.title,
-    department: r.departmentId,
+    department: r.departmentName ?? r.departmentId,
     departmentId: r.departmentId,
-    location: r.locationId,
+    location: r.locationName ?? r.locationId,
     locationId: r.locationId,
     openings: r.headcount,
     stage: mapRequisitionStatusToStage(r.status),
-    recruiter: r.hiringManagerId,
+    recruiter: r.hiringManagerName ?? r.hiringManagerId,
     hiringManagerId: r.hiringManagerId,
+    workflowInstanceId: r.workflowInstanceId,
     priority: normalizePriority(r.priority),
     accent: accentForPriority(normalizePriority(r.priority)),
     status: r.status,
+    description: r.description,
+    requirements: r.requirements,
   };
 }
 
@@ -220,6 +236,21 @@ export async function loadCandidates(): Promise<RecruitmentCandidate[]> {
     }
     throw new Error(RECRUITMENT_DATA_ERROR);
   }
+}
+
+/**
+ * Fetches a live requisition detail view with linked applications.
+ */
+export async function loadRequisitionDetail(id: string): Promise<RecruitmentRequisitionDetail> {
+  const [requisition, applications] = await Promise.all([
+    fetchRequisition(id),
+    fetchApplications(id),
+  ]);
+
+  return {
+    requisition: mapApiRequisition(requisition),
+    applications,
+  };
 }
 
 /**

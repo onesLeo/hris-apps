@@ -55,7 +55,7 @@ export class RequisitionService {
       throw new BadRequestException('Only draft requisitions can be submitted for approval');
     }
 
-    await this.workflowInstances.startWorkflowInstance(this.tenantId(), {
+    const workflowInstanceId = await this.workflowInstances.startWorkflowInstance(this.tenantId(), {
       templateCode: 'recruitment-requisition-approval',
       templateName: 'Recruitment Requisition Approval',
       requestType: 'requisition_approval',
@@ -84,7 +84,7 @@ export class RequisitionService {
       },
     });
 
-    const updated = await this.repository.update(this.tenantId(), id, { status: 'pending_approval' });
+    const updated = await this.repository.markPendingApproval(this.tenantId(), id, workflowInstanceId);
 
     return updated!;
   }

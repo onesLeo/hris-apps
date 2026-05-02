@@ -6,8 +6,12 @@ export type RequisitionSnapshot = {
   tenantId: string;
   title: string;
   departmentId: string;
+  departmentName: string | null;
   locationId: string;
+  locationName: string | null;
   hiringManagerId: string;
+  hiringManagerName: string | null;
+  workflowInstanceId: string | null;
   status: RequisitionStatus;
   priority: RequisitionPriority;
   headcount: number;

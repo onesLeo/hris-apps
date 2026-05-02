@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Avatar, Badge, Button, Icon, SectionHeading } from '../aurora-primitives';
+import { WorkflowTimeline } from '../approval/workflow-timeline';
 import { getRecruitmentCopy, useLocale } from '../../i18n';
 import { RecruitmentCreateDialog } from './recruitment-create-dialog';
 import {
@@ -10,6 +11,7 @@ import {
   getRecruitmentOverview,
   getRecruitmentRequisitionKey,
   loadCandidates,
+  loadRequisitionDetail,
   loadRequisitions,
   PIPELINE_ORDER,
   RECRUITMENT_FILTERS,
@@ -18,6 +20,7 @@ import {
   type CreateRequisitionInput,
   type RecruitmentFilter,
   type RecruitmentRequisitionKey,
+  type RecruitmentRequisitionDetail,
   type RecruitmentStage,
 } from './recruitment-data';
 
@@ -34,6 +37,31 @@ const PRIORITY_TONE: Record<'High' | 'Medium' | 'Low', 'danger' | 'warning' | 'g
   Low: 'ghost',
 };
 
+const REQUISITION_STATUS_TONE: Record<string, 'accent' | 'warning' | 'success' | 'info' | 'danger' | 'ghost'> = {
+  draft: 'ghost',
+  pending_approval: 'warning',
+  open: 'success',
+  on_hold: 'info',
+  closed: 'accent',
+  cancelled: 'danger',
+};
+
+const APPLICATION_STAGE_TONE: Record<string, 'accent' | 'violet' | 'warning' | 'info' | 'success' | 'danger' | 'ghost'> = {
+  applied: 'ghost',
+  screening: 'info',
+  interviewing: 'violet',
+  offered: 'warning',
+  hired: 'success',
+  rejected: 'danger',
+  withdrawn: 'ghost',
+};
+
+function humanize(value: string): string {
+  return value
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, (char) => char.toUpperCase());
+}
+
 export function RecruitmentScreen() {
   const { locale } = useLocale();
   const copy = getRecruitmentCopy(locale);
@@ -43,8 +71,12 @@ export function RecruitmentScreen() {
   const [search, setSearch] = useState('');
   const [dialogMode, setDialogMode] = useState<'create' | 'edit' | null>(null);
   const [editingKey, setEditingKey] = useState<RecruitmentRequisitionKey | null>(null);
+  const [selectedRequisitionKey, setSelectedRequisitionKey] = useState<RecruitmentRequisitionKey | null>(null);
   const [requisitions, setRequisitions] = useState(overview.requisitions);
   const [candidates, setCandidates] = useState(overview.candidates);
+  const [detail, setDetail] = useState<RecruitmentRequisitionDetail | null>(null);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const [detailError, setDetailError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,6 +91,17 @@ export function RecruitmentScreen() {
         if (!cancelled) {
           setRequisitions(reqs);
           setCandidates(cands);
+          setSelectedRequisitionKey((current) => {
+            if (reqs.length === 0) {
+              return null;
+            }
+
+            if (current && reqs.some((item) => getRecruitmentRequisitionKey(item) === current)) {
+              return current;
+            }
+
+            return getRecruitmentRequisitionKey(reqs[0]!);
+          });
         }
       } catch (err) {
         if (!cancelled) {
@@ -74,10 +117,76 @@ export function RecruitmentScreen() {
     return () => { cancelled = true; };
   }, []);
 
+  useEffect(() => {
+    if (!selectedRequisitionKey && requisitions.length > 0) {
+      setSelectedRequisitionKey(getRecruitmentRequisitionKey(requisitions[0]!));
+    }
+  }, [selectedRequisitionKey, requisitions]);
+
+  useEffect(() => {
+    if (!selectedRequisitionKey) {
+      setDetail(null);
+      setDetailError(null);
+      return;
+    }
+
+    const selectedRequisition = requisitions.find((item) => getRecruitmentRequisitionKey(item) === selectedRequisitionKey);
+    if (!selectedRequisition) {
+      setDetail(null);
+      setDetailError('Select a requisition to view the full detail.');
+      return;
+    }
+
+    const requisition = selectedRequisition;
+
+    const requisitionId = requisition.id ?? '';
+
+    if (!requisitionId) {
+      setDetail({ requisition, applications: [] });
+      setDetailError(null);
+      setDetailLoading(false);
+      return;
+    }
+
+    let cancelled = false;
+    async function loadDetail() {
+      setDetailLoading(true);
+      setDetailError(null);
+      try {
+        const next = await loadRequisitionDetail(requisitionId);
+        if (!cancelled) {
+          setDetail(next);
+        }
+      } catch (err) {
+        if (!cancelled) {
+          setDetailError(err instanceof Error ? err.message : 'Failed to load requisition detail.');
+          setDetail({ requisition, applications: [] });
+        }
+      } finally {
+        if (!cancelled) {
+          setDetailLoading(false);
+        }
+      }
+    }
+
+    loadDetail();
+    return () => { cancelled = true; };
+  }, [selectedRequisitionKey, requisitions]);
+
   const filteredCandidates = useMemo(
     () => filterRecruitmentCandidates(candidates, filter, search),
     [filter, candidates, search],
   );
+
+  const candidateNameById = useMemo(() => {
+    const map = new Map<string, string>();
+    for (const candidate of candidates) {
+      if (candidate.id) {
+        map.set(candidate.id, candidate.name);
+      }
+    }
+    return map;
+  }, [candidates]);
 
   const openRolesCount = requisitions.length;
   const editingRequisition = editingKey ? requisitions.find((item) => getRecruitmentRequisitionKey(item) === editingKey) : undefined;
@@ -91,6 +200,10 @@ export function RecruitmentScreen() {
   const openEditDialog = (requisition: (typeof requisitions)[number]) => {
     setEditingKey(getRecruitmentRequisitionKey(requisition));
     setDialogMode('edit');
+  };
+
+  const selectRequisition = (requisition: (typeof requisitions)[number]) => {
+    setSelectedRequisitionKey(getRecruitmentRequisitionKey(requisition));
   };
 
   const closeDialog = () => {
@@ -115,6 +228,7 @@ export function RecruitmentScreen() {
     try {
       const created = await createRequisitionRemote(input);
       setRequisitions((current) => [created, ...current]);
+      setSelectedRequisitionKey(getRecruitmentRequisitionKey(created));
       closeDialog();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create the requisition.');
@@ -229,9 +343,29 @@ export function RecruitmentScreen() {
           <div className="aurora-screen-stack" style={{ gap: 12 }}>
             {requisitions.map((role) => {
               const roleKey = getRecruitmentRequisitionKey(role);
+              const isSelected = roleKey === selectedRequisitionKey;
 
               return (
-                <div key={roleKey} style={{ padding: 14, borderRadius: 16, border: '1px solid var(--border)', background: 'rgba(255,255,255,0.55)' }}>
+                <div
+                  key={roleKey}
+                  role="button"
+                  tabIndex={0}
+                  onClick={() => selectRequisition(role)}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                      event.preventDefault();
+                      selectRequisition(role);
+                    }
+                  }}
+                  style={{
+                    padding: 14,
+                    borderRadius: 16,
+                    border: isSelected ? '1px solid rgba(14,165,233,0.45)' : '1px solid var(--border)',
+                    background: isSelected ? 'rgba(14,165,233,0.08)' : 'rgba(255,255,255,0.55)',
+                    boxShadow: isSelected ? '0 0 0 1px rgba(14,165,233,0.12) inset' : 'none',
+                    cursor: 'pointer',
+                  }}
+                >
                   <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
                     <div>
                       <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{role.title}</div>
@@ -244,14 +378,18 @@ export function RecruitmentScreen() {
 
                   <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginTop: 12 }}>
                     <Badge label={`${role.openings} ${copy.labels.openings}`} tone="ghost" />
-                    <Badge label={role.stage} tone={BADGE_TONE[role.stage]} />
+                    <Badge label={humanize(role.status ?? 'draft')} tone={REQUISITION_STATUS_TONE[role.status ?? 'draft'] ?? 'ghost'} />
                     <Badge label={role.recruiter} tone="accent" />
+                    {role.workflowInstanceId ? <Badge label="Approval linked" tone="info" /> : <Badge label="Draft" tone="ghost" />}
                   </div>
 
                   <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 14 }}>
                     <button
                       type="button"
-                      onClick={() => openEditDialog(role)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        openEditDialog(role);
+                      }}
                       className="aurora-icon-swatch"
                       aria-label={copy.editRequisitionTitle}
                     >
@@ -259,7 +397,10 @@ export function RecruitmentScreen() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => deleteRequisition(role)}
+                      onClick={(event) => {
+                        event.stopPropagation();
+                        deleteRequisition(role);
+                      }}
                       className="aurora-icon-swatch"
                       aria-label={copy.deleteRequisition}
                     >
@@ -298,6 +439,136 @@ export function RecruitmentScreen() {
             })}
           </div>
         </div>
+      </div>
+
+      <div className="aurora-card aurora-card-padding aurora-card-lift">
+        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap', alignItems: 'flex-start' }}>
+          <div>
+            <SectionHeading
+              title="Requisition detail"
+              subtitle={selectedRequisitionKey ? 'Selected role, approval trail, and linked applications' : 'Choose a requisition to inspect the full hiring record'}
+            />
+          </div>
+          {detail?.requisition && (
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <Badge label={humanize(detail.requisition.status ?? 'draft')} tone={REQUISITION_STATUS_TONE[detail.requisition.status ?? 'draft'] ?? 'ghost'} />
+              <Badge label={detail.requisition.priority} tone={PRIORITY_TONE[detail.requisition.priority]} />
+              {detail.requisition.workflowInstanceId ? <Badge label="Workflow active" tone="info" /> : <Badge label="Workflow not started" tone="ghost" />}
+            </div>
+          )}
+        </div>
+
+        {detailLoading && (
+          <div style={{ marginTop: 14, padding: '11px 14px', borderRadius: 14, background: 'rgba(14,165,233,0.08)', border: '1px solid rgba(14,165,233,0.18)', color: 'var(--text-muted)', fontSize: 13 }}>
+            Loading requisition detail...
+          </div>
+        )}
+
+        {detailError && (
+          <div style={{ marginTop: 14, padding: '12px 14px', borderRadius: 14, background: 'rgba(239,68,68,0.08)', border: '1px solid rgba(239,68,68,0.22)', color: 'var(--text-primary)', fontSize: 13 }}>
+            {detailError}
+          </div>
+        )}
+
+        {detail?.requisition && (
+          <div className="aurora-dual-grid" style={{ marginTop: 14, gridTemplateColumns: '1.15fr 0.85fr' }}>
+            <div className="aurora-screen-stack" style={{ gap: 14 }}>
+              <div style={{ padding: 14, borderRadius: 16, border: '1px solid var(--border)', background: 'rgba(255,255,255,0.55)' }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>{detail.requisition.title}</div>
+                <div style={{ fontSize: 12.5, color: 'var(--text-muted)', marginTop: 4 }}>
+                  {detail.requisition.department} · {detail.requisition.location}
+                </div>
+
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 10, marginTop: 14 }}>
+                  <div>
+                    <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.45px', color: 'var(--text-muted)' }}>Hiring manager</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginTop: 4 }}>
+                      {detail.requisition.recruiter}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.45px', color: 'var(--text-muted)' }}>Headcount</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginTop: 4 }}>
+                      {detail.requisition.openings}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.45px', color: 'var(--text-muted)' }}>Status</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginTop: 4 }}>
+                      {humanize(detail.requisition.status ?? 'draft')}
+                    </div>
+                  </div>
+                  <div>
+                    <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.45px', color: 'var(--text-muted)' }}>Priority</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginTop: 4 }}>
+                      {detail.requisition.priority}
+                    </div>
+                  </div>
+                </div>
+
+                {detail.requisition.description && (
+                  <div style={{ marginTop: 14 }}>
+                    <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.45px', color: 'var(--text-muted)' }}>Description</div>
+                    <div style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--text-primary)', marginTop: 5 }}>
+                      {detail.requisition.description}
+                    </div>
+                  </div>
+                )}
+
+                {detail.requisition.requirements && (
+                  <div style={{ marginTop: 14 }}>
+                    <div style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: '0.45px', color: 'var(--text-muted)' }}>Requirements</div>
+                    <div style={{ fontSize: 13, lineHeight: 1.55, color: 'var(--text-primary)', marginTop: 5, whiteSpace: 'pre-wrap' }}>
+                      {detail.requisition.requirements}
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              <div style={{ padding: 14, borderRadius: 16, border: '1px solid var(--border)', background: 'rgba(255,255,255,0.55)' }}>
+                <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)' }}>Linked applications</div>
+                <div style={{ display: 'grid', gap: 10, marginTop: 12 }}>
+                  {detail.applications.length === 0 ? (
+                    <div style={{ padding: '12px 0', color: 'var(--text-muted)', fontSize: 13 }}>
+                      No applications have been linked yet.
+                    </div>
+                  ) : detail.applications.map((application) => {
+                    const candidateName = candidateNameById.get(application.candidateId) ?? application.candidateId;
+                    const tone = APPLICATION_STAGE_TONE[application.stage] ?? 'ghost';
+
+                    return (
+                      <div key={application.id} style={{ padding: 12, borderRadius: 14, border: '1px solid rgba(15,23,42,0.08)', background: 'rgba(255,255,255,0.78)' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                          <div>
+                            <div style={{ fontSize: 13.5, fontWeight: 600, color: 'var(--text-primary)' }}>{candidateName}</div>
+                            <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 3 }}>
+                              Candidate ID: {application.candidateId}
+                            </div>
+                          </div>
+                          <Badge label={humanize(application.stage)} tone={tone} />
+                        </div>
+                        <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 8 }}>
+                          Created {new Date(application.createdAt).toLocaleString()}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            <div style={{ padding: 14, borderRadius: 16, border: '1px solid var(--border)', background: 'rgba(255,255,255,0.55)' }}>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 10 }}>Approval timeline</div>
+              {detail.requisition.workflowInstanceId ? (
+                <WorkflowTimeline instanceId={detail.requisition.workflowInstanceId} compact />
+              ) : (
+                <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                  This requisition has not been submitted for approval yet.
+                </div>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       <div className="aurora-card aurora-card-padding aurora-card-lift">

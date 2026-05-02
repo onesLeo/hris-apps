@@ -179,6 +179,7 @@ flowchart TD
 
 - [x] Add `hire_cases` and `onboarding_tasks` database schema.
 - [x] Implement recruitment handoff into onboarding. _(Onboarding listener subscribes to `recruitment.offer.accepted`, accepts a discriminated handoff payload with either `employeeId` or `employeeShell`, can create the pre-boarding employee shell from offer data when needed, creates the onboarding case, and exposes employee-level lookup for the People onboarding modal/row action.)_
+- [x] Add a requisition detail view with approval workflow timeline and linked applications. _(Requisition now persists its approval workflow instance, shows hiring manager / department / location names, and renders linked applications plus the approval timeline in the recruitment screen.)_
 - [x] Add hire case and onboarding case tables.
 - [x] Implement onboarding task engine.
 - [x] Add onboarding workflow approvals. _(Task completion now enforces task assignee routing by actor role; activation transitions are in place.)_

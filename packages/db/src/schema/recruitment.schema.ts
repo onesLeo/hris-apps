@@ -13,6 +13,7 @@ import {
   numeric,
 } from 'drizzle-orm/pg-core';
 import { departments, locations } from './org.schema';
+import { workflowInstances } from './approval.schema';
 import { tenants } from './tenant.schema';
 import { users } from './user.schema';
 
@@ -75,6 +76,7 @@ export const jobRequisitions = pgTable('job_requisitions', {
   departmentId: uuid('department_id').notNull().references(() => departments.id),
   locationId: uuid('location_id').notNull().references(() => locations.id),
   hiringManagerId: uuid('hiring_manager_id').notNull().references(() => users.id),
+  workflowInstanceId: uuid('workflow_instance_id').references(() => workflowInstances.id),
   status: requisitionStatusEnum('status').notNull().default('draft'),
   priority: requisitionPriorityEnum('priority').notNull().default('medium'),
   headcount: integer('headcount').notNull().default(1),
@@ -87,6 +89,7 @@ export const jobRequisitions = pgTable('job_requisitions', {
   index('job_requisitions_tenant_idx').on(t.tenantId),
   index('job_requisitions_status_idx').on(t.tenantId, t.status),
   index('job_requisitions_priority_idx').on(t.tenantId, t.priority),
+  index('job_requisitions_workflow_idx').on(t.workflowInstanceId),
 ]);
 
 // ─── Candidates ──────────────────────────────────────────────────────────────
