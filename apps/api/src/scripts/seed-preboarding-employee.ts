@@ -6,6 +6,7 @@ import type { DrizzleDB, IDatabaseService } from '../common/database/database.ty
 import { EncryptionService } from '../common/encryption/encryption.service';
 import { StructuredLoggerService } from '../common/logging/structured-logger.service';
 import { EmployeeService } from '../modules/employee/employee.service';
+import { EmployeeIdentityRepository } from '../modules/employee/employee-identity.repository';
 import type { HireEmployeeDto } from '../modules/employee/employee.types';
 import { EventEmitter2 } from 'eventemitter2';
 
@@ -186,7 +187,8 @@ async function main(): Promise<void> {
   } as never);
   encryption.onModuleInit();
   const db = createDatabaseAdapter(pool);
-  const employeeService = new EmployeeService(db, encryption, events, logger);
+  const identityRepository = new EmployeeIdentityRepository(db, encryption);
+  const employeeService = new EmployeeService(db, encryption, events, logger, identityRepository);
 
   try {
     const preferredTenantId = process.env['PREBOARDING_SEED_TENANT_ID'] || undefined;

@@ -173,23 +173,28 @@ export class ApprovalRepository {
       ORDER BY wi.started_at DESC
     `, [tenantId, userId]);
 
-    return rows.map((row) => ({
-      id: row.id,
-      templateCode: row.template_code,
-      templateName: row.template_name,
-      requestType: row.request_type,
-      entityType: row.entity_type,
-      entityId: row.entity_id,
-      requestorId: row.requestor_id,
-      status: row.status,
-      currentStepOrder: row.current_step_order,
-      contextJson: (row.context_json as Record<string, unknown>) ?? {},
-      startedAt: row.started_at,
-      currentStep: row.step_order ? {
-        stepOrder: row.step_order,
-        assigneeId: row.assignee_id,
-        dueAt: row.due_at,
-      } : undefined,
-    }));
+    return rows.map((row) => {
+      const item: PendingWorkflowItem = {
+        id: row.id,
+        templateCode: row.template_code,
+        templateName: row.template_name,
+        requestType: row.request_type,
+        entityType: row.entity_type,
+        entityId: row.entity_id,
+        requestorId: row.requestor_id,
+        status: row.status,
+        currentStepOrder: row.current_step_order,
+        contextJson: (row.context_json as Record<string, unknown>) ?? {},
+        startedAt: row.started_at,
+      };
+      if (row.step_order != null) {
+        item.currentStep = {
+          stepOrder: row.step_order,
+          assigneeId: row.assignee_id ?? null,
+          dueAt: row.due_at ?? null,
+        };
+      }
+      return item;
+    });
   }
 }

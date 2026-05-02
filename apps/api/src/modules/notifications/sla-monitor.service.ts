@@ -1,6 +1,6 @@
-import { Injectable } from '@nestjs/common';
-import { Cron, CronExpression } from '@nestjs/schedule';
+import { Injectable, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { Inject } from '@nestjs/common';
+import { sql } from 'drizzle-orm';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { DATABASE_SERVICE, IDatabaseService } from '../../common/database/database.types';
 import { StructuredLoggerService } from '../../common/logging/structured-logger.service';
@@ -16,8 +16,12 @@ type PendingWorkflowStep = {
   context_json: Record<string, unknown>;
 };
 
+const ONE_HOUR_MS = 60 * 60 * 1000;
+
 @Injectable()
-export class SLAMonitorService {
+export class SLAMonitorService implements OnModuleInit, OnModuleDestroy {
+  private timer?: ReturnType<typeof setInterval>;
+
   constructor(
     @Inject(DATABASE_SERVICE) private readonly db: IDatabaseService,
     private readonly events: EventEmitter2,
@@ -26,13 +30,20 @@ export class SLAMonitorService {
     this.logger.setContext('SLAMonitorService');
   }
 
-  @Cron(CronExpression.EVERY_HOUR)
+  onModuleInit(): void {
+    this.timer = setInterval(() => void this.checkSLAWarnings(), ONE_HOUR_MS);
+  }
+
+  onModuleDestroy(): void {
+    if (this.timer) clearInterval(this.timer);
+  }
+
   async checkSLAWarnings(): Promise<void> {
     try {
-      // Find all in_progress workflows with pending steps where SLA expires within 2 hours
-      const tenants = await this.db.query<{ id: string }>(`
-        SELECT DISTINCT tenant_id as id FROM workflow_instances LIMIT 100
+      const result = await this.db.system.execute(sql`
+        SELECT DISTINCT tenant_id AS id FROM workflow_instances LIMIT 200
       `);
+      const tenants = result.rows as Array<{ id: string }>;
 
       for (const tenant of tenants) {
         await this.checkSLAForTenant(tenant.id);
@@ -68,7 +79,6 @@ export class SLAMonitorService {
         ORDER BY wsi.due_at ASC
       `, [tenantId]);
 
-      // Emit SLA warning event for each workflow
       for (const workflow of workflows) {
         this.events.emit('workflow.step.sla_warning', {
           tenantId: workflow.tenant_id,
