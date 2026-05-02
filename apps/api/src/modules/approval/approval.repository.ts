@@ -38,6 +38,25 @@ type WorkflowStepRow = {
   due_at: string | null;
 };
 
+export type PendingWorkflowItem = {
+  id: string;
+  templateCode: string;
+  templateName: string;
+  requestType: string;
+  entityType: string;
+  entityId: string;
+  requestorId: string;
+  status: string;
+  currentStepOrder: number | null;
+  contextJson: Record<string, unknown>;
+  startedAt: string;
+  currentStep?: {
+    stepOrder: number;
+    assigneeId: string | null;
+    dueAt: string | null;
+  };
+};
+
 @Injectable()
 export class ApprovalRepository {
   constructor(@Inject(DATABASE_SERVICE) private readonly db: IDatabaseService) {}
@@ -124,5 +143,53 @@ export class ApprovalRepository {
         }
       });
     });
+  }
+
+  async listPendingForUser(tenantId: string, userId: string): Promise<PendingWorkflowItem[]> {
+    const rows = await this.db.queryWithTenant<any>(tenantId, `
+      SELECT
+        wi.id,
+        wt.code AS template_code,
+        wt.name AS template_name,
+        wi.request_type,
+        wi.entity_type,
+        wi.entity_id,
+        wi.requestor_id,
+        wi.status,
+        wi.current_step_order,
+        wi.context_json,
+        wi.started_at,
+        wsi.step_order,
+        wsi.assignee_id,
+        wsi.due_at
+      FROM workflow_instances wi
+      JOIN workflow_templates wt ON wt.id = wi.template_id
+      LEFT JOIN workflow_step_instances wsi
+        ON wsi.workflow_instance_id = wi.id
+        AND wsi.step_order = wi.current_step_order
+      WHERE wi.tenant_id = $1
+        AND wi.status = 'in_progress'
+        AND (wsi.assignee_id = $2 OR wsi.assignee_id IS NULL)
+      ORDER BY wi.started_at DESC
+    `, [tenantId, userId]);
+
+    return rows.map((row) => ({
+      id: row.id,
+      templateCode: row.template_code,
+      templateName: row.template_name,
+      requestType: row.request_type,
+      entityType: row.entity_type,
+      entityId: row.entity_id,
+      requestorId: row.requestor_id,
+      status: row.status,
+      currentStepOrder: row.current_step_order,
+      contextJson: (row.context_json as Record<string, unknown>) ?? {},
+      startedAt: row.started_at,
+      currentStep: row.step_order ? {
+        stepOrder: row.step_order,
+        assigneeId: row.assignee_id,
+        dueAt: row.due_at,
+      } : undefined,
+    }));
   }
 }

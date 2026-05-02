@@ -17,6 +17,14 @@ export class ApprovalController {
     private readonly timelineService: WorkflowTimelineService,
   ) {}
 
+  @Get('/pending')
+  @Roles('hris_admin', 'hr_manager', 'hr_staff', 'payroll_manager', 'plant_manager', 'department_manager')
+  async listPending(@CurrentUser() user?: AuthenticatedUser) {
+    const tenantId = user?.tenantId ?? '';
+    const userId = user?.userId ?? '';
+    return this.approvalRepository.listPendingForUser(tenantId, userId);
+  }
+
   /**
    * GET /api/v1/workflow-instances/:id/timeline
    * ADR 015 — Visual Workflow Tracker: merge template steps + executed step
