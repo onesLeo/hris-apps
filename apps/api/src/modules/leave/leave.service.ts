@@ -71,4 +71,36 @@ export class LeaveService {
 
     return updated;
   }
+
+  async cancelRequest(tenantId: string, requesterId: string, id: string): Promise<LeaveRequestSnapshot> {
+    const existing = await this.repository.findLeaveRequestById(tenantId, id);
+    if (!existing) {
+      throw new NotFoundException(`Leave request ${id} not found`);
+    }
+
+    if (existing.status === 'cancelled') {
+      throw new BadRequestException('Leave request is already cancelled');
+    }
+
+    if (existing.status === 'rejected') {
+      throw new BadRequestException('Rejected leave requests cannot be cancelled');
+    }
+
+    const previousStatus = existing.status;
+    const cancelled = await this.repository.cancelLeaveRequest(tenantId, id);
+
+    if (!cancelled) {
+      throw new NotFoundException(`Leave request ${id} not found`);
+    }
+
+    const year = new Date(existing.fromDate).getFullYear();
+
+    if (previousStatus === 'pending') {
+      await this.repository.adjustLeaveBalance(tenantId, existing.employeeId, existing.leaveTypeId, year, 'pending', -existing.days);
+    } else if (previousStatus === 'approved') {
+      await this.repository.adjustLeaveBalance(tenantId, existing.employeeId, existing.leaveTypeId, year, 'taken', -existing.days);
+    }
+
+    return cancelled;
+  }
 }

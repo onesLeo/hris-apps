@@ -54,6 +54,12 @@ export class LeaveController {
     return this.service.reviewRequest(this.tenantId(), this.userId(), id, dto);
   }
 
+  @Post('requests/:id/cancel')
+  @Roles('hris_admin', 'hr_manager', 'hr_staff', 'employee')
+  async cancelRequest(@Param('id') id: string) {
+    return this.service.cancelRequest(this.tenantId(), this.userId(), id);
+  }
+
   // ─── Accrual ──────────────────────────────────────────────────────────────────
 
   /**

@@ -44,8 +44,10 @@ type LeaveRequestRow = {
   reviewed_by: string | null;
   reviewed_at: string | null;
   review_note: string | null;
+  workflow_instance_id: string | null;
   created_at: string;
 };
+
 
 @Injectable()
 export class LeaveRepository {
@@ -127,7 +129,7 @@ export class LeaveRepository {
         e.display_name AS employee_name,
         lr.leave_type_id, lt.name AS leave_type_name,
         lr.from_date, lr.to_date, lr.days, lr.reason, lr.status,
-        lr.reviewed_by, lr.reviewed_at, lr.review_note, lr.created_at
+        lr.reviewed_by, lr.reviewed_at, lr.review_note, lr.workflow_instance_id, lr.created_at
       FROM leave_requests lr
       JOIN employees e ON e.id = lr.employee_id
       JOIN leave_types lt ON lt.id = lr.leave_type_id
@@ -145,7 +147,7 @@ export class LeaveRepository {
         e.display_name AS employee_name,
         lr.leave_type_id, lt.name AS leave_type_name,
         lr.from_date, lr.to_date, lr.days, lr.reason, lr.status,
-        lr.reviewed_by, lr.reviewed_at, lr.review_note, lr.created_at
+        lr.reviewed_by, lr.reviewed_at, lr.review_note, lr.workflow_instance_id, lr.created_at
       FROM leave_requests lr
       JOIN employees e ON e.id = lr.employee_id
       JOIN leave_types lt ON lt.id = lr.leave_type_id
@@ -175,7 +177,7 @@ export class LeaveRepository {
         e.display_name AS employee_name,
         i.leave_type_id, lt.name AS leave_type_name,
         i.from_date, i.to_date, i.days, i.reason, i.status,
-        i.reviewed_by, i.reviewed_at, i.review_note, i.created_at
+        i.reviewed_by, i.reviewed_at, i.review_note, i.workflow_instance_id, i.created_at
       FROM inserted i
       JOIN employees e ON e.id = i.employee_id
       JOIN leave_types lt ON lt.id = i.leave_type_id
@@ -206,11 +208,32 @@ export class LeaveRepository {
         e.display_name AS employee_name,
         u.leave_type_id, lt.name AS leave_type_name,
         u.from_date, u.to_date, u.days, u.reason, u.status,
-        u.reviewed_by, u.reviewed_at, u.review_note, u.created_at
+        u.reviewed_by, u.reviewed_at, u.review_note, u.workflow_instance_id, u.created_at
       FROM updated u
       JOIN employees e ON e.id = u.employee_id
       JOIN leave_types lt ON lt.id = u.leave_type_id
     `, [status, reviewedBy, reviewNote, id, tenantId]);
+
+    return row ? mapLeaveRequestRow(row) : null;
+  }
+
+  async cancelLeaveRequest(tenantId: string, id: string): Promise<LeaveRequestSnapshot | null> {
+    const [row] = await this.db.queryWithTenant<LeaveRequestRow>(tenantId, `
+      WITH updated AS (
+        UPDATE leave_requests
+        SET status = 'cancelled', updated_at = NOW()
+        WHERE id = $1 AND tenant_id = $2 AND status IN ('pending', 'approved')
+        RETURNING *
+      )
+      SELECT u.id, u.tenant_id, u.employee_id,
+        e.display_name AS employee_name,
+        u.leave_type_id, lt.name AS leave_type_name,
+        u.from_date, u.to_date, u.days, u.reason, u.status,
+        u.reviewed_by, u.reviewed_at, u.review_note, u.workflow_instance_id, u.created_at
+      FROM updated u
+      JOIN employees e ON e.id = u.employee_id
+      JOIN leave_types lt ON lt.id = u.leave_type_id
+    `, [id, tenantId]);
 
     return row ? mapLeaveRequestRow(row) : null;
   }
@@ -248,6 +271,7 @@ function mapLeaveRequestRow(row: LeaveRequestRow): LeaveRequestSnapshot {
     reviewedBy: row.reviewed_by,
     reviewedAt: row.reviewed_at,
     reviewNote: row.review_note,
+    workflowInstanceId: row.workflow_instance_id,
     createdAt: row.created_at,
   };
 }
