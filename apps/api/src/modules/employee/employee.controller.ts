@@ -18,6 +18,7 @@ import type {
   TerminateEmployeeDto,
   TransferEmployeeDto,
   UpdateEmployeeDto,
+  UpdateEmployeeProfileDto,
 } from './employee.types';
 import { EmployeeService } from './employee.service';
 import { RequestContext } from '../../common/context/request-context';
@@ -100,5 +101,21 @@ export class EmployeeController {
   @Roles('hris_admin', 'hr_manager', 'hr_staff', 'employee', 'read_only')
   history(@Param('id') id: string) {
     return this.service.getHistory(this.tenantId(), id);
+  }
+
+  @Get('me')
+  @Roles('employee')
+  getMyProfile() {
+    return this.service.getMyProfile(this.tenantId(), this.userId());
+  }
+
+  @Patch('me')
+  @Roles('employee')
+  updateMyProfile(@Body() dto: UpdateEmployeeProfileDto) {
+    return this.service.updateMyProfile(this.tenantId(), this.userId(), dto);
+  }
+
+  private userId(): string {
+    return RequestContext.get()?.userId ?? '';
   }
 }

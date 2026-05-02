@@ -21,6 +21,7 @@ import {
   fetchLeaveBalances,
   submitLeaveRequest,
   reviewLeaveRequest,
+  cancelLeaveRequest,
 } from '../../lib/leave-api';
 
 const STATUS_TONE: Record<LeaveStatus, Accent> = {
@@ -53,6 +54,7 @@ export function LeaveScreen() {
   const [requests, setRequests] = useState<readonly LeaveRequest[]>(allowMockFallback ? LEAVE_REQUESTS : []);
   const [balances, setBalances] = useState<readonly LeaveBalance[]>(allowMockFallback ? LEAVE_BALANCES : []);
   const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -162,6 +164,25 @@ export function LeaveScreen() {
       }
     } finally {
       setReviewingId(null);
+    }
+  };
+
+  const handleCancel = async (request: LeaveRequest) => {
+    if (!request.id || cancellingId === request.id) return;
+    setCancellingId(request.id);
+    try {
+      await cancelLeaveRequest(request.id);
+      setRequests((current) =>
+        current.map((r) => (r.id === request.id ? { ...r, status: 'Rejected' as LeaveStatus } : r)),
+      );
+      if (selectedRequest?.id === request.id) setSelectedRequest(null);
+      setError(null);
+    } catch (err) {
+      if (!allowMockFallback) {
+        setError(err instanceof Error ? err.message : 'Failed to cancel leave request.');
+      }
+    } finally {
+      setCancellingId(null);
     }
   };
 
@@ -294,19 +315,30 @@ export function LeaveScreen() {
                 <>
                   <button
                     type="button"
-                    disabled={reviewingId === leave.id}
+                    disabled={reviewingId === leave.id || cancellingId === leave.id}
                     onClick={() => handleReview(leave, 'approve')}
-                    style={{ background: 'var(--accent)', borderRadius: 7, padding: '5px 10px', fontSize: 11, fontWeight: 600, color: '#fff', border: 'none', cursor: reviewingId === leave.id ? 'not-allowed' : 'pointer', opacity: reviewingId === leave.id ? 0.6 : 1 }}
+                    style={{ background: 'var(--accent)', borderRadius: 7, padding: '5px 10px', fontSize: 11, fontWeight: 600, color: '#fff', border: 'none', cursor: (reviewingId === leave.id || cancellingId === leave.id) ? 'not-allowed' : 'pointer', opacity: (reviewingId === leave.id || cancellingId === leave.id) ? 0.6 : 1 }}
                   >
                     {copy.approve}
                   </button>
                   <button
                     type="button"
-                    disabled={reviewingId === leave.id}
+                    disabled={reviewingId === leave.id || cancellingId === leave.id}
                     onClick={() => handleReview(leave, 'reject')}
-                    style={{ background: 'rgba(0,0,0,0.05)', borderRadius: 7, padding: '5px 10px', fontSize: 11, fontWeight: 600, color: 'var(--text-mid)', border: 'none', cursor: reviewingId === leave.id ? 'not-allowed' : 'pointer', opacity: reviewingId === leave.id ? 0.6 : 1 }}
+                    style={{ background: 'rgba(0,0,0,0.05)', borderRadius: 7, padding: '5px 10px', fontSize: 11, fontWeight: 600, color: 'var(--text-mid)', border: 'none', cursor: (reviewingId === leave.id || cancellingId === leave.id) ? 'not-allowed' : 'pointer', opacity: (reviewingId === leave.id || cancellingId === leave.id) ? 0.6 : 1 }}
                   >
                     {copy.decline}
+                  </button>
+                  <button
+                    type="button"
+                    className="aurora-icon-swatch"
+                    aria-label="Cancel request"
+                    disabled={cancellingId === leave.id}
+                    onClick={() => handleCancel(leave)}
+                    style={{ opacity: cancellingId === leave.id ? 0.5 : 1 }}
+                    title="Cancel"
+                  >
+                    <Icon name="xMark" size={14} color="var(--text-muted)" strokeWidth={2} />
                   </button>
                 </>
               ) : leave.status === 'Pending' ? (
@@ -381,6 +413,29 @@ export function LeaveScreen() {
                 <Icon name="xMark" size={16} color="var(--text-muted)" strokeWidth={2} />
               </button>
             </div>
+
+            {selectedRequest.status === 'Pending' && selectedRequest.id && (
+              <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
+                <button
+                  type="button"
+                  disabled={cancellingId === selectedRequest.id}
+                  onClick={() => handleCancel(selectedRequest)}
+                  style={{
+                    padding: '8px 16px',
+                    borderRadius: 9,
+                    fontSize: 13,
+                    fontWeight: 600,
+                    color: '#ef4444',
+                    background: 'rgba(239,68,68,0.07)',
+                    border: '1px solid rgba(239,68,68,0.22)',
+                    cursor: cancellingId === selectedRequest.id ? 'not-allowed' : 'pointer',
+                    opacity: cancellingId === selectedRequest.id ? 0.5 : 1,
+                  }}
+                >
+                  {cancellingId === selectedRequest.id ? 'Cancelling…' : 'Cancel Request'}
+                </button>
+              </div>
+            )}
 
             <div style={{ flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 18 }}>
               <div style={{ padding: 14, borderRadius: 14, border: '1px solid var(--border)', background: 'rgba(255,255,255,0.55)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>

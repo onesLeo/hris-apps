@@ -20,6 +20,7 @@ export const NAV_ITEMS: readonly NavItem[] = [
   { id: 'people', icon: 'users' },
   { id: 'leave', icon: 'calendar' },
   { id: 'approvals', icon: 'checkCircle' },
+  { id: 'profile', icon: 'user' },
 ] as const;
 
 export const FEATURE_MENU: readonly { key: FeatureKey; icon: IconName }[] = [

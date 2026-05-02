@@ -17,6 +17,7 @@ import { ReportsScreen } from './reports/reports-screen';
 import { RecruitmentScreen } from './recruitment/recruitment-screen';
 import { PerformanceScreen } from './performance/performance-screen';
 import { LearningScreen } from './learning/learning-screen';
+import { MyProfileScreen } from './profile/my-profile-screen';
 
 export function AuroraApp() {
   return (
@@ -78,6 +79,8 @@ function AuroraAppShell() {
     activeScreen = <PeopleScreen />;
   } else if (active === 'leave') {
     activeScreen = <LeaveScreen />;
+  } else if (active === 'profile') {
+    activeScreen = <MyProfileScreen />;
   } else {
     activeScreen = <ApprovalsScreen />;
   }

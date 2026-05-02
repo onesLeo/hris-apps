@@ -116,3 +116,7 @@ export async function submitLeaveRequest(data: {
 export async function reviewLeaveRequest(id: string, action: 'approve' | 'reject', note?: string): Promise<LeaveRequest> {
   return apiPost<LeaveRequest>(`/leave/requests/${id}/review`, { action, note });
 }
+
+export async function cancelLeaveRequest(id: string): Promise<LeaveRequest> {
+  return apiPost<LeaveRequest>(`/leave/requests/${id}/cancel`, {});
+}
