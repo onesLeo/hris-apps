@@ -33,6 +33,7 @@ export type LeaveRequest = {
   reviewedBy: string | null;
   reviewedAt: string | null;
   reviewNote: string | null;
+  workflowInstanceId: string | null;
   createdAt: string;
 };
 

@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { Badge, Avatar, Button, Icon, type Accent } from '../aurora-primitives';
+import { WorkflowTimeline } from '../approval/workflow-timeline';
 import { getLeaveCopy, useLocale } from '../../i18n';
 import { LeaveApplyDialog } from './leave-apply-dialog';
 import {
@@ -52,6 +53,7 @@ export function LeaveScreen() {
   const [requests, setRequests] = useState<readonly LeaveRequest[]>(allowMockFallback ? LEAVE_REQUESTS : []);
   const [balances, setBalances] = useState<readonly LeaveBalance[]>(allowMockFallback ? LEAVE_BALANCES : []);
   const [reviewingId, setReviewingId] = useState<string | null>(null);
+  const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Load leave requests from API
@@ -61,6 +63,7 @@ export function LeaveScreen() {
         setError(null);
         const mapped: LeaveRequest[] = apiRequests.map((req) => ({
           id: req.id,
+          workflowInstanceId: req.workflowInstanceId,
           employee: req.employeeName,
           initials: req.employeeName
             .split(/\s+/)
@@ -316,7 +319,14 @@ export function LeaveScreen() {
                   </div>
                 </>
               ) : (
-                <Icon name="eye" size={16} color="var(--text-muted)" strokeWidth={1.8} />
+                <button
+                  type="button"
+                  className="aurora-icon-swatch"
+                  aria-label="View details"
+                  onClick={() => setSelectedRequest(leave)}
+                >
+                  <Icon name="eye" size={16} color="var(--text-muted)" strokeWidth={1.8} />
+                </button>
               )}
             </div>
           </div>
@@ -329,6 +339,82 @@ export function LeaveScreen() {
         onClose={() => setIsApplyOpen(false)}
         onSubmit={submitRequest}
       />
+
+      {selectedRequest && (
+        <>
+          <div
+            role="presentation"
+            onClick={() => setSelectedRequest(null)}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.35)', zIndex: 40, backdropFilter: 'blur(2px)' }}
+          />
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Leave request details"
+            style={{
+              position: 'fixed',
+              top: 0,
+              right: 0,
+              bottom: 0,
+              width: 420,
+              maxWidth: '95vw',
+              background: 'var(--card-bg)',
+              borderLeft: '1px solid var(--border)',
+              boxShadow: '-8px 0 40px rgba(0,0,0,0.12)',
+              zIndex: 50,
+              display: 'flex',
+              flexDirection: 'column',
+              animation: 'auroraFadeUp 0.22s ease',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '18px 20px', borderBottom: '1px solid var(--border)' }}>
+              <div>
+                <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)' }}>Leave Request</div>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{selectedRequest.employee}</div>
+              </div>
+              <button
+                type="button"
+                className="aurora-icon-swatch"
+                aria-label="Close"
+                onClick={() => setSelectedRequest(null)}
+              >
+                <Icon name="xMark" size={16} color="var(--text-muted)" strokeWidth={2} />
+              </button>
+            </div>
+
+            <div style={{ flex: 1, overflowY: 'auto', padding: 20, display: 'flex', flexDirection: 'column', gap: 18 }}>
+              <div style={{ padding: 14, borderRadius: 14, border: '1px solid var(--border)', background: 'rgba(255,255,255,0.55)', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+                {[
+                  { label: 'Type', value: selectedRequest.leaveType },
+                  { label: 'Days', value: `${selectedRequest.days}d` },
+                  { label: 'From', value: selectedRequest.from },
+                  { label: 'To', value: selectedRequest.to },
+                  { label: 'Status', value: selectedRequest.status },
+                  { label: 'Reason', value: selectedRequest.reason || '—' },
+                ].map(({ label, value }) => (
+                  <div key={label}>
+                    <div style={{ fontSize: 10.5, textTransform: 'uppercase', letterSpacing: '0.45px', color: 'var(--text-muted)' }}>{label}</div>
+                    <div style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)', marginTop: 3 }}>{value}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div>
+                <div style={{ fontSize: 12, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.45px', color: 'var(--text-muted)', marginBottom: 12 }}>
+                  Approval Timeline
+                </div>
+                {selectedRequest.workflowInstanceId ? (
+                  <WorkflowTimeline instanceId={selectedRequest.workflowInstanceId} />
+                ) : (
+                  <div style={{ padding: '12px 14px', borderRadius: 12, background: 'rgba(0,0,0,0.03)', border: '1px solid var(--border)', fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.6 }}>
+                    This request was auto-approved or does not require workflow approval.
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }

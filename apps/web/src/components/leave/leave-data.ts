@@ -10,7 +10,8 @@ export type LeaveBalance = {
 };
 
 export type LeaveRequest = {
-  id?: string;               // present when sourced from API
+  id?: string;
+  workflowInstanceId?: string | null;
   employee: string;
   initials: string;
   color: string;
