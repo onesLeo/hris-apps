@@ -7,6 +7,7 @@ import { StructuredLoggerService } from '../../common/logging/structured-logger.
 import type {
   EmployeeListQuery,
   EmployeeRow,
+  EmployeeProfileSnapshot,
   HireEmployeeDto,
   LifecycleEventRow,
   PromoteEmployeeDto,
@@ -17,7 +18,9 @@ import type {
   TerminateEmployeeDto,
   TransferEmployeeDto,
   UpdateEmployeeDto,
+  UpdateEmployeeProfileDto,
 } from './employee.types';
+import { EmployeeIdentityRepository } from './employee-identity.repository';
 
 @Injectable()
 export class EmployeeService {
@@ -26,6 +29,7 @@ export class EmployeeService {
     private readonly encryption: EncryptionService,
     private readonly events: EventEmitter2,
     private readonly logger: StructuredLoggerService,
+    private readonly identityRepository: EmployeeIdentityRepository,
   ) {
     this.logger.setContext('EmployeeService');
   }
@@ -730,5 +734,47 @@ export class EmployeeService {
 
     this.logger.log('employee seconded', { employeeId: id });
     return this.getById(tenantId, id);
+  }
+
+  private async resolveEmployeeIdFromUserId(tenantId: string, userId: string): Promise<string | null> {
+    const [row] = await this.db.queryWithTenant<{ employee_id: string }>(tenantId, `
+      SELECT id AS employee_id FROM employees
+      WHERE user_id = $1 AND tenant_id = $2
+      LIMIT 1
+    `, [userId, tenantId]);
+
+    return row?.employee_id ?? null;
+  }
+
+  async getMyProfile(tenantId: string, userId: string): Promise<EmployeeProfileSnapshot> {
+    const employeeId = await this.resolveEmployeeIdFromUserId(tenantId, userId);
+    if (!employeeId) {
+      throw new NotFoundException('No employee record found for current user');
+    }
+
+    const profile = await this.identityRepository.findProfileByEmployeeId(tenantId, employeeId);
+    if (!profile) {
+      throw new NotFoundException('Employee profile not found');
+    }
+
+    return profile;
+  }
+
+  async updateMyProfile(
+    tenantId: string,
+    userId: string,
+    dto: UpdateEmployeeProfileDto,
+  ): Promise<EmployeeProfileSnapshot> {
+    const employeeId = await this.resolveEmployeeIdFromUserId(tenantId, userId);
+    if (!employeeId) {
+      throw new NotFoundException('No employee record found for current user');
+    }
+
+    const updated = await this.identityRepository.updateProfile(tenantId, employeeId, dto);
+    if (!updated) {
+      throw new NotFoundException('Failed to update employee profile');
+    }
+
+    return updated;
   }
 }

@@ -32,6 +32,39 @@ export type UpdateEmployeeDto = {
   nationality?: string;
 };
 
+export type UpdateEmployeeProfileDto = {
+  address?: string;
+  city?: string;
+  province?: string;
+  postalCode?: string;
+  nik?: string;
+  bpjsHealth?: string;
+  bpjsEmployment?: string;
+  bpjsPension?: string;
+  bpjsAccident?: string;
+};
+
+export type EmployeeProfileSnapshot = {
+  id: string;
+  tenantId: string;
+  employeeId: string;
+  displayName: string;
+  email: string;
+  phone: string | null;
+  dateOfBirth: string | null;
+  gender: string | null;
+  hireDate: string;
+  address: string | null;
+  city: string | null;
+  province: string | null;
+  postalCode: string | null;
+  nik: string | null;
+  bpjsHealth: string | null;
+  bpjsEmployment: string | null;
+  bpjsPension: string | null;
+  bpjsAccident: string | null;
+};
+
 export type TransferEmployeeDto = {
   departmentId: string;
   locationId: string;
