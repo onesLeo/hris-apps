@@ -7,6 +7,7 @@ import { createEmptyAttendanceOverview, getAttendanceOverview, type AttendanceOv
 import { fetchAttendanceSummary } from '../../lib/attendance-api';
 import { HolidayPanel } from './holiday-panel';
 import { ShiftPanel } from './shift-panel';
+import { ShiftTemplatesPanel } from './shift-templates-panel';
 import { ClockPanel } from './clock-panel';
 
 type Tab = 'overview' | 'shifts' | 'holidays';
@@ -207,7 +208,14 @@ export function AttendanceScreen() {
         </>
       )}
 
-      {tab === 'shifts' && <ShiftPanel copy={copy} />}
+      {tab === 'shifts' && (
+        <>
+          <ShiftTemplatesPanel copy={copy} />
+          <div style={{ marginTop: 28 }}>
+            <ShiftPanel copy={copy} />
+          </div>
+        </>
+      )}
 
       {tab === 'holidays' && <HolidayPanel copy={copy} />}
     </div>

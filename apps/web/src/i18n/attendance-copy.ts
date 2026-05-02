@@ -63,6 +63,32 @@ export type AttendanceCopy = {
     cancel: string;
     save: string;
   };
+  shiftTemplates: {
+    title: string;
+    subtitle: string;
+    createShift: string;
+    noShifts: string;
+    name: string;
+    code: string;
+    time: string;
+    break: string;
+    gracePeriod: string;
+    status: string;
+    active: string;
+    inactive: string;
+    dialogTitle: string;
+    dialogSubtitle: string;
+    fieldName: string;
+    fieldCode: string;
+    fieldStartTime: string;
+    fieldEndTime: string;
+    fieldBreak: string;
+    breakHint: string;
+    fieldGracePeriod: string;
+    graceHint: string;
+    cancel: string;
+    save: string;
+  };
   holidays: {
     title: string;
     subtitle: string;
@@ -153,6 +179,32 @@ const ATTENDANCE_COPY: Record<Locale, AttendanceCopy> = {
       cancel: 'Cancel',
       save: 'Save Assignment',
     },
+    shiftTemplates: {
+      title: 'Shift Templates',
+      subtitle: 'Define shift schedules: start/end times, break, and grace period.',
+      createShift: 'Create Shift',
+      noShifts: 'No shifts found. Create one to get started.',
+      name: 'Name',
+      code: 'Code',
+      time: 'Time',
+      break: 'Break',
+      gracePeriod: 'Grace Period',
+      status: 'Status',
+      active: 'Active',
+      inactive: 'Inactive',
+      dialogTitle: 'Create Shift Template',
+      dialogSubtitle: 'Define a new shift with start/end times and break duration.',
+      fieldName: 'Shift Name',
+      fieldCode: 'Code (e.g., MORNING, NIGHT)',
+      fieldStartTime: 'Start Time',
+      fieldEndTime: 'End Time',
+      fieldBreak: 'Break Duration',
+      breakHint: 'Minutes of break (e.g., 60 for 1 hour lunch)',
+      fieldGracePeriod: 'Grace Period',
+      graceHint: 'Minutes allowed late before marked late (e.g., 15)',
+      cancel: 'Cancel',
+      save: 'Create Shift',
+    },
     holidays: {
       title: 'Holiday Calendar',
       subtitle: 'Public and company holidays for absence and leave calculations.',
@@ -240,6 +292,32 @@ const ATTENDANCE_COPY: Record<Locale, AttendanceCopy> = {
       fieldToHint: 'Kosongkan untuk penugasan tanpa batas waktu.',
       cancel: 'Batal',
       save: 'Simpan Penugasan',
+    },
+    shiftTemplates: {
+      title: 'Template Shift',
+      subtitle: 'Tentukan jadwal shift: waktu mulai/selesai, istirahat, dan masa grasi.',
+      createShift: 'Buat Shift',
+      noShifts: 'Tidak ada shift ditemukan. Buat satu untuk memulai.',
+      name: 'Nama',
+      code: 'Kode',
+      time: 'Waktu',
+      break: 'Istirahat',
+      gracePeriod: 'Masa Grasi',
+      status: 'Status',
+      active: 'Aktif',
+      inactive: 'Tidak Aktif',
+      dialogTitle: 'Buat Template Shift',
+      dialogSubtitle: 'Tentukan shift baru dengan waktu mulai/selesai dan durasi istirahat.',
+      fieldName: 'Nama Shift',
+      fieldCode: 'Kode (misal, PAGI, MALAM)',
+      fieldStartTime: 'Waktu Mulai',
+      fieldEndTime: 'Waktu Selesai',
+      fieldBreak: 'Durasi Istirahat',
+      breakHint: 'Menit istirahat (misal, 60 untuk 1 jam istirahat makan siang)',
+      fieldGracePeriod: 'Masa Grasi',
+      graceHint: 'Menit keterlambatan yang diizinkan sebelum dianggap terlambat (misal, 15)',
+      cancel: 'Batal',
+      save: 'Buat Shift',
     },
     holidays: {
       title: 'Kalender Hari Libur',

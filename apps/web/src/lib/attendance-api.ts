@@ -102,3 +102,14 @@ export async function createShiftAssignment(input: {
 }): Promise<ShiftAssignment> {
   return apiPost<ShiftAssignment>('/attendance/shift-assignments', input);
 }
+
+export async function createShift(input: {
+  name: string;
+  code: string;
+  startTime: string;
+  endTime: string;
+  breakMinutes?: number;
+  graceLateMinutes?: number;
+}): Promise<AttendanceShift> {
+  return apiPost<AttendanceShift>('/attendance/shifts', input);
+}
