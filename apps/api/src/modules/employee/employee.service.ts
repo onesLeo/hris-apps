@@ -188,51 +188,22 @@ export class EmployeeService {
     const actorId = ctx?.userId ?? 'system';
     const current = await this.getById(tenantId, id);
 
-    // Close current spell
-    await this.db.queryWithTenant(tenantId, `
-      UPDATE employment_spells
-      SET effective_to = $1
-      WHERE employee_id = $2 AND effective_to IS NULL
-    `, [dto.effectiveDate, id]);
-
-    // Open new spell — carry forward contract fields from previous spell
-    await this.db.queryWithTenant(tenantId, `
-      INSERT INTO employment_spells (
-        tenant_id, employee_id, department_id, location_id,
-        job_title, employment_type, work_arrangement, effective_from,
-        probation_end_date, notice_period_days, job_grade
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-    `, [
-      tenantId, id, dto.departmentId, dto.locationId,
-      dto.jobTitle ?? current.job_title ?? '',
-      current.employment_type ?? 'full_time',
-      dto.workArrangement ?? current.work_arrangement ?? 'office',
-      dto.effectiveDate,
-      current.probation_end_date ?? null,
-      current.notice_period_days ?? null,
-      current.job_grade ?? null,
-    ]);
-
-    await this.db.queryWithTenant(tenantId, `
-      INSERT INTO employee_lifecycle_events (
-        tenant_id, employee_id, event_type, payload_json, effective_date, created_by
-      ) VALUES ($1,$2,'transferred',$3,$4,$5)
-    `, [tenantId, id, JSON.stringify({
-      fromDepartmentId: current.department_id,
-      toDepartmentId: dto.departmentId,
-      fromLocationId: current.location_id,
-      toLocationId: dto.locationId,
-    }), dto.effectiveDate, actorId]);
-
     this.events.emit('employee.transferred', {
-      tenantId, employeeId: id,
-      fromDepartmentId: current.department_id, toDepartmentId: dto.departmentId,
-      fromLocationId: current.location_id, toLocationId: dto.locationId,
-      effectiveDate: dto.effectiveDate, actorId,
+      tenantId,
+      employeeId: id,
+      displayName: current.display_name,
+      departmentId: dto.departmentId,
+      locationId: dto.locationId,
+      fromDepartmentId: current.department_id,
+      fromLocationId: current.location_id,
+      jobTitle: dto.jobTitle ?? current.job_title ?? '',
+      workArrangement: dto.workArrangement ?? current.work_arrangement ?? 'office',
+      effectiveDate: dto.effectiveDate,
+      actorId,
     });
 
-    this.logger.log('employee transferred', { employeeId: id });
-    return this.getById(tenantId, id);
+    this.logger.log('transfer workflow initiated', { employeeId: id });
+    return current;
   }
 
   async promote(tenantId: string, id: string, dto: PromoteEmployeeDto): Promise<EmployeeRow> {
@@ -240,50 +211,20 @@ export class EmployeeService {
     const actorId = ctx?.userId ?? 'system';
     const current = await this.getById(tenantId, id);
 
-    await this.db.queryWithTenant(tenantId, `
-      UPDATE employment_spells
-      SET effective_to = $1
-      WHERE employee_id = $2 AND effective_to IS NULL
-    `, [dto.effectiveDate, id]);
-
-    await this.db.queryWithTenant(tenantId, `
-      INSERT INTO employment_spells (
-        tenant_id, employee_id, department_id, location_id,
-        job_title, employment_type, work_arrangement, effective_from,
-        probation_end_date, notice_period_days, job_grade
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
-    `, [
-      tenantId, id,
-      dto.departmentId ?? current.department_id,
-      current.location_id,
-      dto.jobTitle,
-      current.employment_type ?? 'full_time',
-      current.work_arrangement ?? 'office',
-      dto.effectiveDate,
-      current.probation_end_date ?? null,
-      current.notice_period_days ?? null,
-      current.job_grade ?? null,
-    ]);
-
-    await this.db.queryWithTenant(tenantId, `
-      INSERT INTO employee_lifecycle_events (
-        tenant_id, employee_id, event_type, payload_json, effective_date, created_by
-      ) VALUES ($1,$2,'promoted',$3,$4,$5)
-    `, [tenantId, id, JSON.stringify({
-      fromJobTitle: current.job_title,
-      toJobTitle: dto.jobTitle,
-    }), dto.effectiveDate, actorId]);
-
     this.events.emit('employee.promoted', {
-      tenantId, employeeId: id,
-      fromJobTitle: current.job_title, toJobTitle: dto.jobTitle,
+      tenantId,
+      employeeId: id,
+      displayName: current.display_name,
+      newJobTitle: dto.jobTitle,
+      oldJobTitle: current.job_title,
       departmentId: dto.departmentId ?? current.department_id,
       locationId: current.location_id,
-      effectiveDate: dto.effectiveDate, actorId,
+      effectiveDate: dto.effectiveDate,
+      actorId,
     });
 
-    this.logger.log('employee promoted', { employeeId: id });
-    return this.getById(tenantId, id);
+    this.logger.log('promotion workflow initiated', { employeeId: id });
+    return current;
   }
 
   async resign(tenantId: string, id: string, dto: ResignEmployeeDto): Promise<EmployeeRow> {
@@ -326,33 +267,19 @@ export class EmployeeService {
   async terminate(tenantId: string, id: string, dto: TerminateEmployeeDto): Promise<EmployeeRow> {
     const ctx = RequestContext.get();
     const actorId = ctx?.userId ?? 'system';
-
-    await this.db.queryWithTenant(tenantId, `
-      UPDATE employees
-      SET status = 'terminated', termination_date = $1, updated_at = NOW()
-      WHERE id = $2 AND tenant_id = $3
-    `, [dto.terminationDate, id, tenantId]);
-
-    await this.db.queryWithTenant(tenantId, `
-      UPDATE employment_spells
-      SET effective_to = $1
-      WHERE employee_id = $2 AND effective_to IS NULL
-    `, [dto.terminationDate, id]);
-
-    await this.db.queryWithTenant(tenantId, `
-      INSERT INTO employee_lifecycle_events (
-        tenant_id, employee_id, event_type, payload_json, effective_date, created_by
-      ) VALUES ($1,$2,'terminated',$3,$4,$5)
-    `, [tenantId, id, JSON.stringify({ reason: dto.reason }), dto.terminationDate, actorId]);
+    const current = await this.getById(tenantId, id);
 
     this.events.emit('employee.terminated', {
-      tenantId, employeeId: id,
+      tenantId,
+      employeeId: id,
+      displayName: current.display_name,
       terminationDate: dto.terminationDate,
-      reason: dto.reason, actorId,
+      reason: dto.reason,
+      actorId,
     });
 
-    this.logger.log('employee terminated', { employeeId: id });
-    return this.getById(tenantId, id);
+    this.logger.log('termination workflow initiated', { employeeId: id });
+    return current;
   }
 
   async suspend(tenantId: string, id: string): Promise<EmployeeRow> {
