@@ -10,6 +10,7 @@ export type RequisitionResponse = {
   locationId: string;
   hiringManagerId: string;
   status: string;
+  priority: 'high' | 'medium' | 'low';
   headcount: number;
   filledCount: number;
   description: string | null;
@@ -85,6 +86,7 @@ export async function createRequisition(data: {
   departmentId: string;
   locationId: string;
   hiringManagerId: string;
+  priority?: 'high' | 'medium' | 'low';
   headcount: number;
   description?: string;
   requirements?: string;
@@ -97,6 +99,7 @@ export async function updateRequisition(id: string, data: Partial<{
   departmentId: string;
   locationId: string;
   hiringManagerId: string;
+  priority: 'high' | 'medium' | 'low';
   headcount: number;
   description: string;
   requirements: string;

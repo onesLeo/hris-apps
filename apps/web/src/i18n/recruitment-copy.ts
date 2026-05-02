@@ -41,7 +41,6 @@ export type RecruitmentCopy = {
     department: string;
     location: string;
     openings: string;
-    stage: string;
     recruiter: string;
     priority: string;
     cancel: string;
@@ -97,7 +96,6 @@ const RECRUITMENT_COPY: Record<Locale, RecruitmentCopy> = {
       department: 'Department',
       location: 'Location',
       openings: 'Openings',
-      stage: 'Stage',
       recruiter: 'Recruiter',
       priority: 'Priority',
       cancel: 'Cancel',
@@ -151,7 +149,6 @@ const RECRUITMENT_COPY: Record<Locale, RecruitmentCopy> = {
       department: 'Departemen',
       location: 'Lokasi',
       openings: 'Kebutuhan',
-      stage: 'Tahap',
       recruiter: 'Recruiter',
       priority: 'Prioritas',
       cancel: 'Batal',

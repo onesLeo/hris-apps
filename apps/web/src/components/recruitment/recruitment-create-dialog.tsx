@@ -3,7 +3,7 @@
 import { useEffect, useState, type CSSProperties } from 'react';
 import { Button, Icon } from '../aurora-primitives';
 import type { RecruitmentCopy } from '../../i18n/recruitment-copy';
-import type { CreateRequisitionInput, OpenRequisition, RecruitmentStage } from './recruitment-data';
+import type { CreateRequisitionInput, OpenRequisition } from './recruitment-data';
 
 type RecruitmentDialogMode = 'create' | 'edit';
 
@@ -21,7 +21,6 @@ type FormState = {
   department: string;
   location: string;
   openings: string;
-  stage: RecruitmentStage;
   recruiter: string;
   priority: CreateRequisitionInput['priority'];
 };
@@ -31,12 +30,9 @@ const INITIAL_FORM_STATE: FormState = {
   department: '',
   location: '',
   openings: '1',
-  stage: 'Sourcing',
   recruiter: '',
   priority: 'Medium',
 };
-
-const STAGES: readonly RecruitmentStage[] = ['Sourcing', 'Screening', 'Interview', 'Offer'] as const;
 const PRIORITIES: readonly CreateRequisitionInput['priority'][] = ['High', 'Medium', 'Low'] as const;
 
 export function RecruitmentCreateDialog({ open, mode, copy, initialRequisition, onClose, onSubmit }: RecruitmentCreateDialogProps) {
@@ -56,7 +52,6 @@ export function RecruitmentCreateDialog({ open, mode, copy, initialRequisition, 
         department: initialRequisition.department,
         location: initialRequisition.location,
         openings: String(initialRequisition.openings),
-        stage: initialRequisition.stage,
         recruiter: initialRequisition.recruiter,
         priority: initialRequisition.priority,
       });
@@ -88,7 +83,6 @@ export function RecruitmentCreateDialog({ open, mode, copy, initialRequisition, 
       department: form.department.trim(),
       location: form.location.trim(),
       openings,
-      stage: form.stage,
       recruiter: form.recruiter.trim(),
       priority: form.priority,
     });
@@ -174,17 +168,7 @@ export function RecruitmentCreateDialog({ open, mode, copy, initialRequisition, 
             </label>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: 14 }}>
-            <label style={{ display: 'grid', gap: 6 }}>
-              <span className="aurora-card-subtitle">{copy.requisitionForm.stage}</span>
-              <select value={form.stage} onChange={(event) => setForm((current) => ({ ...current, stage: event.target.value as RecruitmentStage }))} style={inputStyle}>
-                {STAGES.map((stage) => (
-                  <option key={stage} value={stage}>
-                    {stage}
-                  </option>
-                ))}
-              </select>
-            </label>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 14 }}>
             <label style={{ display: 'grid', gap: 6 }}>
               <span className="aurora-card-subtitle">{copy.requisitionForm.priority}</span>
               <select value={form.priority} onChange={(event) => setForm((current) => ({ ...current, priority: event.target.value as CreateRequisitionInput['priority'] }))} style={inputStyle}>

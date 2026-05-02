@@ -27,6 +27,12 @@ export const requisitionStatusEnum = pgEnum('requisition_status', [
   'cancelled',
 ]);
 
+export const requisitionPriorityEnum = pgEnum('requisition_priority', [
+  'high',
+  'medium',
+  'low',
+]);
+
 export const applicationStageEnum = pgEnum('application_stage', [
   'applied',
   'screening',
@@ -70,6 +76,7 @@ export const jobRequisitions = pgTable('job_requisitions', {
   locationId: uuid('location_id').notNull().references(() => locations.id),
   hiringManagerId: uuid('hiring_manager_id').notNull().references(() => users.id),
   status: requisitionStatusEnum('status').notNull().default('draft'),
+  priority: requisitionPriorityEnum('priority').notNull().default('medium'),
   headcount: integer('headcount').notNull().default(1),
   filledCount: integer('filled_count').notNull().default(0),
   description: text('description'),
@@ -79,6 +86,7 @@ export const jobRequisitions = pgTable('job_requisitions', {
 }, (t) => [
   index('job_requisitions_tenant_idx').on(t.tenantId),
   index('job_requisitions_status_idx').on(t.tenantId, t.status),
+  index('job_requisitions_priority_idx').on(t.tenantId, t.priority),
 ]);
 
 // ─── Candidates ──────────────────────────────────────────────────────────────

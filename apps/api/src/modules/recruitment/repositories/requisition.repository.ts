@@ -10,15 +10,15 @@ export class RequisitionRepository {
   async create(tenantId: string, data: CreateRequisitionDto): Promise<RequisitionSnapshot> {
     const [row] = await this.db.queryWithTenant<RequisitionSnapshot>(tenantId, `
       INSERT INTO job_requisitions (
-        tenant_id, title, department_id, location_id, hiring_manager_id, headcount, description, requirements, status
-      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, 'draft')
+        tenant_id, title, department_id, location_id, hiring_manager_id, priority, headcount, description, requirements, status
+      ) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, 'draft')
       RETURNING 
         id, tenant_id as "tenantId", title, department_id as "departmentId", location_id as "locationId",
-        hiring_manager_id as "hiringManagerId", status, headcount, filled_count as "filledCount",
+        hiring_manager_id as "hiringManagerId", status, priority, headcount, filled_count as "filledCount",
         description, requirements, created_at as "createdAt", updated_at as "updatedAt"
     `, [
       tenantId, data.title, data.departmentId, data.locationId, data.hiringManagerId,
-      data.headcount, data.description ?? null, data.requirements ?? null
+      data.priority ?? 'medium', data.headcount, data.description ?? null, data.requirements ?? null
     ]);
 
     if (!row) throw new Error('Failed to create requisition');
@@ -34,6 +34,7 @@ export class RequisitionRepository {
     if (data.departmentId !== undefined) { updates.push(`department_id = $${idx++}`); params.push(data.departmentId); }
     if (data.locationId !== undefined) { updates.push(`location_id = $${idx++}`); params.push(data.locationId); }
     if (data.hiringManagerId !== undefined) { updates.push(`hiring_manager_id = $${idx++}`); params.push(data.hiringManagerId); }
+    if (data.priority !== undefined) { updates.push(`priority = $${idx++}`); params.push(data.priority); }
     if (data.headcount !== undefined) { updates.push(`headcount = $${idx++}`); params.push(data.headcount); }
     if (data.description !== undefined) { updates.push(`description = $${idx++}`); params.push(data.description); }
     if (data.requirements !== undefined) { updates.push(`requirements = $${idx++}`); params.push(data.requirements); }
@@ -49,7 +50,7 @@ export class RequisitionRepository {
       WHERE id = $1 AND tenant_id = $2
       RETURNING 
         id, tenant_id as "tenantId", title, department_id as "departmentId", location_id as "locationId",
-        hiring_manager_id as "hiringManagerId", status, headcount, filled_count as "filledCount",
+        hiring_manager_id as "hiringManagerId", status, priority, headcount, filled_count as "filledCount",
         description, requirements, created_at as "createdAt", updated_at as "updatedAt"
     `, params);
 
@@ -60,7 +61,7 @@ export class RequisitionRepository {
     const [row] = await this.db.queryWithTenant<RequisitionSnapshot>(tenantId, `
       SELECT 
         id, tenant_id as "tenantId", title, department_id as "departmentId", location_id as "locationId",
-        hiring_manager_id as "hiringManagerId", status, headcount, filled_count as "filledCount",
+        hiring_manager_id as "hiringManagerId", status, priority, headcount, filled_count as "filledCount",
         description, requirements, created_at as "createdAt", updated_at as "updatedAt"
       FROM job_requisitions
       WHERE id = $1 AND tenant_id = $2
@@ -72,7 +73,7 @@ export class RequisitionRepository {
     return this.db.queryWithTenant<RequisitionSnapshot>(tenantId, `
       SELECT 
         id, tenant_id as "tenantId", title, department_id as "departmentId", location_id as "locationId",
-        hiring_manager_id as "hiringManagerId", status, headcount, filled_count as "filledCount",
+        hiring_manager_id as "hiringManagerId", status, priority, headcount, filled_count as "filledCount",
         description, requirements, created_at as "createdAt", updated_at as "updatedAt"
       FROM job_requisitions
       WHERE tenant_id = $1

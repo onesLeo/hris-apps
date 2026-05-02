@@ -277,6 +277,7 @@ flowchart TD
 
 ### 9a — Recruitment / ATS (ADR 016)
 - [x] Add ADR 016 ATS database schema migration: `job_requisitions`, `candidates`, `job_applications`, `application_stage_log`, `interviews`, `interview_interviewers`, `interview_scorecards`, `scorecard_templates`, `scorecard_criteria`, `interview_scorecard_ratings`, `job_offers`. _(Enable RLS on all tables; add tenant_id FK to every table)_
+- [x] Persist requisition priority as a real ATS field on `job_requisitions` and expose it through the API/UI. _(Priority now drives the requisition record instead of only coloring the mock card.)_
 - [x] Implement RequisitionService: create/update/submit-for-approval requisition; emit `recruitment.requisition.opened` on status → `open`. _(Approval chain reuses workflow engine from Phase 5; ADR 016)_
 - [x] Implement CandidateService: create candidate with duplicate detection on email per tenant; support anonymisation on privacy request (`anonymised_at` + null PII fields). _(ADR 016)_
 - [x] Implement ApplicationService: link candidate to requisition; advance stage with `application_stage_log` entry on each transition; emit `recruitment.application.stage_changed`. _(ADR 016)_

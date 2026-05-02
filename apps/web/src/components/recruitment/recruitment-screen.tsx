@@ -101,7 +101,7 @@ export function RecruitmentScreen() {
   const submitDialog = async (input: CreateRequisitionInput) => {
     if (dialogMode === 'edit' && editingKey) {
       try {
-        const updated = await updateRequisitionRemote(editingKey, input);
+        const updated = await updateRequisitionRemote(editingKey, input, editingRequisition?.stage);
         setRequisitions((current) =>
           current.map((item) => (getRecruitmentRequisitionKey(item) === editingKey ? updated : item)),
         );

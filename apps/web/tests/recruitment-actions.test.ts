@@ -15,7 +15,6 @@ test('addRecruitmentRequisition prepends a new role', () => {
     department: 'Engineering',
     location: 'Jakarta',
     openings: 1,
-    stage: 'Sourcing',
     recruiter: 'Alex Lee',
     priority: 'High',
   });
@@ -33,7 +32,6 @@ test('updateRecruitmentRequisition replaces the matching role', () => {
     department: 'Finance',
     location: 'Bandung',
     openings: 2,
-    stage: 'Interview',
     recruiter: 'Reza Gunawan',
     priority: 'High',
   });

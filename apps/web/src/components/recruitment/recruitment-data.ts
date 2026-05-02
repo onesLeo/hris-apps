@@ -28,7 +28,7 @@ export type OpenRequisition = {
 
 export type CreateRequisitionInput = Omit<
   OpenRequisition,
-  'accent' | 'id' | 'status' | 'departmentId' | 'locationId' | 'hiringManagerId'
+  'accent' | 'id' | 'status' | 'departmentId' | 'locationId' | 'hiringManagerId' | 'stage'
 >;
 export type RecruitmentRequisitionKey = string;
 
@@ -137,6 +137,18 @@ function accentForPriority(priority: OpenRequisition['priority']): string {
   return priority === 'High' ? '#e8317a' : priority === 'Medium' ? '#8b5cf6' : '#0ea5e9';
 }
 
+function normalizePriority(priority: string | null | undefined): OpenRequisition['priority'] {
+  switch (priority) {
+    case 'high':
+      return 'High';
+    case 'low':
+      return 'Low';
+    case 'medium':
+    default:
+      return 'Medium';
+  }
+}
+
 function mapApiRequisition(r: RequisitionResponse): OpenRequisition {
   return {
     id: r.id,
@@ -149,8 +161,8 @@ function mapApiRequisition(r: RequisitionResponse): OpenRequisition {
     stage: mapRequisitionStatusToStage(r.status),
     recruiter: r.hiringManagerId,
     hiringManagerId: r.hiringManagerId,
-    priority: 'Medium',
-    accent: '#8b5cf6',
+    priority: normalizePriority(r.priority),
+    accent: accentForPriority(normalizePriority(r.priority)),
     status: r.status,
   };
 }
@@ -220,6 +232,7 @@ export async function createRequisitionRemote(input: CreateRequisitionInput): Pr
       departmentId: input.department,
       locationId: input.location,
       hiringManagerId: input.recruiter,
+      priority: input.priority.toLowerCase() as 'high' | 'medium' | 'low',
       headcount: input.openings,
     });
     return mapApiRequisition(result);
@@ -227,6 +240,7 @@ export async function createRequisitionRemote(input: CreateRequisitionInput): Pr
     if (USE_MOCK_DATA) {
       return {
         ...input,
+        stage: 'Sourcing',
         accent: accentForPriority(input.priority),
       };
     }
@@ -237,10 +251,15 @@ export async function createRequisitionRemote(input: CreateRequisitionInput): Pr
 /**
  * Updates an existing requisition via the API.
  */
-export async function updateRequisitionRemote(id: string, input: CreateRequisitionInput): Promise<OpenRequisition> {
+export async function updateRequisitionRemote(
+  id: string,
+  input: CreateRequisitionInput,
+  existingStage?: OpenRequisition['stage'],
+): Promise<OpenRequisition> {
   try {
     const result = await apiUpdateRequisition(id, {
       title: input.title,
+      priority: input.priority.toLowerCase() as 'high' | 'medium' | 'low',
       headcount: input.openings,
     });
     return mapApiRequisition(result);
@@ -248,6 +267,7 @@ export async function updateRequisitionRemote(id: string, input: CreateRequisiti
     if (USE_MOCK_DATA) {
       return {
         ...input,
+        stage: existingStage ?? 'Sourcing',
         accent: accentForPriority(input.priority),
       };
     }
@@ -282,6 +302,7 @@ export function addRecruitmentRequisition(
   return [
     {
       ...input,
+      stage: 'Sourcing',
       accent: accentForPriority(input.priority),
     },
     ...requisitions,
@@ -302,6 +323,7 @@ export function updateRecruitmentRequisition(
       ? {
           ...requisition,
           ...input,
+          stage: requisition.stage,
           accent: accentForPriority(input.priority),
         }
       : requisition,

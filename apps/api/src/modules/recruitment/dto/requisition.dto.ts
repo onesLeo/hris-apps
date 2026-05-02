@@ -1,5 +1,5 @@
-import { IsString, IsNotEmpty, IsUUID, IsNumber, Min, IsOptional, IsEnum } from 'class-validator';
-import { RequisitionStatus } from '../types/requisition.types';
+import { IsString, IsNotEmpty, IsUUID, IsNumber, Min, IsOptional, IsEnum, IsIn } from 'class-validator';
+import type { RequisitionPriority, RequisitionStatus } from '../types/requisition.types';
 
 export class CreateRequisitionDto {
   @IsString()
@@ -14,6 +14,10 @@ export class CreateRequisitionDto {
 
   @IsUUID()
   hiringManagerId!: string;
+
+  @IsIn(['high', 'medium', 'low'])
+  @IsOptional()
+  priority?: RequisitionPriority;
 
   @IsNumber()
   @Min(1)
@@ -44,6 +48,10 @@ export class UpdateRequisitionDto {
   @IsUUID()
   @IsOptional()
   hiringManagerId?: string;
+
+  @IsIn(['high', 'medium', 'low'])
+  @IsOptional()
+  priority?: RequisitionPriority;
 
   @IsNumber()
   @Min(1)
