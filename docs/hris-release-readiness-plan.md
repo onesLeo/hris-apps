@@ -63,6 +63,7 @@ These items block real users from trusting the system.
 - Run integration tests against real PostgreSQL and Redis.
 - Add regression tests for the remaining fallback and simulation paths.
 - Verify audit logging for every mutating operation in the pilot scope.
+- For a manual local walkthrough, follow [docs/local-pilot-test-guide.md](docs/local-pilot-test-guide.md).
 
 ### Operational Safety
 

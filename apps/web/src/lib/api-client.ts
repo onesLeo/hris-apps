@@ -11,6 +11,10 @@ declare global {
 
 const API_BASE = process.env['NEXT_PUBLIC_API_URL'] ?? 'http://localhost:3000/api/v1';
 
+export function getApiUrl(): string {
+  return API_BASE;
+}
+
 function getToken(): string | null {
   if (typeof process !== 'undefined' && process.env['NEXT_PUBLIC_DEV_AUTH_TOKEN']) {
     return process.env['NEXT_PUBLIC_DEV_AUTH_TOKEN'];

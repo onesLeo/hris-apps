@@ -23,6 +23,7 @@ import {
   reviewLeaveRequest,
   cancelLeaveRequest,
 } from '../../lib/leave-api';
+import { fetchMyEmployeeProfile } from '../../lib/employee-api';
 
 const STATUS_TONE: Record<LeaveStatus, Accent> = {
   Pending: 'warning',
@@ -57,11 +58,27 @@ export function LeaveScreen() {
   const [cancellingId, setCancellingId] = useState<string | null>(null);
   const [selectedRequest, setSelectedRequest] = useState<LeaveRequest | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [employeeId, setEmployeeId] = useState<string | null>(allowMockFallback ? '55555555-5555-5555-5555-555555555555' : null);
 
   // Load leave requests from API
   useEffect(() => {
+    let cancelled = false;
+
+    fetchMyEmployeeProfile()
+      .then((profile) => {
+        if (!cancelled) {
+          setEmployeeId(profile.employeeId);
+        }
+      })
+      .catch(() => {
+        if (!allowMockFallback && !cancelled) {
+          setError('Failed to load the current employee profile.');
+        }
+      });
+
     fetchLeaveRequests({ limit: 100 })
       .then((apiRequests) => {
+        if (cancelled) return;
         setError(null);
         const mapped: LeaveRequest[] = apiRequests.map((req) => ({
           id: req.id,
@@ -86,16 +103,21 @@ export function LeaveScreen() {
         setRequests(mapped);
       })
       .catch((err) => {
-        if (!allowMockFallback) {
+        if (!allowMockFallback && !cancelled) {
           setError(err instanceof Error ? err.message : 'Failed to load live leave requests.');
         }
       });
+
+    return () => {
+      cancelled = true;
+    };
   }, [allowMockFallback]);
 
   // Load leave balances from API
   useEffect(() => {
-    const DEMO_EMPLOYEE_ID = '55555555-5555-5555-5555-555555555555';
-    fetchLeaveBalances(DEMO_EMPLOYEE_ID)
+    if (!employeeId) return;
+
+    fetchLeaveBalances(employeeId)
       .then((apiBalances) => {
         setError(null);
         if (apiBalances.length === 0) return;
@@ -112,7 +134,7 @@ export function LeaveScreen() {
           setError(err instanceof Error ? err.message : 'Failed to load leave balances.');
         }
       });
-  }, [allowMockFallback]);
+  }, [allowMockFallback, employeeId]);
 
   const filtered = useMemo(() => filterLeaveRequests(requests, tab, search), [requests, search, tab]);
   const statusCounts = useMemo(
@@ -134,7 +156,7 @@ export function LeaveScreen() {
     setRequests(nextRequests);
 
     submitLeaveRequest({
-      employeeId: '55555555-5555-5555-5555-555555555555',
+      employeeId: employeeId ?? '55555555-5555-5555-5555-555555555555',
       leaveTypeId: 'bbbb0001-0000-0000-0000-000000000001',
       fromDate: input.from,
       toDate: input.to,
@@ -311,7 +333,7 @@ export function LeaveScreen() {
             <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-primary)' }}>{leave.days}d</span>
             <Badge label={copy.tabs[leave.status]} tone={STATUS_TONE[leave.status]} />
             <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-              {leave.status === 'Pending' && leave.id ? (
+              {leave.status === 'Pending' && leave.id && !leave.workflowInstanceId ? (
                 <>
                   <button
                     type="button"
@@ -341,6 +363,15 @@ export function LeaveScreen() {
                     <Icon name="xMark" size={14} color="var(--text-muted)" strokeWidth={2} />
                   </button>
                 </>
+              ) : leave.status === 'Pending' && leave.workflowInstanceId ? (
+                <button
+                  type="button"
+                  className="aurora-icon-swatch"
+                  aria-label="View workflow"
+                  onClick={() => setSelectedRequest(leave)}
+                >
+                  <Icon name="eye" size={16} color="var(--text-muted)" strokeWidth={1.8} />
+                </button>
               ) : leave.status === 'Pending' ? (
                 <>
                   <div style={{ background: 'var(--accent)', borderRadius: 7, padding: '5px 10px', fontSize: 11, fontWeight: 600, color: '#fff' }}>
@@ -414,7 +445,7 @@ export function LeaveScreen() {
               </button>
             </div>
 
-            {selectedRequest.status === 'Pending' && selectedRequest.id && (
+            {selectedRequest.status === 'Pending' && selectedRequest.id && !selectedRequest.workflowInstanceId && (
               <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', display: 'flex', justifyContent: 'flex-end' }}>
                 <button
                   type="button"
@@ -434,6 +465,12 @@ export function LeaveScreen() {
                 >
                   {cancellingId === selectedRequest.id ? 'Cancelling…' : 'Cancel Request'}
                 </button>
+              </div>
+            )}
+
+            {selectedRequest.status === 'Pending' && selectedRequest.workflowInstanceId && (
+              <div style={{ padding: '12px 20px', borderBottom: '1px solid var(--border)', fontSize: 13, color: 'var(--text-muted)' }}>
+                This leave request is routed through the approval workflow. Use the Approvals menu to review it.
               </div>
             )}
 

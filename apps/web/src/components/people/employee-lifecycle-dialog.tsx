@@ -7,6 +7,7 @@ import type { Employee } from './people-data';
 import type {
   OrganizationCatalogDepartment,
   OrganizationCatalogLocation,
+  OrganizationCatalogPlant,
 } from '../../lib/organization-api';
 
 export type EmployeeLifecycleMode = 'transfer' | 'promote' | 'resign' | 'rehire' | 'secondment';
@@ -16,6 +17,7 @@ export type EmployeeLifecycleSubmit =
       mode: 'transfer';
       departmentId: string;
       locationId: string;
+      plantId?: string | null;
       jobTitle: string;
       workArrangement: 'office' | 'remote' | 'hybrid';
       effectiveDate: string;
@@ -38,12 +40,14 @@ export type EmployeeLifecycleSubmit =
       jobTitle: string;
       departmentId: string;
       locationId: string;
+      plantId?: string | null;
       workArrangement: 'office' | 'remote' | 'hybrid';
     }
   | {
       mode: 'secondment';
       hostDepartmentId: string;
       hostLocationId: string;
+      hostPlantId?: string | null;
       jobTitleAtHost: string;
       startDate: string;
       expectedReturnDate: string;
@@ -56,6 +60,7 @@ type EmployeeLifecycleDialogProps = {
   copy: PeopleCopy;
   departmentOptions: readonly OrganizationCatalogDepartment[];
   locationOptions: readonly OrganizationCatalogLocation[];
+  plantOptions: readonly OrganizationCatalogPlant[];
   onClose: () => void;
   onSubmit: (payload: EmployeeLifecycleSubmit) => void;
 };
@@ -63,6 +68,7 @@ type EmployeeLifecycleDialogProps = {
 type TransferForm = {
   departmentId: string;
   locationId: string;
+  plantId: string;
   jobTitle: string;
   workArrangement: 'office' | 'remote' | 'hybrid';
   effectiveDate: string;
@@ -85,12 +91,14 @@ type RehireForm = {
   jobTitle: string;
   departmentId: string;
   locationId: string;
+  plantId: string;
   workArrangement: 'office' | 'remote' | 'hybrid';
 };
 
 type SecondmentForm = {
   hostDepartmentId: string;
   hostLocationId: string;
+  hostPlantId: string;
   jobTitleAtHost: string;
   startDate: string;
   expectedReturnDate: string;
@@ -105,6 +113,7 @@ export function EmployeeLifecycleDialog({
   copy,
   departmentOptions,
   locationOptions,
+  plantOptions,
   onClose,
   onSubmit,
 }: EmployeeLifecycleDialogProps) {
@@ -118,10 +127,15 @@ export function EmployeeLifecycleDialog({
       ?? locationOptions[0],
     [initialDepartment?.locationId, locationOptions],
   );
+  const initialPlant = useMemo(
+    () => plantOptions.find((plant) => plant.locationId === initialLocation?.id) ?? plantOptions[0],
+    [initialLocation?.id, plantOptions],
+  );
 
   const [transferForm, setTransferForm] = useState<TransferForm>({
     departmentId: initialDepartment?.id ?? '',
     locationId: initialLocation?.id ?? '',
+    plantId: initialPlant?.id ?? '',
     jobTitle: employee?.role ?? '',
     workArrangement: employee?.type?.toLowerCase() === 'remote'
       ? 'remote'
@@ -148,12 +162,14 @@ export function EmployeeLifecycleDialog({
     jobTitle: employee?.role ?? '',
     departmentId: initialDepartment?.id ?? '',
     locationId: initialLocation?.id ?? '',
+    plantId: initialPlant?.id ?? '',
     workArrangement: 'office',
   });
 
   const [secondmentForm, setSecondmentForm] = useState<SecondmentForm>({
     hostDepartmentId: initialDepartment?.id ?? '',
     hostLocationId: initialLocation?.id ?? '',
+    hostPlantId: initialPlant?.id ?? '',
     jobTitleAtHost: employee?.role ?? '',
     startDate: today,
     expectedReturnDate: today,
@@ -167,9 +183,11 @@ export function EmployeeLifecycleDialog({
 
     const nextDepartment = departmentOptions.find((department) => department.name === employee?.dept) ?? departmentOptions[0];
     const nextLocation = locationOptions.find((location) => location.id === nextDepartment?.locationId) ?? locationOptions[0];
+    const nextPlant = plantOptions.find((plant) => plant.locationId === nextLocation?.id) ?? plantOptions[0];
     setTransferForm({
       departmentId: nextDepartment?.id ?? '',
       locationId: nextLocation?.id ?? '',
+      plantId: nextPlant?.id ?? '',
       jobTitle: employee?.role ?? '',
       workArrangement: employee?.type?.toLowerCase() === 'remote'
         ? 'remote'
@@ -193,6 +211,7 @@ export function EmployeeLifecycleDialog({
       jobTitle: employee?.role ?? '',
       departmentId: nextDepartment?.id ?? '',
       locationId: nextLocation?.id ?? '',
+      plantId: nextPlant?.id ?? '',
       workArrangement: employee?.type?.toLowerCase() === 'remote'
         ? 'remote'
         : employee?.type?.toLowerCase() === 'hybrid'
@@ -202,11 +221,12 @@ export function EmployeeLifecycleDialog({
     setSecondmentForm({
       hostDepartmentId: nextDepartment?.id ?? '',
       hostLocationId: nextLocation?.id ?? '',
+      hostPlantId: nextPlant?.id ?? '',
       jobTitleAtHost: employee?.role ?? '',
       startDate: today,
       expectedReturnDate: today,
     });
-  }, [departmentOptions, employee?.dept, employee?.role, employee?.type, locationOptions, open]);
+  }, [departmentOptions, employee?.dept, employee?.role, employee?.type, locationOptions, open, plantOptions]);
 
   if (!open || !employee) {
     return null;
@@ -232,6 +252,7 @@ export function EmployeeLifecycleDialog({
     if (mode === 'transfer') {
       const selectedDepartment = departmentOptions.find((department) => department.id === transferForm.departmentId);
       const selectedLocation = locationOptions.find((location) => location.id === transferForm.locationId);
+      const selectedPlant = plantOptions.find((plant) => plant.id === transferForm.plantId);
       if (!selectedDepartment || !selectedLocation || !transferForm.jobTitle.trim() || !transferForm.effectiveDate.trim()) {
         setFeedback(copy.validation.transferRequired);
         return;
@@ -240,6 +261,7 @@ export function EmployeeLifecycleDialog({
         mode,
         departmentId: selectedDepartment.id,
         locationId: selectedLocation.id,
+        plantId: selectedPlant && selectedPlant.locationId === selectedLocation.id ? selectedPlant.id : null,
         jobTitle: transferForm.jobTitle.trim() || employee.role,
         workArrangement: transferForm.workArrangement,
         effectiveDate: transferForm.effectiveDate,
@@ -279,6 +301,7 @@ export function EmployeeLifecycleDialog({
     if (mode === 'rehire') {
       const selectedDepartment = departmentOptions.find((d) => d.id === rehireForm.departmentId);
       const selectedLocation = locationOptions.find((l) => l.id === rehireForm.locationId);
+      const selectedPlant = plantOptions.find((plant) => plant.id === rehireForm.plantId);
       if (!rehireForm.newHireDate.trim() || !rehireForm.jobTitle.trim() || !selectedDepartment || !selectedLocation) {
         setFeedback(copy.validation.rehireRequired);
         return;
@@ -289,6 +312,7 @@ export function EmployeeLifecycleDialog({
         jobTitle: rehireForm.jobTitle.trim(),
         departmentId: selectedDepartment.id,
         locationId: selectedLocation.id,
+        plantId: selectedPlant && selectedPlant.locationId === selectedLocation.id ? selectedPlant.id : null,
         workArrangement: rehireForm.workArrangement,
       });
       return;
@@ -297,6 +321,7 @@ export function EmployeeLifecycleDialog({
     // secondment
     const hostDepartment = departmentOptions.find((d) => d.id === secondmentForm.hostDepartmentId);
     const hostLocation = locationOptions.find((l) => l.id === secondmentForm.hostLocationId);
+    const hostPlant = plantOptions.find((plant) => plant.id === secondmentForm.hostPlantId);
     if (!hostDepartment || !hostLocation || !secondmentForm.startDate.trim() || !secondmentForm.expectedReturnDate.trim()) {
       setFeedback(copy.validation.secondmentRequired);
       return;
@@ -305,6 +330,7 @@ export function EmployeeLifecycleDialog({
       mode,
       hostDepartmentId: hostDepartment.id,
       hostLocationId: hostLocation.id,
+      hostPlantId: hostPlant && hostPlant.locationId === hostLocation.id ? hostPlant.id : null,
       jobTitleAtHost: secondmentForm.jobTitleAtHost.trim(),
       startDate: secondmentForm.startDate,
       expectedReturnDate: secondmentForm.expectedReturnDate,
@@ -414,6 +440,21 @@ export function EmployeeLifecycleDialog({
                     </select>
                   </label>
                 </div>
+                <label className="field">
+                  <span className="aurora-card-subtitle">Plant</span>
+                  <select
+                    value={transferForm.plantId}
+                    onChange={(event) => setTransferForm((current) => ({ ...current, plantId: event.target.value }))}
+                    style={inputStyle}
+                  >
+                    <option value="">Auto-select plant for location</option>
+                    {plantOptions
+                      .filter((plant) => plant.locationId === transferForm.locationId)
+                      .map((plant) => (
+                        <option key={plant.id} value={plant.id}>{plant.name}</option>
+                      ))}
+                  </select>
+                </label>
                 <div className="aurora-dual-grid">
                   <label className="field">
                     <span className="aurora-card-subtitle">Job title</span>
@@ -610,6 +651,21 @@ export function EmployeeLifecycleDialog({
                   </label>
                 </div>
                 <label className="field">
+                  <span className="aurora-card-subtitle">Plant</span>
+                  <select
+                    value={rehireForm.plantId}
+                    onChange={(event) => setRehireForm((current) => ({ ...current, plantId: event.target.value }))}
+                    style={inputStyle}
+                  >
+                    <option value="">Auto-select plant for location</option>
+                    {plantOptions
+                      .filter((plant) => plant.locationId === rehireForm.locationId)
+                      .map((plant) => (
+                        <option key={plant.id} value={plant.id}>{plant.name}</option>
+                      ))}
+                  </select>
+                </label>
+                <label className="field">
                   <span className="aurora-card-subtitle">Work arrangement</span>
                   <select
                     value={rehireForm.workArrangement}
@@ -673,6 +729,21 @@ export function EmployeeLifecycleDialog({
                     </select>
                   </label>
                 </div>
+                <label className="field">
+                  <span className="aurora-card-subtitle">Host plant</span>
+                  <select
+                    value={secondmentForm.hostPlantId}
+                    onChange={(event) => setSecondmentForm((current) => ({ ...current, hostPlantId: event.target.value }))}
+                    style={inputStyle}
+                  >
+                    <option value="">Auto-select plant for location</option>
+                    {plantOptions
+                      .filter((plant) => plant.locationId === secondmentForm.hostLocationId)
+                      .map((plant) => (
+                        <option key={plant.id} value={plant.id}>{plant.name}</option>
+                      ))}
+                  </select>
+                </label>
                 <label className="field">
                   <span className="aurora-card-subtitle">Job title at host (optional)</span>
                   <input

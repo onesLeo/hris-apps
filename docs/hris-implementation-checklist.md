@@ -38,6 +38,7 @@ Use this section as the launch gate before pilot or public rollout. Complete the
 - [x] Add a pilot hiring-to-onboarding flow test that covers authenticated access, requisition approval, offer approval, and onboarding handoff.
 - [x] Add a pilot attendance clock-in/clock-out flow test that covers shift setup, assignment, reconciliation, and daily summary.
 - [x] Add a pilot leave-request flow test that covers submission, balance reservation, review, and approval.
+- [ ] Follow the local pilot walkthrough in [docs/local-pilot-test-guide.md](docs/local-pilot-test-guide.md) to validate the same flows manually from HR Admin and Employee roles.
 - [ ] Run integration tests against real PostgreSQL and Redis.
 - [ ] Add regression coverage for fallback and simulation paths.
 - [ ] Add audit coverage for mutating operations in the pilot scope.

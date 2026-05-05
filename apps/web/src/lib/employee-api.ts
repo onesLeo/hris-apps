@@ -13,6 +13,7 @@ type ApiEmployee = {
   hire_date: string;
   job_title: string | null;
   department_name: string | null;
+  plant_name: string | null;
   employment_type: 'full_time' | 'part_time' | 'contract' | 'intern' | null;
   work_arrangement: 'office' | 'remote' | 'hybrid' | null;
   manager_id: string | null;
@@ -43,6 +44,27 @@ type ApiLifecycleEvent = {
   effective_date: string;
   created_by: string | null;
   created_at: string;
+};
+
+type ApiEmployeeProfile = {
+  id: string;
+  tenantId: string;
+  employeeId: string;
+  displayName: string;
+  email: string;
+  phone: string | null;
+  dateOfBirth: string | null;
+  gender: string | null;
+  hireDate: string;
+  address: string | null;
+  city: string | null;
+  province: string | null;
+  postalCode: string | null;
+  nik: string | null;
+  bpjsHealth: string | null;
+  bpjsEmployment: string | null;
+  bpjsPension: string | null;
+  bpjsAccident: string | null;
 };
 
 export type EmployeeHistory = {
@@ -100,6 +122,7 @@ function toUiEmployee(api: ApiEmployee): Employee {
     name: api.display_name,
     role: api.job_title ?? 'N/A',
     dept: api.department_name ?? 'N/A',
+    ...(api.plant_name ? { plantName: api.plant_name } : {}),
     status: STATUS_MAP[api.status] ?? 'Active',
     type: ARRANGEMENT_MAP[api.work_arrangement ?? 'office'] ?? 'Office',
     since,
@@ -131,6 +154,7 @@ export async function createEmployee(input: CreateEmployeeInput): Promise<Employ
     jobTitle: input.role,
     departmentId: input.departmentId,
     locationId: input.locationId,
+    plantId: input.plantId ?? null,
     workArrangement: input.type.toLowerCase() as 'office' | 'remote' | 'hybrid',
     managerId: input.managerId ?? null,
     ...(input.contractType ? { employmentType: input.contractType } : {}),
@@ -163,6 +187,7 @@ export async function transferEmployee(
   input: {
     departmentId: string;
     locationId: string;
+    plantId?: string | null;
     jobTitle?: string;
     workArrangement?: 'office' | 'remote' | 'hybrid';
     effectiveDate: string;
@@ -200,6 +225,10 @@ export async function fetchEmployeeHistory(id: string): Promise<EmployeeHistory>
   return apiGet<EmployeeHistory>(`/employees/${id}/history`);
 }
 
+export async function fetchMyEmployeeProfile(): Promise<ApiEmployeeProfile> {
+  return apiGet<ApiEmployeeProfile>('/employees/me');
+}
+
 export async function terminateEmployee(id: string): Promise<void> {
   const today = new Date().toISOString().slice(0, 10);
   await apiPost(`/employees/${id}/terminate`, { terminationDate: today });
@@ -212,6 +241,7 @@ export async function rehireEmployee(
     jobTitle: string;
     departmentId: string;
     locationId: string;
+    plantId?: string | null;
     workArrangement?: 'office' | 'remote' | 'hybrid';
   },
 ): Promise<Employee> {
@@ -224,6 +254,7 @@ export async function secondEmployee(
   input: {
     hostDepartmentId: string;
     hostLocationId: string;
+    hostPlantId?: string | null;
     jobTitleAtHost?: string;
     startDate: string;
     expectedReturnDate: string;

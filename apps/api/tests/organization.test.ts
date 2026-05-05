@@ -7,6 +7,8 @@ test('organization overview builder returns a stable contract', () => {
 
   assert.equal(overview.companyName, 'PeopleOS');
   assert.equal(overview.totalEmployees, 1247);
+  assert.equal(overview.activeLocations, 3);
   assert.equal(overview.locations.length, 3);
-  assert.equal(overview.departments[0]?.name, 'Engineering');
+  assert.equal(overview.departmentMap[0]?.name, 'Engineering');
+  assert.equal(overview.structure.length, 3);
 });

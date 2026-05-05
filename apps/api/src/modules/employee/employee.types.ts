@@ -13,6 +13,7 @@ export type HireEmployeeDto = {
   jobTitle: string;
   departmentId: string;
   locationId: string;
+  plantId?: string | null;
   employmentType?: 'full_time' | 'part_time' | 'contract' | 'intern';
   workArrangement?: 'office' | 'remote' | 'hybrid';
   managerId?: string;          // direct manager employee UUID (optional)
@@ -68,6 +69,7 @@ export type EmployeeProfileSnapshot = {
 export type TransferEmployeeDto = {
   departmentId: string;
   locationId: string;
+  plantId?: string | null;
   jobTitle?: string;
   workArrangement?: 'office' | 'remote' | 'hybrid';
   effectiveDate: string;       // ISO date
@@ -95,12 +97,14 @@ export type RehireEmployeeDto = {
   jobTitle: string;
   departmentId: string;
   locationId: string;
+  plantId?: string | null;
   workArrangement?: 'office' | 'remote' | 'hybrid';
 };
 
 export type SecondmentDto = {
   hostDepartmentId: string;
   hostLocationId: string;
+  hostPlantId?: string | null;
   jobTitleAtHost?: string;
   startDate: string;
   expectedReturnDate: string;
@@ -143,6 +147,8 @@ export type EmployeeRow = {
   department_name: string | null;
   location_id: string | null;
   location_name: string | null;
+  plant_id: string | null;
+  plant_name: string | null;
   employment_type: string | null;
   work_arrangement: string | null;
   probation_end_date: string | null;
@@ -165,6 +171,7 @@ export type SpellRow = {
   employee_id: string;
   department_id: string;
   location_id: string;
+  plant_id: string | null;
   job_title: string;
   employment_type: string;
   work_arrangement: string;

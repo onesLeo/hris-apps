@@ -10,7 +10,7 @@ import {
   varchar,
   index,
 } from 'drizzle-orm/pg-core';
-import { departments, locations } from './org.schema';
+import { departments, locations, plants } from './org.schema';
 import { ptkpCategories } from './tax.schema';
 import { tenants } from './tenant.schema';
 import { users } from './user.schema';
@@ -90,6 +90,7 @@ export const employmentSpells = pgTable('employment_spells', {
   employeeId: uuid('employee_id').notNull().references(() => employees.id),
   departmentId: uuid('department_id').notNull().references(() => departments.id),
   locationId: uuid('location_id').notNull().references(() => locations.id),
+  plantId: uuid('plant_id').references(() => plants.id),
   jobTitle: varchar('job_title', { length: 255 }).notNull(),
   employmentType: employmentTypeEnum('employment_type').notNull().default('full_time'),
   workArrangement: workArrangementEnum('work_arrangement').notNull().default('office'),

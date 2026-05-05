@@ -27,6 +27,21 @@ export const locations = pgTable('locations', {
   index('locations_tenant_id_idx').on(t.tenantId),
 ]);
 
+export const plants = pgTable('plants', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  tenantId: uuid('tenant_id').notNull().references(() => tenants.id),
+  locationId: uuid('location_id').notNull().references(() => locations.id),
+  name: varchar('name', { length: 255 }).notNull(),
+  code: varchar('code', { length: 20 }).notNull(),
+  managerId: uuid('manager_id').references(() => users.id),
+  isActive: boolean('is_active').notNull().default(true),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (t) => [
+  index('plants_tenant_id_idx').on(t.tenantId),
+  index('plants_location_id_idx').on(t.locationId),
+]);
+
 export const departments = pgTable('departments', {
   id: uuid('id').primaryKey().defaultRandom(),
   tenantId: uuid('tenant_id').notNull().references(() => tenants.id),

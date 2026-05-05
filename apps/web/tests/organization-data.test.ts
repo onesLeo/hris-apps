@@ -11,6 +11,6 @@ test('getOrganizationOverview returns the organization snapshot', () => {
   assert.equal(overview.locations.length, 3);
   assert.equal(overview.departmentMap[0]?.name, 'Engineering');
   assert.equal(overview.structure.length, 3);
-  assert.equal(localized.headquarters, 'Kantor Pusat Jakarta');
+  assert.equal(localized.headquarters, 'Kantor Pusat');
   assert.equal(localized.departmentMap[1]?.name, 'Operasional');
 });

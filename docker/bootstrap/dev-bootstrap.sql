@@ -118,6 +118,18 @@ CREATE TABLE IF NOT EXISTS locations (
   updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS plants (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES tenants(id),
+  location_id UUID NOT NULL REFERENCES locations(id),
+  name VARCHAR(255) NOT NULL,
+  code VARCHAR(20) NOT NULL,
+  manager_id UUID REFERENCES users(id),
+  is_active BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
 CREATE TABLE IF NOT EXISTS departments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES tenants(id),
@@ -238,6 +250,7 @@ CREATE TABLE IF NOT EXISTS employment_spells (
   employee_id UUID NOT NULL REFERENCES employees(id),
   department_id UUID NOT NULL REFERENCES departments(id),
   location_id UUID NOT NULL REFERENCES locations(id),
+  plant_id UUID REFERENCES plants(id),
   job_title VARCHAR(255) NOT NULL,
   employment_type employment_type NOT NULL DEFAULT 'full_time',
   work_arrangement work_arrangement NOT NULL DEFAULT 'office',
@@ -420,6 +433,16 @@ INSERT INTO users (
   'active',
   NOW(),
   NOW()
+),
+(
+  '22222222-2222-2222-2222-222222222223',
+  '11111111-1111-1111-1111-111111111111',
+  'dev-plant-manager',
+  'plant.manager@peopleos.local',
+  'PeopleOS Plant Manager',
+  'active',
+  NOW(),
+  NOW()
 ) ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO user_roles (
@@ -429,6 +452,16 @@ INSERT INTO user_roles (
   '11111111-1111-1111-1111-111111111111',
   '22222222-2222-2222-2222-222222222222',
   '30000000-0000-0000-0000-000000000002',
+  'tenant',
+  NULL,
+  NOW(),
+  '22222222-2222-2222-2222-222222222222'
+) ,
+(
+  '33333333-3333-3333-3333-333333333331',
+  '11111111-1111-1111-1111-111111111111',
+  '22222222-2222-2222-2222-222222222223',
+  '30000000-0000-0000-0000-000000000007',
   'tenant',
   NULL,
   NOW(),
@@ -462,6 +495,120 @@ INSERT INTO departments (
   'ENG',
   '22222222-2222-2222-2222-222222222222',
   NULL,
+  TRUE,
+  NOW(),
+  NOW()
+) ON CONFLICT (id) DO NOTHING;
+
+INSERT INTO plants (
+  id, tenant_id, location_id, name, code, manager_id, is_active, created_at, updated_at
+) VALUES (
+  '34444444-4444-4444-4444-444444444444',
+  '11111111-1111-1111-1111-111111111111',
+  '33333333-3333-3333-3333-333333333333',
+  'HO Assembly Plant',
+  'HO-ASM',
+  '22222222-2222-2222-2222-222222222223',
+  TRUE,
+  NOW(),
+  NOW()
+) ,
+(
+  '33333333-3333-3333-3333-333333333334',
+  '11111111-1111-1111-1111-111111111111',
+  'Yogyakarta Branch',
+  'YOG',
+  'Asia/Jakarta',
+  'Indonesia',
+  'DI Yogyakarta',
+  'Jl. Malioboro No. 2',
+  'biometric',
+  TRUE,
+  NOW(),
+  NOW()
+),
+(
+  '33333333-3333-3333-3333-333333333335',
+  '11111111-1111-1111-1111-111111111111',
+  'Jakarta Branch',
+  'JKT',
+  'Asia/Jakarta',
+  'Indonesia',
+  'DKI Jakarta',
+  'Jl. Sudirman No. 3',
+  'biometric',
+  TRUE,
+  NOW(),
+  NOW()
+),
+(
+  '33333333-3333-3333-3333-333333333336',
+  '11111111-1111-1111-1111-111111111111',
+  'Tangerang Branch',
+  'TGR',
+  'Asia/Jakarta',
+  'Indonesia',
+  'Banten',
+  'Jl. Gatot Subroto No. 4',
+  'biometric',
+  TRUE,
+  NOW(),
+  NOW()
+),
+(
+  '33333333-3333-3333-3333-333333333337',
+  '11111111-1111-1111-1111-111111111111',
+  'Surabaya Branch',
+  'SBY',
+  'Asia/Jakarta',
+  'Indonesia',
+  'Jawa Timur',
+  'Jl. Pemuda No. 5',
+  'biometric',
+  TRUE,
+  NOW(),
+  NOW()
+),
+(
+  '34444444-4444-4444-4444-444444444445',
+  '11111111-1111-1111-1111-111111111111',
+  '33333333-3333-3333-3333-333333333334',
+  'Yogyakarta Plant A',
+  'YOG-A',
+  '22222222-2222-2222-2222-222222222223',
+  TRUE,
+  NOW(),
+  NOW()
+),
+(
+  '34444444-4444-4444-4444-444444444446',
+  '11111111-1111-1111-1111-111111111111',
+  '33333333-3333-3333-3333-333333333335',
+  'Jakarta Plant A',
+  'JKT-A',
+  '22222222-2222-2222-2222-222222222223',
+  TRUE,
+  NOW(),
+  NOW()
+),
+(
+  '34444444-4444-4444-4444-444444444447',
+  '11111111-1111-1111-1111-111111111111',
+  '33333333-3333-3333-3333-333333333336',
+  'Tangerang Plant A',
+  'TGR-A',
+  '22222222-2222-2222-2222-222222222223',
+  TRUE,
+  NOW(),
+  NOW()
+),
+(
+  '34444444-4444-4444-4444-444444444448',
+  '11111111-1111-1111-1111-111111111111',
+  '33333333-3333-3333-3333-333333333337',
+  'Surabaya Plant A',
+  'SBY-A',
+  '22222222-2222-2222-2222-222222222223',
   TRUE,
   NOW(),
   NOW()
@@ -515,7 +662,7 @@ INSERT INTO employees (
 ON CONFLICT (id) DO NOTHING;
 
 INSERT INTO employment_spells (
-  tenant_id, employee_id, department_id, location_id, job_title, employment_type,
+  tenant_id, employee_id, department_id, location_id, plant_id, job_title, employment_type,
   work_arrangement, effective_from, probation_end_date, notice_period_days, job_grade, created_at
 ) VALUES
 (
@@ -523,6 +670,7 @@ INSERT INTO employment_spells (
   '55555555-5555-5555-5555-555555555555',
   '44444444-4444-4444-4444-444444444444',
   '33333333-3333-3333-3333-333333333333',
+  '34444444-4444-4444-4444-444444444444',
   'Senior Engineer',
   'full_time',
   'remote',
@@ -537,6 +685,7 @@ INSERT INTO employment_spells (
   '66666666-6666-6666-6666-666666666666',
   '44444444-4444-4444-4444-444444444444',
   '33333333-3333-3333-3333-333333333333',
+  '34444444-4444-4444-4444-444444444444',
   'Incoming Engineer',
   'full_time',
   'office',

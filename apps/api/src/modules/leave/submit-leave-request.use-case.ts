@@ -1,23 +1,22 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { DATABASE_SERVICE, type IDatabaseService } from '../../common/database/database.types';
+import type { WorkflowStepDefinition } from '../approval/approval.workflow';
+import { WorkflowInstanceService } from '../approval/workflow-instance.service';
 import { LeaveRepository } from './leave.repository';
 import type { CreateLeaveRequestDto } from './leave.dto';
 import type { LeaveRequestSnapshot } from './leave.types';
 
-type WorkflowTemplateRow = { id: string; steps_json: unknown };
-
 /**
  * Submits a leave request and, when the leave type requires approval,
- * creates a workflow_instance + first workflow_step_instance so that the
- * Phase 5 approval engine can drive the decision.
+ * creates a workflow_instance so that the approval engine can drive the decision.
  *
- * If no active leave_approval workflow template is found for the tenant,
- * the request falls back to direct HR review (legacy path).
+ * If no org-aware approver can be resolved, the request falls back to direct HR review.
  */
 @Injectable()
 export class SubmitLeaveRequestUseCase {
   constructor(
     @Inject(DATABASE_SERVICE) private readonly db: IDatabaseService,
+    private readonly workflowInstanceService: WorkflowInstanceService,
     private readonly leaveRepository: LeaveRepository,
   ) {}
 
@@ -61,51 +60,73 @@ export class SubmitLeaveRequestUseCase {
     requestorId: string,
     dto: CreateLeaveRequestDto,
   ): Promise<string | null> {
-    const [template] = await this.db.queryWithTenant<WorkflowTemplateRow>(tenantId, `
-      SELECT id, steps_json
-      FROM workflow_templates
-      WHERE tenant_id = $1
-        AND request_type = 'leave_request'
-        AND is_active = TRUE
-      ORDER BY created_at DESC
+    const [employee] = await this.db.queryWithTenant<{
+      direct_manager_user_id: string | null;
+      plant_manager_id: string | null;
+    }>(tenantId, `
+      SELECT
+        mgr.user_id AS direct_manager_user_id,
+        p.manager_id AS plant_manager_id
+      FROM employees e
+      LEFT JOIN employees mgr ON mgr.id = e.manager_id
+      LEFT JOIN employment_spells s
+        ON s.employee_id = e.id AND s.effective_to IS NULL
+      LEFT JOIN plants p ON p.id = s.plant_id
+      WHERE e.id = $1 AND e.tenant_id = $2
       LIMIT 1
-    `, [tenantId]);
+    `, [dto.employeeId, tenantId]);
 
-    if (!template) return null;
-
-    const [instance] = await this.db.queryWithTenant<{ id: string }>(tenantId, `
-      INSERT INTO workflow_instances
-        (tenant_id, template_id, request_type, entity_type, entity_id, requestor_id, status, current_step_order, context_json)
-      VALUES ($1, $2, 'leave_request', 'leave_request', $3, $4, 'in_progress', 1, $5)
-      RETURNING id
-    `, [
-      tenantId,
-      template.id,
-      dto.employeeId,
-      requestorId,
-      JSON.stringify({ leaveTypeId: dto.leaveTypeId, fromDate: dto.fromDate, toDate: dto.toDate, days: dto.days }),
-    ]);
-
-    if (!instance) return null;
-
-    const steps = Array.isArray(template.steps_json)
-      ? (template.steps_json as Array<{ step_order: number; step_type: string; assignee_id?: string }>)
-      : [];
-
-    for (const step of steps) {
-      await this.db.queryWithTenant(tenantId, `
-        INSERT INTO workflow_step_instances
-          (workflow_instance_id, step_order, step_type, assignee_id, status)
-        VALUES ($1, $2, $3, $4, $5)
-      `, [
-        instance.id,
-        step.step_order,
-        step.step_type,
-        step.assignee_id ?? null,
-        step.step_order === 1 ? 'pending' : 'pending',
-      ]);
+    if (!employee) {
+      throw new NotFoundException(`Employee ${dto.employeeId} not found`);
     }
 
-    return instance.id;
+    const baseSteps: WorkflowStepDefinition[] = [];
+    if (employee.direct_manager_user_id) {
+      baseSteps.push({
+        stepOrder: baseSteps.length + 1,
+        name: 'Manager Approval',
+        assigneeRule: 'direct_manager' as const,
+        slaHours: 72,
+      });
+    }
+
+    if (employee.plant_manager_id) {
+      baseSteps.push({
+        stepOrder: baseSteps.length + 1,
+        name: 'Plant Approval',
+        assigneeRule: 'plant_manager' as const,
+        slaHours: 72,
+      });
+    }
+
+    baseSteps.push({
+      stepOrder: baseSteps.length + 1,
+      name: 'HR Review',
+      assigneeRule: 'specific_role' as const,
+      specificRole: 'hris_admin',
+      slaHours: 72,
+    });
+
+    return this.workflowInstanceService.startWorkflowInstance(tenantId, {
+      templateCode: 'LEAVE_REQUEST',
+      templateName: 'Leave Request',
+      requestType: 'leave_request',
+      entityType: 'leave_request',
+      entityId: dto.employeeId,
+      requestorId,
+      triggerEvent: 'leave.requested',
+      defaultSteps: baseSteps,
+      contextJson: {
+        leaveTypeId: dto.leaveTypeId,
+        fromDate: dto.fromDate,
+        toDate: dto.toDate,
+        days: dto.days,
+      },
+      assigneeContext: {
+        directManagerId: employee.direct_manager_user_id ?? null,
+        plantManagerId: employee.plant_manager_id ?? null,
+        hrManagerId: null,
+      },
+    });
   }
 }

@@ -59,9 +59,11 @@ export class EmployeeLifecycleApprovalListener {
     const ctx = context ?? {};
     const toDepartmentId = ctx.toDepartmentId as string;
     const toLocationId = ctx.toLocationId as string;
+    const toPlantId = (ctx.toPlantId as string | null | undefined) ?? null;
     const jobTitle = (ctx.jobTitle as string) ?? '';
     const workArrangement = (ctx.workArrangement as string) ?? 'office';
     const effectiveDate = (ctx.effectiveDate as string) ?? new Date().toISOString().slice(0, 10);
+    const plantId = await this.resolvePlantIdForLocation(tenantId, toLocationId, toPlantId);
 
     // Close current spell
     await this.db.queryWithTenant(tenantId, `
@@ -76,8 +78,9 @@ export class EmployeeLifecycleApprovalListener {
       probation_end_date: string | null;
       notice_period_days: number | null;
       job_grade: string | null;
+      plant_id: string | null;
     }>(tenantId, `
-      SELECT employment_type, probation_end_date, notice_period_days, job_grade
+      SELECT employment_type, probation_end_date, notice_period_days, job_grade, plant_id
       FROM employment_spells
       WHERE employee_id = $1 AND effective_to = $2
       ORDER BY effective_from DESC
@@ -88,14 +91,15 @@ export class EmployeeLifecycleApprovalListener {
     await this.db.queryWithTenant(tenantId, `
       INSERT INTO employment_spells (
         tenant_id, employee_id, department_id, location_id,
-        job_title, employment_type, work_arrangement, effective_from,
+        plant_id, job_title, employment_type, work_arrangement, effective_from,
         probation_end_date, notice_period_days, job_grade
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
     `, [
       tenantId,
       employeeId,
       toDepartmentId,
       toLocationId,
+      plantId ?? previousSpell?.plant_id ?? null,
       jobTitle,
       previousSpell?.employment_type ?? 'full_time',
       workArrangement,
@@ -118,6 +122,8 @@ export class EmployeeLifecycleApprovalListener {
         toDepartmentId,
         fromLocationId: ctx.fromLocationId,
         toLocationId,
+        fromPlantId: previousSpell?.plant_id ?? null,
+        toPlantId: plantId ?? previousSpell?.plant_id ?? null,
       }),
       effectiveDate,
       'system',
@@ -138,19 +144,21 @@ export class EmployeeLifecycleApprovalListener {
     const [currentSpell] = await this.db.queryWithTenant<{
       department_id: string;
       location_id: string;
+      plant_id: string | null;
       employment_type: string;
       work_arrangement: string;
       probation_end_date: string | null;
       notice_period_days: number | null;
       job_grade: string | null;
     }>(tenantId, `
-      SELECT department_id, location_id, employment_type, work_arrangement, probation_end_date, notice_period_days, job_grade
+      SELECT department_id, location_id, plant_id, employment_type, work_arrangement, probation_end_date, notice_period_days, job_grade
       FROM employment_spells
       WHERE employee_id = $1 AND effective_to IS NULL
       LIMIT 1
     `, [employeeId]);
 
     const locationId = currentSpell?.location_id ?? null;
+    const plantId = currentSpell?.plant_id ?? null;
 
     // Close current spell
     await this.db.queryWithTenant(tenantId, `
@@ -163,14 +171,15 @@ export class EmployeeLifecycleApprovalListener {
     await this.db.queryWithTenant(tenantId, `
       INSERT INTO employment_spells (
         tenant_id, employee_id, department_id, location_id,
-        job_title, employment_type, work_arrangement, effective_from,
+        plant_id, job_title, employment_type, work_arrangement, effective_from,
         probation_end_date, notice_period_days, job_grade
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
     `, [
       tenantId,
       employeeId,
       departmentId ?? currentSpell?.department_id,
       locationId,
+      plantId,
       newJobTitle,
       currentSpell?.employment_type ?? 'full_time',
       currentSpell?.work_arrangement ?? 'office',
@@ -191,6 +200,7 @@ export class EmployeeLifecycleApprovalListener {
       JSON.stringify({
         fromJobTitle: ctx.oldJobTitle,
         toJobTitle: newJobTitle,
+        plantId,
       }),
       effectiveDate,
       'system',
@@ -232,5 +242,42 @@ export class EmployeeLifecycleApprovalListener {
       terminationDate,
       'system',
     ]);
+  }
+
+  private async resolvePlantIdForLocation(
+    tenantId: string,
+    locationId: string | null,
+    preferredPlantId: string | null,
+  ): Promise<string | null> {
+    if (!locationId) {
+      return preferredPlantId ?? null;
+    }
+
+    if (preferredPlantId) {
+      const [row] = await this.db.queryWithTenant<{ id: string; location_id: string }>(tenantId, `
+        SELECT id, location_id
+        FROM plants
+        WHERE tenant_id = $1
+          AND id = $2
+          AND is_active = TRUE
+        LIMIT 1
+      `, [tenantId, preferredPlantId]);
+
+      if (row && row.location_id === locationId) {
+        return row.id;
+      }
+    }
+
+    const [fallback] = await this.db.queryWithTenant<{ id: string }>(tenantId, `
+      SELECT id
+      FROM plants
+      WHERE tenant_id = $1
+        AND location_id = $2
+        AND is_active = TRUE
+      ORDER BY created_at ASC
+      LIMIT 1
+    `, [tenantId, locationId]);
+
+    return fallback?.id ?? null;
   }
 }

@@ -7,6 +7,7 @@ export type Employee = {
   name: string;
   role: string;
   dept: string;
+  plantName?: string;
   status: EmployeeStatus;
   type: WorkType;
   since: string;
@@ -27,6 +28,8 @@ export type CreateEmployeeInput = {
   departmentName: string;
   locationId: string;
   locationName: string;
+  plantId?: string | null;
+  plantName?: string;
   status: EmployeeStatus;
   type: WorkType;
   since: string;
@@ -97,6 +100,7 @@ export function addEmployee(employees: readonly Employee[], input: CreateEmploye
       name: input.name,
       role: input.role,
       dept: input.departmentName,
+      ...(input.plantName ? { plantName: input.plantName } : {}),
       status: input.status,
       type: input.type,
       since: input.since,
@@ -131,6 +135,7 @@ export function updateEmployee(
           name: input.name,
           role: input.role,
           dept: input.departmentName,
+          ...(input.plantName ? { plantName: input.plantName } : {}),
           status: input.status,
           type: input.type,
           since: input.since,

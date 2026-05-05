@@ -7,6 +7,7 @@ import type { ContractType, CreateEmployeeInput, Employee, EmployeeStatus, WorkT
 import type {
   OrganizationCatalogDepartment,
   OrganizationCatalogLocation,
+  OrganizationCatalogPlant,
 } from '../../lib/organization-api';
 
 type PeopleDialogMode = 'create' | 'edit';
@@ -22,6 +23,7 @@ type PeopleCreateDialogProps = {
   initialLocationId: string | undefined;
   departmentOptions: readonly OrganizationCatalogDepartment[];
   locationOptions: readonly OrganizationCatalogLocation[];
+  plantOptions: readonly OrganizationCatalogPlant[];
   managerOptions: readonly ManagerOption[];
   onClose: () => void;
   onSubmit: (employee: CreateEmployeeInput) => void;
@@ -32,6 +34,7 @@ type FormState = {
   role: string;
   departmentId: string;
   locationId: string;
+  plantId: string;
   managerId: string;
   status: EmployeeStatus;
   type: WorkType;
@@ -47,6 +50,7 @@ const INITIAL_FORM_STATE: FormState = {
   role: '',
   departmentId: '',
   locationId: '',
+  plantId: '',
   managerId: '',
   status: 'Active',
   type: 'Office',
@@ -71,6 +75,7 @@ export function PeopleCreateDialog({
   initialLocationId,
   departmentOptions,
   locationOptions,
+  plantOptions,
   managerOptions,
   onClose,
   onSubmit,
@@ -99,6 +104,7 @@ export function PeopleCreateDialog({
         role: initialEmployee.role,
         departmentId: initialDepartment?.id ?? '',
         locationId: initialLocation?.id ?? '',
+        plantId: plantOptions.find((plant) => plant.locationId === (initialLocation?.id ?? ''))?.id ?? '',
         managerId: initialEmployee.managerId ?? '',
         status: (STATUSES as readonly string[]).includes(initialEmployee.status)
           ? initialEmployee.status as EmployeeStatus
@@ -118,13 +124,17 @@ export function PeopleCreateDialog({
       defaultDepartment
         ? locationOptions.find((location) => location.id === defaultDepartment.locationId)
         : undefined;
+    const defaultPlant = defaultLocation
+      ? plantOptions.find((plant) => plant.locationId === defaultLocation.id)
+      : undefined;
     setForm({
       ...INITIAL_FORM_STATE,
       departmentId: defaultDepartment?.id ?? '',
       locationId: defaultLocation?.id ?? locationOptions[0]?.id ?? '',
+      plantId: defaultPlant?.id ?? '',
       managerId: '',
     });
-  }, [departmentOptions, initialDepartmentId, initialEmployee, initialLocationId, locationOptions, mode, open]);
+  }, [departmentOptions, initialDepartmentId, initialEmployee, initialLocationId, locationOptions, mode, open, plantOptions]);
 
   if (!open) {
     return null;
@@ -134,12 +144,17 @@ export function PeopleCreateDialog({
     setFeedback(null);
     const selectedDepartment = departmentOptions.find((option) => option.id === form.departmentId);
     const selectedLocation = locationOptions.find((option) => option.id === form.locationId);
+    const selectedPlant = plantOptions.find((option) => option.id === form.plantId);
     if (!form.name.trim() || !form.role.trim() || !form.since.trim() || !selectedDepartment || !selectedLocation) {
       setFeedback(copy.validation.createRequired);
       return;
     }
 
     const derivedLocation = locationOptions.find((location) => location.id === selectedDepartment.locationId) ?? selectedLocation;
+    const derivedPlant =
+      selectedPlant && selectedPlant.locationId === derivedLocation.id
+        ? selectedPlant
+        : plantOptions.find((plant) => plant.locationId === derivedLocation.id);
 
     const noticeDays = form.noticePeriodDays.trim() ? Number(form.noticePeriodDays.trim()) : undefined;
 
@@ -150,6 +165,7 @@ export function PeopleCreateDialog({
       departmentName: selectedDepartment.name,
       locationId: derivedLocation.id,
       locationName: derivedLocation.name,
+      ...(derivedPlant ? { plantId: derivedPlant.id, plantName: derivedPlant.name } : {}),
       status: form.status,
       type: form.type,
       since: form.since.trim(),
@@ -265,6 +281,24 @@ export function PeopleCreateDialog({
               </select>
             </label>
           </div>
+
+          <label style={{ display: 'grid', gap: 6 }}>
+            <span className="aurora-card-subtitle">Plant</span>
+            <select
+              value={form.plantId}
+              onChange={(event) => setForm((current) => ({ ...current, plantId: event.target.value }))}
+              style={inputStyle}
+            >
+              <option value="">Auto-select plant for the location</option>
+              {plantOptions
+                .filter((plant) => plant.locationId === form.locationId)
+                .map((plant) => (
+                  <option key={plant.id} value={plant.id}>
+                    {plant.name}
+                  </option>
+                ))}
+            </select>
+          </label>
 
           <label style={{ display: 'grid', gap: 6 }}>
             <span className="aurora-card-subtitle">{copy.employeeForm.manager}</span>

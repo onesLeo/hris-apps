@@ -120,7 +120,7 @@ function AuroraAppShell() {
                 </div>
                 {sidebarOpen && activeItem && (
                   <div className="aurora-subnav">
-                    <div className="aurora-subnav-item">{copy.screenInfo[item.id].subtitle}</div>
+                    <div className="aurora-subnav-item">{copy.screenInfo[item.id]?.subtitle ?? copy.common.soon}</div>
                   </div>
                 )}
               </div>
@@ -138,22 +138,22 @@ function AuroraAppShell() {
                 >
                   <Icon name={item.icon} size={17} color={active === item.key ? 'var(--accent)' : 'var(--text-mid)'} strokeWidth={active === item.key ? 2 : 1.6} />
                   {sidebarOpen && (
-                    <>
+                    <div className="aurora-nav-copy">
                       <span className="aurora-nav-label">{copy.featureMenu[item.key]}</span>
-                      <span className="aurora-card-subtitle" style={{ fontSize: 10.5 }}>
-                        {copy.screenInfo[item.key].subtitle}
+                      <span className="aurora-nav-subtitle">
+                        {copy.screenInfo[item.key]?.subtitle ?? copy.common.soon}
                       </span>
-                    </>
+                    </div>
                   )}
                 </div>
               ) : (
                 <div key={item.key} className={`aurora-nav-item ${sidebarOpen ? '' : 'is-collapsed'}`} style={{ cursor: 'default', opacity: 0.78 }}>
                   <Icon name={item.icon} size={17} color="var(--text-muted)" strokeWidth={1.6} />
                   {sidebarOpen && (
-                    <>
+                    <div className="aurora-nav-copy">
                       <span className="aurora-nav-label">{copy.featureMenu[item.key]}</span>
-                      <span className="aurora-card-subtitle" style={{ fontSize: 10.5, textTransform: 'uppercase' }}>{copy.common.soon}</span>
-                    </>
+                      <span className="aurora-nav-subtitle aurora-nav-subtitle--soon">{copy.common.soon}</span>
+                    </div>
                   )}
                 </div>
               )
@@ -212,7 +212,7 @@ function AuroraAppShell() {
             </div>
             <div>
               <div className="aurora-header-title">{copy.screenInfo[active].title}</div>
-              <div className="aurora-header-subtitle">{copy.screenInfo[active].subtitle}</div>
+              <div className="aurora-header-subtitle">{copy.screenInfo[active]?.subtitle ?? copy.common.soon}</div>
             </div>
           </div>
 

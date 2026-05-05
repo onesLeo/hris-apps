@@ -68,7 +68,7 @@ export function MyProfileScreen() {
           </div>
           {!isEditing && (
             <Button size="sm" variant="primary" onClick={() => setIsEditing(true)}>
-              <Icon name="pencil" size={13} color="#fff" strokeWidth={2} />
+              <Icon name="edit" size={13} color="#fff" strokeWidth={2} />
               Edit
             </Button>
           )}
@@ -341,7 +341,7 @@ export function MyProfileScreen() {
           <div style={{ display: 'flex', gap: 12, justifyContent: 'flex-end' }}>
             <Button
               size="sm"
-              variant="secondary"
+              variant="ghost"
               onClick={() => setIsEditing(false)}
               disabled={isSaving}
             >

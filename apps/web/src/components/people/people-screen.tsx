@@ -45,6 +45,7 @@ import {
   fetchOrganizationCatalog,
   type OrganizationCatalogDepartment,
   type OrganizationCatalogLocation,
+  type OrganizationCatalogPlant,
 } from '../../lib/organization-api';
 
 const BADGE_TONE: Record<EmployeeStatus | WorkType, 'accent' | 'violet' | 'warning' | 'info' | 'success' | 'danger' | 'ghost'> = {
@@ -87,6 +88,9 @@ export function PeopleScreen() {
           code: department.name.toLowerCase().replace(/\s+/g, '-'),
           locationId: `mock-loc-${index + 1}`,
           locationName: fallbackOrganization.locations[0]?.name ?? 'Headquarters',
+          managerId: null,
+          managerName: department.manager,
+          isActive: true,
         }))
       : [],
   );
@@ -96,6 +100,24 @@ export function PeopleScreen() {
           id: `mock-loc-${index + 1}`,
           name: location.name,
           code: location.name.toLowerCase().replace(/\s+/g, '-'),
+          country: 'Indonesia',
+          timezone: 'Asia/Jakarta',
+          clockingMethod: 'biometric',
+          isActive: true,
+        }))
+      : [],
+  );
+  const [plantOptions, setPlantOptions] = useState<OrganizationCatalogPlant[]>(
+    allowMockFallback
+      ? fallbackOrganization.plantMap.map((plant, index) => ({
+          id: `mock-plant-${index + 1}`,
+          name: plant.name,
+          code: plant.code,
+          locationId: `mock-loc-${index < fallbackOrganization.locations.length ? index + 1 : 1}`,
+          locationName: plant.locationName,
+          managerId: null,
+          managerName: plant.manager,
+          isActive: true,
         }))
       : [],
   );
@@ -140,6 +162,7 @@ export function PeopleScreen() {
       if (catalogResult.status === 'fulfilled' && catalogResult.value.locations.length > 0 && catalogResult.value.departments.length > 0) {
         setDepartmentOptions(catalogResult.value.departments);
         setLocationOptions(catalogResult.value.locations);
+        setPlantOptions(catalogResult.value.plants);
         setCatalogReady(true);
       } else {
         setCatalogReady(false);
@@ -266,6 +289,7 @@ export function PeopleScreen() {
           const updated = await apiTransfer(target.id, {
             departmentId: payload.departmentId,
             locationId: payload.locationId,
+            ...(payload.plantId ? { plantId: payload.plantId } : {}),
             jobTitle: payload.jobTitle,
             workArrangement: payload.workArrangement,
             effectiveDate: payload.effectiveDate,
@@ -288,10 +312,14 @@ export function PeopleScreen() {
 
       const selectedDepartment = departmentOptions.find((department) => department.id === payload.departmentId);
       const selectedLocation = locationOptions.find((location) => location.id === payload.locationId);
+      const selectedPlant = plantOptions.find((plant) => plant.id === payload.plantId);
       const currentDepartment = departmentOptions.find((department) => department.name === target.dept) ?? selectedDepartment;
       const currentLocation = currentDepartment
         ? locationOptions.find((location) => location.id === currentDepartment.locationId) ?? selectedLocation
         : selectedLocation;
+      const currentPlant = currentLocation
+        ? plantOptions.find((plant) => plant.locationId === currentLocation.id) ?? selectedPlant
+        : selectedPlant;
       setEmployees((curr) =>
         updateEmployee(curr, employeeKey, {
           name: target.name,
@@ -300,6 +328,7 @@ export function PeopleScreen() {
           departmentName: selectedDepartment?.name ?? currentDepartment?.name ?? target.dept,
           locationId: currentLocation?.id ?? payload.locationId,
           locationName: currentLocation?.name ?? '',
+          ...(currentPlant ? { plantName: currentPlant.name } : {}),
           status: target.status,
           type: payload.workArrangement === 'remote'
             ? 'Remote'
@@ -369,6 +398,7 @@ export function PeopleScreen() {
             jobTitle: payload.jobTitle,
             departmentId: payload.departmentId,
             locationId: payload.locationId,
+            ...(payload.plantId ? { plantId: payload.plantId } : {}),
             workArrangement: payload.workArrangement,
           });
           setEmployees((curr) => curr.map((employee) => (employee.id === updated.id ? updated : employee)));
@@ -389,6 +419,7 @@ export function PeopleScreen() {
 
       const rehireDept = departmentOptions.find((d) => d.id === payload.departmentId);
       const rehireLoc = locationOptions.find((l) => l.id === payload.locationId);
+      const rehirePlant = plantOptions.find((plant) => plant.id === payload.plantId);
       setEmployees((curr) =>
         updateEmployee(curr, employeeKey, {
           name: target.name,
@@ -397,6 +428,7 @@ export function PeopleScreen() {
           departmentName: rehireDept?.name ?? target.dept,
           locationId: payload.locationId,
           locationName: rehireLoc?.name ?? '',
+          ...(rehirePlant ? { plantName: rehirePlant.name } : {}),
           status: 'Active',
           type: payload.workArrangement === 'remote' ? 'Remote' : payload.workArrangement === 'hybrid' ? 'Hybrid' : 'Office',
           since: payload.newHireDate,
@@ -412,6 +444,7 @@ export function PeopleScreen() {
           const updated = await apiSecond(target.id, {
             hostDepartmentId: payload.hostDepartmentId,
             hostLocationId: payload.hostLocationId,
+            ...(payload.hostPlantId ? { hostPlantId: payload.hostPlantId } : {}),
             ...(payload.jobTitleAtHost ? { jobTitleAtHost: payload.jobTitleAtHost } : {}),
             startDate: payload.startDate,
             expectedReturnDate: payload.expectedReturnDate,
@@ -434,6 +467,7 @@ export function PeopleScreen() {
 
       const hostDept = departmentOptions.find((d) => d.id === payload.hostDepartmentId);
       const hostLoc = locationOptions.find((l) => l.id === payload.hostLocationId);
+      const hostPlant = plantOptions.find((plant) => plant.id === payload.hostPlantId);
       setEmployees((curr) =>
         updateEmployee(curr, employeeKey, {
           name: target.name,
@@ -442,6 +476,7 @@ export function PeopleScreen() {
           departmentName: hostDept?.name ?? target.dept,
           locationId: payload.hostLocationId,
           locationName: hostLoc?.name ?? '',
+          ...(hostPlant ? { plantName: hostPlant.name } : {}),
           status: target.status,
           type: target.type,
           since: target.since,
@@ -680,7 +715,10 @@ export function PeopleScreen() {
                 <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>{employee.role}{employee.managerName ? ` / ${employee.managerName}` : ''}</div>
               </div>
             </div>
-            <span style={{ fontSize: 13, color: 'var(--text-mid)' }}>{employee.dept}</span>
+            <span style={{ fontSize: 13, color: 'var(--text-mid)' }}>
+              {employee.dept}
+              {employee.plantName ? ` / ${employee.plantName}` : ''}
+            </span>
             <Badge label={statusLabel(employee.status)} tone={BADGE_TONE[employee.status]} />
             <Badge label={statusLabel(employee.type)} tone={BADGE_TONE[employee.type]} />
             <span style={{ fontSize: 12.5, color: 'var(--text-muted)' }}>{employee.since}</span>
@@ -735,6 +773,7 @@ export function PeopleScreen() {
         initialLocationId={editingLocation?.id}
         departmentOptions={departmentOptions}
         locationOptions={locationOptions}
+        plantOptions={plantOptions}
         managerOptions={employees
           .filter((e) => e.status === 'Active' && e.id !== editingEmployee?.id)
           .map((e) => ({ id: e.id ?? getEmployeeKey(e), name: e.name }))}
@@ -749,6 +788,7 @@ export function PeopleScreen() {
       copy={localeCopy}
       departmentOptions={departmentOptions}
       locationOptions={locationOptions}
+      plantOptions={plantOptions}
       onClose={closeLifecycleDialog}
         onSubmit={submitLifecycleDialog}
       />

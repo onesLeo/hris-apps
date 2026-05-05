@@ -1,4 +1,4 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Inject, Injectable, Logger } from '@nestjs/common';
 import { sql } from 'drizzle-orm';
 import { DATABASE_SERVICE, type IDatabaseService } from '../../common/database/database.types';
 import type {
@@ -59,6 +59,8 @@ export type PendingWorkflowItem = {
 
 @Injectable()
 export class ApprovalRepository {
+  private readonly logger = new Logger(ApprovalRepository.name);
+
   constructor(@Inject(DATABASE_SERVICE) private readonly db: IDatabaseService) {}
 
   async loadDecisionSnapshot(tenantId: string, workflowInstanceId: string): Promise<ApprovalDecisionSnapshot> {
@@ -146,55 +148,70 @@ export class ApprovalRepository {
   }
 
   async listPendingForUser(tenantId: string, userId: string): Promise<PendingWorkflowItem[]> {
-    const rows = await this.db.queryWithTenant<any>(tenantId, `
-      SELECT
-        wi.id,
-        wt.code AS template_code,
-        wt.name AS template_name,
-        wi.request_type,
-        wi.entity_type,
-        wi.entity_id,
-        wi.requestor_id,
-        wi.status,
-        wi.current_step_order,
-        wi.context_json,
-        wi.started_at,
-        wsi.step_order,
-        wsi.assignee_id,
-        wsi.due_at
-      FROM workflow_instances wi
-      JOIN workflow_templates wt ON wt.id = wi.template_id
-      LEFT JOIN workflow_step_instances wsi
-        ON wsi.workflow_instance_id = wi.id
-        AND wsi.step_order = wi.current_step_order
-      WHERE wi.tenant_id = $1
-        AND wi.status = 'in_progress'
-        AND (wsi.assignee_id = $2 OR wsi.assignee_id IS NULL)
-      ORDER BY wi.started_at DESC
-    `, [tenantId, userId]);
+    try {
+      const rows = await this.db.queryWithTenant<any>(tenantId, `
+        SELECT
+          wi.id,
+          wt.code AS template_code,
+          wt.name AS template_name,
+          wi.request_type,
+          wi.entity_type,
+          wi.entity_id,
+          wi.requestor_id,
+          wi.status,
+          wi.current_step_order,
+          wi.context_json,
+          wi.started_at,
+          wsi.step_order,
+          wsi.assignee_id,
+          wsi.due_at
+        FROM workflow_instances wi
+        JOIN workflow_templates wt ON wt.id = wi.template_id
+        LEFT JOIN workflow_step_instances wsi
+          ON wsi.workflow_instance_id = wi.id
+          AND wsi.step_order = wi.current_step_order
+        WHERE wi.tenant_id = $1
+          AND wi.status = 'in_progress'
+          AND (wsi.assignee_id = $2 OR wsi.assignee_id IS NULL)
+        ORDER BY wi.started_at DESC
+      `, [tenantId, userId]);
 
-    return rows.map((row) => {
-      const item: PendingWorkflowItem = {
-        id: row.id,
-        templateCode: row.template_code,
-        templateName: row.template_name,
-        requestType: row.request_type,
-        entityType: row.entity_type,
-        entityId: row.entity_id,
-        requestorId: row.requestor_id,
-        status: row.status,
-        currentStepOrder: row.current_step_order,
-        contextJson: (row.context_json as Record<string, unknown>) ?? {},
-        startedAt: row.started_at,
-      };
-      if (row.step_order != null) {
-        item.currentStep = {
-          stepOrder: row.step_order,
-          assigneeId: row.assignee_id ?? null,
-          dueAt: row.due_at ?? null,
+      return rows.map((row) => {
+        const item: PendingWorkflowItem = {
+          id: row.id,
+          templateCode: row.template_code,
+          templateName: row.template_name,
+          requestType: row.request_type,
+          entityType: row.entity_type,
+          entityId: row.entity_id,
+          requestorId: row.requestor_id,
+          status: row.status,
+          currentStepOrder: row.current_step_order,
+          contextJson: (row.context_json as Record<string, unknown>) ?? {},
+          startedAt: row.started_at,
         };
+        if (row.step_order != null) {
+          item.currentStep = {
+            stepOrder: row.step_order,
+            assigneeId: row.assignee_id ?? null,
+            dueAt: row.due_at ?? null,
+          };
+        }
+        return item;
+      });
+    } catch (error) {
+      if (this.isMissingWorkflowSchemaError(error)) {
+        this.logger.warn(`workflow schema is missing; returning empty approvals list for tenant ${tenantId}`);
+        return [];
       }
-      return item;
-    });
+      throw error;
+    }
+  }
+
+  private isMissingWorkflowSchemaError(error: unknown): boolean {
+    return typeof error === 'object'
+      && error !== null
+      && 'code' in error
+      && (error as { code?: string }).code === '42P01';
   }
 }

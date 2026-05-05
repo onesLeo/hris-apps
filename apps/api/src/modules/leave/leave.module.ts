@@ -1,6 +1,7 @@
 import { BullModule } from '@nestjs/bullmq';
 import { Module } from '@nestjs/common';
 import { DatabaseModule } from '../../common/database/database.module';
+import { ApprovalModule } from '../approval/approval.module';
 import { EmployeeModule } from '../employee/employee.module';
 import { LeaveController } from './leave.controller';
 import { LeaveRepository } from './leave.repository';
@@ -12,6 +13,7 @@ import { SubmitLeaveRequestUseCase } from './submit-leave-request.use-case';
 @Module({
   imports: [
     DatabaseModule,
+    ApprovalModule,
     EmployeeModule,
     BullModule.registerQueue({ name: LEAVE_ACCRUAL_QUEUE }),
   ],

@@ -198,9 +198,15 @@ export class WorkflowInstanceService {
     baseContext: WorkflowAssigneeContext,
   ): Promise<WorkflowAssigneeContext> {
     const [hrManagerId, payrollManagerId, plantManagerId, specificRoleAssigneeId] = await Promise.all([
-      step.assigneeRule === 'hr_manager' ? this.findRoleAssigneeId(tenantId, 'hr_manager') : Promise.resolve(baseContext.hrManagerId ?? null),
-      step.assigneeRule === 'payroll_manager' ? this.findRoleAssigneeId(tenantId, 'payroll_manager') : Promise.resolve(baseContext.payrollManagerId ?? null),
-      step.assigneeRule === 'plant_manager' ? this.findRoleAssigneeId(tenantId, 'plant_manager') : Promise.resolve(baseContext.plantManagerId ?? null),
+      step.assigneeRule === 'hr_manager'
+        ? Promise.resolve(baseContext.hrManagerId ?? null).then((id) => id ?? this.findRoleAssigneeId(tenantId, 'hr_manager'))
+        : Promise.resolve(baseContext.hrManagerId ?? null),
+      step.assigneeRule === 'payroll_manager'
+        ? Promise.resolve(baseContext.payrollManagerId ?? null).then((id) => id ?? this.findRoleAssigneeId(tenantId, 'payroll_manager'))
+        : Promise.resolve(baseContext.payrollManagerId ?? null),
+      step.assigneeRule === 'plant_manager'
+        ? Promise.resolve(baseContext.plantManagerId ?? null).then((id) => id ?? this.findRoleAssigneeId(tenantId, 'plant_manager'))
+        : Promise.resolve(baseContext.plantManagerId ?? null),
       step.assigneeRule === 'specific_role' && step.specificRole
         ? this.findRoleAssigneeId(tenantId, step.specificRole)
         : Promise.resolve(baseContext.specificRoleAssigneeId ?? null),

@@ -43,6 +43,12 @@ export class EmployeeController {
     return this.service.list(this.tenantId(), query);
   }
 
+  @Get('me')
+  @Roles('employee')
+  getMyProfile() {
+    return this.service.getMyProfile(this.tenantId(), this.userId());
+  }
+
   @Get(':id')
   @Roles('hris_admin', 'hr_manager', 'hr_staff', 'payroll_manager', 'plant_manager', 'department_manager', 'employee', 'read_only')
   getById(@Param('id') id: string) {
@@ -101,12 +107,6 @@ export class EmployeeController {
   @Roles('hris_admin', 'hr_manager', 'hr_staff', 'employee', 'read_only')
   history(@Param('id') id: string) {
     return this.service.getHistory(this.tenantId(), id);
-  }
-
-  @Get('me')
-  @Roles('employee')
-  getMyProfile() {
-    return this.service.getMyProfile(this.tenantId(), this.userId());
   }
 
   @Patch('me')

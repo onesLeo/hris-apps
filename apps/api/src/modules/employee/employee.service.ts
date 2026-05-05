@@ -38,6 +38,7 @@ export class EmployeeService {
     const ctx = RequestContext.get();
     const actorId = ctx?.userId ?? 'system';
     const displayName = `${dto.firstName} ${dto.lastName}`;
+    const plantId = await this.resolvePlantIdForLocation(tenantId, dto.locationId, dto.plantId ?? null);
 
     const [employee] = await this.db.queryWithTenant<EmployeeRow>(tenantId, `
       INSERT INTO employees (
@@ -57,12 +58,12 @@ export class EmployeeService {
 
     await this.db.queryWithTenant(tenantId, `
       INSERT INTO employment_spells (
-        tenant_id, employee_id, department_id, location_id,
+        tenant_id, employee_id, department_id, location_id, plant_id,
         job_title, employment_type, work_arrangement, effective_from,
         probation_end_date, notice_period_days, job_grade
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
     `, [
-      tenantId, employee.id, dto.departmentId, dto.locationId,
+      tenantId, employee.id, dto.departmentId, dto.locationId, plantId,
       dto.jobTitle, dto.employmentType ?? 'full_time',
       dto.workArrangement ?? 'office', dto.hireDate,
       dto.probationEndDate ?? null, dto.noticePeriodDays ?? null, dto.jobGrade ?? null,
@@ -108,15 +109,17 @@ export class EmployeeService {
     const rows = await this.db.queryWithTenant<EmployeeRow>(tenantId, `
       SELECT e.*,
         s.job_title, s.department_id, s.employment_type, s.work_arrangement,
-        s.location_id, s.probation_end_date, s.notice_period_days, s.job_grade,
+        s.location_id, s.plant_id, s.probation_end_date, s.notice_period_days, s.job_grade,
         d.name AS department_name,
         l.name AS location_name,
+        p.name AS plant_name,
         m.display_name AS manager_display_name
       FROM employees e
       LEFT JOIN employment_spells s
         ON s.employee_id = e.id AND s.effective_to IS NULL
       LEFT JOIN departments d ON d.id = s.department_id
       LEFT JOIN locations   l ON l.id = s.location_id
+      LEFT JOIN plants      p ON p.id = s.plant_id
       LEFT JOIN employees   m ON m.id = e.manager_id
       WHERE ${where}
       ORDER BY e.id
@@ -132,15 +135,17 @@ export class EmployeeService {
     const [row] = await this.db.queryWithTenant<EmployeeRow>(tenantId, `
       SELECT e.*,
         s.job_title, s.department_id, s.employment_type, s.work_arrangement,
-        s.location_id, s.probation_end_date, s.notice_period_days, s.job_grade,
+        s.location_id, s.plant_id, s.probation_end_date, s.notice_period_days, s.job_grade,
         d.name AS department_name,
         l.name AS location_name,
+        p.name AS plant_name,
         m.display_name AS manager_display_name
       FROM employees e
       LEFT JOIN employment_spells s
         ON s.employee_id = e.id AND s.effective_to IS NULL
       LEFT JOIN departments d ON d.id = s.department_id
       LEFT JOIN locations   l ON l.id = s.location_id
+      LEFT JOIN plants      p ON p.id = s.plant_id
       LEFT JOIN employees   m ON m.id = e.manager_id
       WHERE e.id = $1 AND e.tenant_id = $2
     `, [id, tenantId]);
@@ -194,6 +199,7 @@ export class EmployeeService {
       displayName: current.display_name,
       departmentId: dto.departmentId,
       locationId: dto.locationId,
+      plantId: dto.plantId ?? null,
       fromDepartmentId: current.department_id,
       fromLocationId: current.location_id,
       jobTitle: dto.jobTitle ?? current.job_title ?? '',
@@ -569,6 +575,7 @@ export class EmployeeService {
     const ctx = RequestContext.get();
     const actorId = ctx?.userId ?? 'system';
     const current = await this.getById(tenantId, id);
+    const plantId = await this.resolvePlantIdForLocation(tenantId, dto.locationId, dto.plantId ?? null);
 
     await this.db.queryWithTenant(tenantId, `
       UPDATE employees
@@ -578,12 +585,12 @@ export class EmployeeService {
 
     await this.db.queryWithTenant(tenantId, `
       INSERT INTO employment_spells (
-        tenant_id, employee_id, department_id, location_id,
+        tenant_id, employee_id, department_id, location_id, plant_id,
         job_title, employment_type, work_arrangement, effective_from,
         probation_end_date, notice_period_days, job_grade
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)
     `, [
-      tenantId, id, dto.departmentId, dto.locationId,
+      tenantId, id, dto.departmentId, dto.locationId, plantId,
       dto.jobTitle,
       current.employment_type ?? 'full_time',
       dto.workArrangement ?? 'office',
@@ -607,6 +614,7 @@ export class EmployeeService {
       jobTitle: dto.jobTitle,
       departmentId: dto.departmentId,
       locationId: dto.locationId,
+      plantId: dto.plantId ?? null,
       actorId,
     });
 
@@ -618,6 +626,7 @@ export class EmployeeService {
     const ctx = RequestContext.get();
     const actorId = ctx?.userId ?? 'system';
     const current = await this.getById(tenantId, id);
+    const hostPlantId = await this.resolvePlantIdForLocation(tenantId, dto.hostLocationId, dto.hostPlantId ?? null);
 
     await this.db.queryWithTenant(tenantId, `
       UPDATE employment_spells
@@ -627,11 +636,11 @@ export class EmployeeService {
 
     await this.db.queryWithTenant(tenantId, `
       INSERT INTO employment_spells (
-        tenant_id, employee_id, department_id, location_id,
+        tenant_id, employee_id, department_id, location_id, plant_id,
         job_title, employment_type, work_arrangement, effective_from, effective_to
-      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+      ) VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
     `, [
-      tenantId, id, dto.hostDepartmentId, dto.hostLocationId,
+      tenantId, id, dto.hostDepartmentId, dto.hostLocationId, hostPlantId,
       dto.jobTitleAtHost ?? current.job_title ?? '',
       current.employment_type ?? 'full_time',
       current.work_arrangement ?? 'office',
@@ -654,6 +663,7 @@ export class EmployeeService {
       tenantId, employeeId: id,
       hostDepartmentId: dto.hostDepartmentId,
       hostLocationId: dto.hostLocationId,
+      hostPlantId,
       startDate: dto.startDate,
       expectedReturnDate: dto.expectedReturnDate,
       actorId,
@@ -661,6 +671,39 @@ export class EmployeeService {
 
     this.logger.log('employee seconded', { employeeId: id });
     return this.getById(tenantId, id);
+  }
+
+  private async resolvePlantIdForLocation(
+    tenantId: string,
+    locationId: string,
+    preferredPlantId: string | null,
+  ): Promise<string | null> {
+    if (preferredPlantId) {
+      const [row] = await this.db.queryWithTenant<{ id: string; location_id: string }>(tenantId, `
+        SELECT id, location_id
+        FROM plants
+        WHERE tenant_id = $1
+          AND id = $2
+          AND is_active = TRUE
+        LIMIT 1
+      `, [tenantId, preferredPlantId]);
+
+      if (row && row.location_id === locationId) {
+        return row.id;
+      }
+    }
+
+    const [fallback] = await this.db.queryWithTenant<{ id: string }>(tenantId, `
+      SELECT id
+      FROM plants
+      WHERE tenant_id = $1
+        AND location_id = $2
+        AND is_active = TRUE
+      ORDER BY created_at ASC
+      LIMIT 1
+    `, [tenantId, locationId]);
+
+    return fallback?.id ?? null;
   }
 
   private async resolveEmployeeIdFromUserId(tenantId: string, userId: string): Promise<string | null> {

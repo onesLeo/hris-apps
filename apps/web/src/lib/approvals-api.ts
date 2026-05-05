@@ -1,4 +1,4 @@
-import { getApiUrl } from './api-client';
+import { apiGet, apiPost } from './api-client';
 
 export type PendingWorkflow = {
   id: string;
@@ -31,23 +31,11 @@ export type WorkflowTimeline = {
 };
 
 export async function fetchPendingApprovals(): Promise<PendingWorkflow[]> {
-  const url = `${getApiUrl()}/approvals/pending`;
-  const response = await fetch(url, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-  });
-  if (!response.ok) throw new Error(`Failed to fetch pending approvals: ${response.status}`);
-  return response.json();
+  return apiGet<PendingWorkflow[]>('/approvals/pending');
 }
 
 export async function fetchWorkflowTimeline(workflowInstanceId: string): Promise<WorkflowTimeline> {
-  const url = `${getApiUrl()}/approvals/workflow-instances/${workflowInstanceId}/timeline`;
-  const response = await fetch(url, {
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-  });
-  if (!response.ok) throw new Error(`Failed to fetch timeline: ${response.status}`);
-  return response.json();
+  return apiGet<WorkflowTimeline>(`/approvals/workflow-instances/${workflowInstanceId}/timeline`);
 }
 
 export async function approveWorkflowStep(
@@ -55,17 +43,10 @@ export async function approveWorkflowStep(
   stepOrder: number,
   comment?: string,
 ): Promise<void> {
-  const url = `${getApiUrl()}/approvals/instances/${workflowInstanceId}/steps/${stepOrder}/decide`;
-  const response = await fetch(url, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      decision: 'approved',
-      comment: comment || null,
-    }),
+  await apiPost<void>(`/approvals/instances/${workflowInstanceId}/steps/${stepOrder}/decide`, {
+    decision: 'approved',
+    comment: comment || null,
   });
-  if (!response.ok) throw new Error(`Failed to approve: ${response.status}`);
 }
 
 export async function rejectWorkflowStep(
@@ -73,15 +54,8 @@ export async function rejectWorkflowStep(
   stepOrder: number,
   comment?: string,
 ): Promise<void> {
-  const url = `${getApiUrl()}/approvals/instances/${workflowInstanceId}/steps/${stepOrder}/decide`;
-  const response = await fetch(url, {
-    method: 'POST',
-    credentials: 'include',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      decision: 'rejected',
-      comment: comment || null,
-    }),
+  await apiPost<void>(`/approvals/instances/${workflowInstanceId}/steps/${stepOrder}/decide`, {
+    decision: 'rejected',
+    comment: comment || null,
   });
-  if (!response.ok) throw new Error(`Failed to reject: ${response.status}`);
 }
