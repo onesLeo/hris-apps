@@ -1,6 +1,7 @@
 param(
   [string]$ComposeFile = "docker\docker-compose.infra.yml",
-  [string]$SqlFile = "docker\bootstrap\dev-bootstrap.sql"
+  [string]$SqlFile = "docker\bootstrap\dev-bootstrap.sql",
+  [string]$PilotOrgSqlFile = "docker\bootstrap\dev-pilot-org.sql"
 )
 
 $repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
@@ -19,3 +20,8 @@ if ($LASTEXITCODE -eq 0) {
 }
 
 Get-Content -Raw $sqlPath | docker compose -f $composePath exec -T postgres psql -U hris_user -d hris -v ON_ERROR_STOP=1
+
+$pilotOrgSqlPath = [System.IO.Path]::GetFullPath((Join-Path $repoRoot $PilotOrgSqlFile))
+if (Test-Path $pilotOrgSqlPath) {
+  Get-Content -Raw $pilotOrgSqlPath | docker compose -f $composePath exec -T postgres psql -U hris_user -d hris -v ON_ERROR_STOP=1
+}

@@ -4,6 +4,9 @@ Use this checklist to smoke-test the app locally as close to a real pilot as pos
 The flow is organized by role so you can switch between HR Admin and Employee exactly
 the way the product is meant to be used.
 
+The local bootstrap now seeds a realistic Indonesia company map automatically:
+HO, branch locations, plants, managers, supervisors, and workers.
+
 ## Before You Start
 
 - [ ] Start the local stack and confirm both API and web are reachable.
@@ -53,7 +56,7 @@ Suggested starter values:
 Approver setup suggestion:
 
 - Plant manager: one user per plant who approves branch-level leave and operational actions.
-- HR approver: one central HRIS or HR manager who handles the final review.
+- HR approver: one central HRIS admin who handles the final review.
 - Direct manager: the employee's reporting manager if you want the manager approval step to appear.
 
 ## Recommended Org Mapping
@@ -69,7 +72,7 @@ It fits the current model in the app without needing hardcoded demo data.
 | Plant | `Plant` under a `Location` | `Yogyakarta Plant A`, `Jakarta Plant A`, `Tangerang Plant A`, `Surabaya Plant A` |
 | Supervisor | Employee `managerId` or team lead | The direct reporting manager for a worker group |
 | Workers | Employee records | Staff assigned to the correct plant, department, and team |
-| Central HR approver | Role `hris_admin` or `hr_manager` | Final leave and workflow review |
+| Central HR approver | Role `hris_admin` | Final leave and workflow review in the current workflow template |
 
 Recommended reporting structure:
 
@@ -87,12 +90,12 @@ Recommended leave approval path:
 1. Employee submits leave.
 2. Direct manager approves first, if the employee has one.
 3. Plant manager approves second, if the employee has a plant assigned.
-4. HRIS or HR manager does the final review.
+4. HRIS admin does the final review.
 
 If the requester is an HR employee:
 
 - Do not let them approve their own leave.
-- Route the final step to another HRIS admin or HR manager.
+- Route the final step to another HRIS admin if you want a real person to review it.
 - Keep the plant and manager steps if the HR employee still reports into a plant or supervisor.
 
 If the requester is a branch worker:
